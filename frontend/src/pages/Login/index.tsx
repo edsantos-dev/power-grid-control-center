@@ -1,6 +1,40 @@
+import { useState, type FormEvent } from 'react'
+import { useNavigate } from 'react-router-dom'
 import { Zap } from 'lucide-react'
 
 function Login() {
+  const navigate = useNavigate()
+
+  const [email, setEmail] = useState('')
+  const [senha, setSenha] = useState('')
+  const [erro, setErro] = useState('')
+
+  function handleSubmit(e: FormEvent<HTMLFormElement>) {
+    e.preventDefault()
+    setErro('')
+
+    // Validação simples de e-mail
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
+
+    if (!email.trim() || !senha.trim()) {
+      setErro('Preencha e-mail e senha.')
+      return
+    }
+
+    if (!emailRegex.test(email)) {
+      setErro('Informe um e-mail válido.')
+      return
+    }
+
+    if (senha.length < 6) {
+      setErro('A senha deve ter no mínimo 6 caracteres.')
+      return
+    }
+
+    // Sem integração com backend por enquanto — só navega
+    navigate('/dashboard')
+  }
+
   return (
     <main className="flex min-h-screen items-center justify-center bg-slate-950 px-4">
       <div className="w-full max-w-md rounded-2xl border border-slate-800 bg-slate-900 p-8 shadow-2xl">
@@ -18,7 +52,7 @@ function Login() {
           </p>
         </div>
 
-        <form className="space-y-5">
+        <form className="space-y-5" onSubmit={handleSubmit} noValidate>
           <div>
             <label className="mb-2 block text-sm font-medium text-slate-300">
               E-mail
@@ -27,6 +61,8 @@ function Login() {
             <input
               type="email"
               placeholder="operador@empresa.com"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
               className="w-full rounded-lg border border-slate-700 bg-slate-800 px-4 py-3 text-white outline-none placeholder:text-slate-500 focus:border-blue-500"
             />
           </div>
@@ -39,9 +75,17 @@ function Login() {
             <input
               type="password"
               placeholder="Digite sua senha"
+              value={senha}
+              onChange={(e) => setSenha(e.target.value)}
               className="w-full rounded-lg border border-slate-700 bg-slate-800 px-4 py-3 text-white outline-none placeholder:text-slate-500 focus:border-blue-500"
             />
           </div>
+
+          {erro && (
+            <p className="text-sm text-red-400">
+              {erro}
+            </p>
+          )}
 
           <button
             type="submit"
