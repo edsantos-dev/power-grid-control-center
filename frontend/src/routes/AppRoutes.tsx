@@ -9,6 +9,12 @@ import Usinas from '../pages/Usinas'
 import Subestacoes from '../pages/Subestacoes'
 import Transformadores from '../pages/Transformadores'
 import Linhas from '../pages/Linhas'
+import Alimentadores from '../pages/Alimentadores'
+import SmartMeters from '../pages/SmartMeters'
+import Consumidores from '../pages/Consumidores'
+import Equipes from '../pages/Equipes'
+import Relatorios from '../pages/Relatorios'
+import Configuracoes from '../pages/Configuracoes'
 
 function AppRoutes() {
   return (
@@ -26,6 +32,12 @@ function AppRoutes() {
           <Route path="/subestacoes" element={<Subestacoes />} />
           <Route path="/transformadores" element={<Transformadores />} />
           <Route path="/linhas" element={<Linhas />} />
+          <Route path="/alimentadores" element={<Alimentadores />} />
+          <Route path="/smartmeters" element={<SmartMeters />} />
+          <Route path="/consumidores" element={<Consumidores />} />
+          <Route path="/equipes" element={<Equipes />} />
+          <Route path="/relatorios" element={<Relatorios />} />
+          <Route path="/configuracoes" element={<Configuracoes />} />
         </Route>
       </Routes>
     </BrowserRouter>
