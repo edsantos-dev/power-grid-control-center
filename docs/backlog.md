@@ -4,17 +4,17 @@ O backlog reúne as histórias, os critérios de aceitação, as tarefas e as pe
 
 ## Estado do projeto
 
-O frontend possui páginas com dados simulados, filtros e navegação local. O backend e a integração com banco de dados ainda não foram implementados.
+O frontend possui páginas com dados simulados, filtros e navegação local. O backend possui uma base Spring Boot com classe principal e teste de carregamento de contexto. Endpoints, segurança e integração com banco de dados ainda não foram implementados.
 
 As histórias US01–US25 permanecem **A fazer** para o trabalho restante. A presença de uma tela não representa a conclusão da história. O mapa geográfico ainda não está implementado, e o login realiza apenas validações locais antes da navegação.
 
-Os arquivos de serviço de API e autenticação estão vazios. Ainda não há testes automatizados ou evidências de testes funcionais no repositório.
+Os arquivos de serviço de API e autenticação do frontend estão vazios. O teste automatizado `contextLoads()` verifica a inicialização do contexto Spring; os testes funcionais das histórias permanecem pendentes.
 
 ## Stack tecnológica
 
 | Componente | Tecnologia |
 |---|---|
-| Linguagem do backend | Java 25 LTS |
+| Linguagem do backend | Java 24 |
 | Framework | Spring Boot 4.1.1 |
 | Segurança | Spring Security, na versão gerenciada pelo Spring Boot 4.1.1 |
 | Banco de dados | PostgreSQL |
@@ -22,7 +22,7 @@ Os arquivos de serviço de API e autenticação estão vazios. Ainda não há te
 | Build do backend | Maven, com estrutura gerada pelo Spring Initializr |
 | Frontend existente | React, TypeScript e Vite |
 
-Java 25 está no intervalo de compatibilidade do Spring Boot 4.1.1. As versões das dependências gerenciadas pelo framework devem seguir seu BOM, sem fixar uma versão independente do Spring Security.
+O backend utiliza Java 24 com Spring Boot 4.1.1. As versões das dependências gerenciadas pelo framework devem seguir seu BOM, sem fixar uma versão independente do Spring Security. Segurança, PostgreSQL e Flyway serão adicionados em incrementos posteriores.
 
 A configuração de segurança seguirá a estrutura de `SecurityFilterChain` com `HttpSecurity` e DSL lambda. A estratégia de autenticação e a matriz de permissões serão definidas em US25.
 
@@ -30,9 +30,9 @@ PostgreSQL será o banco relacional e Flyway será responsável pelas migraçõe
 
 ### Estrutura do pom.xml
 
-O projeto Maven será gerado pelo [Spring Initializr](https://start.spring.io/) com Java 25 e Spring Boot 4.1.1. O `pom.xml` deve ser o arquivo retornado pelo gerador, preservando sua formatação, ordem dos elementos, parent, propriedades, dependências e plugins.
+O projeto Maven usa o `pom.xml` retornado pelo [Spring Initializr](https://start.spring.io/) para Spring Boot 4.1.1, preservando a formatação, a ordem dos elementos, o parent e os plugins.
 
-As dependências serão selecionadas no Initializr. Não serão acrescentados blocos, propriedades, versões ou plugins manuais fora do padrão gerado. O arquivo não deve ser reconstruído a partir de um template personalizado.
+A propriedade `java.version` utiliza o valor 24. As dependências diretas são `spring-boot-starter-web` e `spring-boot-starter-test`, esta última no escopo `test`. O único plugin declarado é `spring-boot-maven-plugin`.
 
 ### Referências técnicas
 
@@ -49,7 +49,7 @@ As dependências serão selecionadas no Initializr. Não serão acrescentados bl
 | A fazer | Trabalho restante identificado, ainda não iniciado |
 | Em andamento | Desenvolvimento de uma tarefa com escopo e critérios definidos |
 | Em revisão | Alteração preparada, com verificações pertinentes e documentação atualizada |
-| Concluído | Critérios atendidos, testes pertinentes registrados e revisão finalizada |
+| Concluído | Critérios atendidos, testes pertinentes verificados e revisão finalizada |
 | Bloqueado | Impedimento concreto, com causa e dependência identificadas |
 
 Os identificadores US01–US25 e PEN-01–PEN-07 são mantidos. Critérios e tarefas usam o prefixo da história correspondente. Critérios marcados **A detalhar** dependem da definição de contratos, fórmulas ou parâmetros antes da implementação.
@@ -58,7 +58,7 @@ Cada alteração deve formar uma unidade pequena de código, testes e documenta�
 
 Antes do commit, executar os testes pertinentes, revisar o diff e atualizar o backlog. Utilizar Conventional Commits, como `feat`, `fix`, `test`, `docs`, `refactor` e `chore`. Integrações na branch principal passam por Pull Request e revisão.
 
-Os resultados de testes serão registrados em `docs/testes/`, associados às histórias e aos critérios efetivamente verificados, com procedimento, ambiente, resultado esperado e resultado obtido.
+Testes automatizados acompanham o código e verificam os critérios de aceitação. Os resultados são apresentados na revisão de cada incremento. Logs de erros, relatórios de execução e relatos dos passos técnicos realizados não integram os arquivos do repositório.
 
 ## Histórias de usuário
 
@@ -87,7 +87,7 @@ Como operador, quero cadastrar subestações com informações técnicas e local
 - [ ] **US01-T01:** Detalhar contrato e critérios propostos, resolver as decisões pertinentes e definir cenários de teste.
 - [ ] **US01-T02:** Implementar o recorte de backend com testes pertinentes e documentação.
 - [ ] **US01-T03:** Integrar a interface com testes pertinentes e documentação.
-- [ ] **US01-T04:** Verificar integração/aceite e registrar resultados e limitações.
+- [ ] **US01-T04:** Verificar integração/aceite e apresentar resultados e limitações.
 
 ### US02 — Cadastrar linhas e alimentadores
 
@@ -136,7 +136,7 @@ Como operador, quero cadastrar transformadores com sua capacidade operacional, p
 - [ ] **US03-T01:** Detalhar contrato e critérios propostos, resolver as decisões pertinentes e definir cenários de teste.
 - [ ] **US03-T02:** Implementar o recorte de backend com testes pertinentes e documentação.
 - [ ] **US03-T03:** Integrar a interface com testes pertinentes e documentação.
-- [ ] **US03-T04:** Verificar integração/aceite e registrar resultados e limitações.
+- [ ] **US03-T04:** Verificar integração/aceite e apresentar resultados e limitações.
 
 ### US04 — Cadastrar equipes e responsabilidades
 
@@ -160,7 +160,7 @@ Como técnico de manutenção, quero cadastrar equipes de manutenção e suas re
 - [ ] **US04-T01:** Detalhar contrato e critérios propostos, resolver as decisões pertinentes e definir cenários de teste.
 - [ ] **US04-T02:** Implementar o recorte de backend com testes pertinentes e documentação.
 - [ ] **US04-T03:** Integrar a interface com testes pertinentes e documentação.
-- [ ] **US04-T04:** Verificar integração/aceite e registrar resultados e limitações.
+- [ ] **US04-T04:** Verificar integração/aceite e apresentar resultados e limitações.
 
 ### US05 — Cadastrar usinas vinculadas à rede
 
@@ -184,7 +184,7 @@ Como gerente, quero cadastrar as usinas geradoras vinculadas à rede, para ter c
 - [ ] **US05-T01:** Detalhar contrato e critérios propostos, resolver as decisões pertinentes e definir cenários de teste.
 - [ ] **US05-T02:** Implementar o recorte de backend com testes pertinentes e documentação.
 - [ ] **US05-T03:** Integrar a interface com testes pertinentes e documentação.
-- [ ] **US05-T04:** Verificar integração/aceite e registrar resultados e limitações.
+- [ ] **US05-T04:** Verificar integração/aceite e apresentar resultados e limitações.
 
 ### US06 — Cadastrar medidores vinculados a consumidores
 
@@ -209,7 +209,7 @@ Como operador, quero cadastrar medidores inteligentes vinculados aos consumidore
 - [ ] **US06-T01:** Detalhar contrato e critérios propostos, resolver as decisões pertinentes e definir cenários de teste.
 - [ ] **US06-T02:** Implementar o recorte de backend com testes pertinentes e documentação.
 - [ ] **US06-T03:** Integrar a interface com testes pertinentes e documentação.
-- [ ] **US06-T04:** Verificar integração/aceite e registrar resultados e limitações.
+- [ ] **US06-T04:** Verificar integração/aceite e apresentar resultados e limitações.
 
 ### US07 — Cadastrar consumidores titulares
 
@@ -234,7 +234,7 @@ Como operador, quero cadastrar os consumidores da rede elétrica, para vincular 
 - [ ] **US07-T01:** Definir contrato do titular e critérios de documento, respeitando a limitação histórica definida.
 - [ ] **US07-T02:** Implementar cadastro mínimo do titular com testes/documentação; pode preceder US06 sem concluir a consulta dos vínculos.
 - [ ] **US07-T03:** Integrar interface e consulta de vínculos após US06, com testes/documentação.
-- [ ] **US07-T04:** Verificar aceite e registrar resultados e limitações do MVP.
+- [ ] **US07-T04:** Verificar aceite e apresentar resultados e limitações do MVP.
 
 ### US08 — Monitorar tensão e corrente de linhas
 
@@ -258,7 +258,7 @@ Como operador, quero visualizar em tempo real a tensão e a corrente das linhas 
 - [ ] **US08-T01:** Detalhar contrato e critérios propostos, resolver as decisões pertinentes e definir cenários de teste.
 - [ ] **US08-T02:** Implementar o recorte de backend com testes pertinentes e documentação.
 - [ ] **US08-T03:** Integrar a interface com testes pertinentes e documentação.
-- [ ] **US08-T04:** Verificar integração/aceite e registrar resultados e limitações.
+- [ ] **US08-T04:** Verificar integração/aceite e apresentar resultados e limitações.
 
 ### US09 — Monitorar potência ativa e reativa
 
@@ -282,7 +282,7 @@ Como operador, quero acompanhar a potência ativa e reativa da rede, para avalia
 - [ ] **US09-T01:** Detalhar contrato e critérios propostos, resolver as decisões pertinentes e definir cenários de teste.
 - [ ] **US09-T02:** Implementar o recorte de backend com testes pertinentes e documentação.
 - [ ] **US09-T03:** Integrar a interface com testes pertinentes e documentação.
-- [ ] **US09-T04:** Verificar integração/aceite e registrar resultados e limitações.
+- [ ] **US09-T04:** Verificar integração/aceite e apresentar resultados e limitações.
 
 ### US10 — Monitorar frequência e fator de potência
 
@@ -306,7 +306,7 @@ Como operador, quero monitorar a frequência e o fator de potência da rede, par
 - [ ] **US10-T01:** Detalhar contrato e critérios propostos, resolver as decisões pertinentes e definir cenários de teste.
 - [ ] **US10-T02:** Implementar o recorte de backend com testes pertinentes e documentação.
 - [ ] **US10-T03:** Integrar a interface com testes pertinentes e documentação.
-- [ ] **US10-T04:** Verificar integração/aceite e registrar resultados e limitações.
+- [ ] **US10-T04:** Verificar integração/aceite e apresentar resultados e limitações.
 
 ### US11 — Monitorar carga dos transformadores
 
@@ -331,7 +331,7 @@ Como operador, quero visualizar a carga dos transformadores em tempo real, para 
 - [ ] **US11-T01:** Detalhar contrato e critérios propostos, resolver as decisões pertinentes e definir cenários de teste.
 - [ ] **US11-T02:** Implementar o recorte de backend com testes pertinentes e documentação.
 - [ ] **US11-T03:** Integrar a interface com testes pertinentes e documentação.
-- [ ] **US11-T04:** Verificar integração/aceite e registrar resultados e limitações.
+- [ ] **US11-T04:** Verificar integração/aceite e apresentar resultados e limitações.
 
 ### US12 — Acompanhar perdas técnicas
 
@@ -355,7 +355,7 @@ Como gerente, quero acompanhar as perdas técnicas na distribuição, para ident
 - [ ] **US12-T01:** Detalhar contrato e critérios propostos, resolver as decisões pertinentes e definir cenários de teste.
 - [ ] **US12-T02:** Implementar o recorte de backend com testes pertinentes e documentação.
 - [ ] **US12-T03:** Integrar a interface com testes pertinentes e documentação.
-- [ ] **US12-T04:** Verificar integração/aceite e registrar resultados e limitações.
+- [ ] **US12-T04:** Verificar integração/aceite e apresentar resultados e limitações.
 
 ### US13 — Visualizar mapa geográfico de ativos
 
@@ -379,7 +379,7 @@ Como operador, quero visualizar o mapa geográfico dos ativos da rede, para loca
 - [ ] **US13-T01:** Detalhar contrato e critérios propostos, resolver as decisões pertinentes e definir cenários de teste.
 - [ ] **US13-T02:** Implementar o recorte de backend com testes pertinentes e documentação.
 - [ ] **US13-T03:** Integrar a interface com testes pertinentes e documentação.
-- [ ] **US13-T04:** Verificar integração/aceite e registrar resultados e limitações.
+- [ ] **US13-T04:** Verificar integração/aceite e apresentar resultados e limitações.
 
 ### US14 — Visualizar KPIs de disponibilidade e desempenho
 
@@ -403,7 +403,7 @@ Como gerente, quero visualizar KPIs de disponibilidade e desempenho da rede, par
 - [ ] **US14-T01:** Detalhar contrato e critérios propostos, resolver as decisões pertinentes e definir cenários de teste.
 - [ ] **US14-T02:** Implementar o recorte de backend com testes pertinentes e documentação.
 - [ ] **US14-T03:** Integrar a interface com testes pertinentes e documentação.
-- [ ] **US14-T04:** Verificar integração/aceite e registrar resultados e limitações.
+- [ ] **US14-T04:** Verificar integração/aceite e apresentar resultados e limitações.
 
 ### US15 — Consultar histórico de consumo e perdas
 
@@ -427,7 +427,7 @@ Como gerente, quero acompanhar gráficos históricos de consumo e perdas, para i
 - [ ] **US15-T01:** Detalhar contrato e critérios propostos, resolver as decisões pertinentes e definir cenários de teste.
 - [ ] **US15-T02:** Implementar o recorte de backend com testes pertinentes e documentação.
 - [ ] **US15-T03:** Integrar a interface com testes pertinentes e documentação.
-- [ ] **US15-T04:** Verificar integração/aceite e registrar resultados e limitações.
+- [ ] **US15-T04:** Verificar integração/aceite e apresentar resultados e limitações.
 
 ### US16 — Registrar manobras e desligamentos programados
 
@@ -455,7 +455,7 @@ Como operador, quero registrar eventos operacionais como manobras e desligamento
 - [ ] **US16-T01:** Detalhar contrato e critérios propostos, resolver as decisões pertinentes e definir cenários de teste.
 - [ ] **US16-T02:** Implementar o recorte de backend com testes pertinentes e documentação.
 - [ ] **US16-T03:** Integrar a interface com testes pertinentes e documentação.
-- [ ] **US16-T04:** Verificar integração/aceite e registrar resultados e limitações.
+- [ ] **US16-T04:** Verificar integração/aceite e apresentar resultados e limitações.
 
 ### US17 — Registrar interrupções de fornecimento
 
@@ -479,7 +479,7 @@ Como operador, quero registrar interrupções de fornecimento com data, horário
 - [ ] **US17-T01:** Detalhar contrato e critérios propostos, resolver as decisões pertinentes e definir cenários de teste.
 - [ ] **US17-T02:** Implementar o recorte de backend com testes pertinentes e documentação.
 - [ ] **US17-T03:** Integrar a interface com testes pertinentes e documentação.
-- [ ] **US17-T04:** Verificar integração/aceite e registrar resultados e limitações.
+- [ ] **US17-T04:** Verificar integração/aceite e apresentar resultados e limitações.
 
 ### US18 — Atualizar situação de evento
 
@@ -503,7 +503,7 @@ Como técnico de manutenção, quero atualizar a situação de um evento operaci
 - [ ] **US18-T01:** Detalhar contrato e critérios propostos, resolver as decisões pertinentes e definir cenários de teste.
 - [ ] **US18-T02:** Implementar o recorte de backend com testes pertinentes e documentação.
 - [ ] **US18-T03:** Integrar a interface com testes pertinentes e documentação.
-- [ ] **US18-T04:** Verificar integração/aceite e registrar resultados e limitações.
+- [ ] **US18-T04:** Verificar integração/aceite e apresentar resultados e limitações.
 
 ### US19 — Consultar histórico de manutenção por ativo
 
@@ -527,7 +527,7 @@ Como técnico de manutenção, quero consultar o histórico de manutenções de 
 - [ ] **US19-T01:** Detalhar contrato e critérios propostos, resolver as decisões pertinentes e definir cenários de teste.
 - [ ] **US19-T02:** Implementar o recorte de backend com testes pertinentes e documentação.
 - [ ] **US19-T03:** Integrar a interface com testes pertinentes e documentação.
-- [ ] **US19-T04:** Verificar integração/aceite e registrar resultados e limitações.
+- [ ] **US19-T04:** Verificar integração/aceite e apresentar resultados e limitações.
 
 ### US20 — Consultar alertas ativos por criticidade
 
@@ -552,7 +552,7 @@ Como operador, quero visualizar os alertas ativos classificados por criticidade,
 - [ ] **US20-T01:** Detalhar contrato e critérios propostos, resolver as decisões pertinentes e definir cenários de teste.
 - [ ] **US20-T02:** Implementar o recorte de backend com testes pertinentes e documentação.
 - [ ] **US20-T03:** Integrar a interface com testes pertinentes e documentação.
-- [ ] **US20-T04:** Verificar integração/aceite e registrar resultados e limitações.
+- [ ] **US20-T04:** Verificar integração/aceite e apresentar resultados e limitações.
 
 ### US21 — Gerar alerta automático de sobrecarga
 
@@ -576,7 +576,7 @@ Como operador, quero receber alertas automáticos de sobrecarga em transformador
 - [ ] **US21-T01:** Detalhar contrato e critérios propostos, resolver as decisões pertinentes e definir cenários de teste.
 - [ ] **US21-T02:** Implementar o recorte de backend com testes pertinentes e documentação.
 - [ ] **US21-T03:** Integrar a interface com testes pertinentes e documentação.
-- [ ] **US21-T04:** Verificar integração/aceite e registrar resultados e limitações.
+- [ ] **US21-T04:** Verificar integração/aceite e apresentar resultados e limitações.
 
 ### US22 — Gerar alertas de tensão anormal
 
@@ -600,7 +600,7 @@ Como operador, quero receber alertas de variação anormal de tensão, para evit
 - [ ] **US22-T01:** Detalhar contrato e critérios propostos, resolver as decisões pertinentes e definir cenários de teste.
 - [ ] **US22-T02:** Implementar o recorte de backend com testes pertinentes e documentação.
 - [ ] **US22-T03:** Integrar a interface com testes pertinentes e documentação.
-- [ ] **US22-T04:** Verificar integração/aceite e registrar resultados e limitações.
+- [ ] **US22-T04:** Verificar integração/aceite e apresentar resultados e limitações.
 
 ### US23 — Gerar alertas de perda de comunicação
 
@@ -624,7 +624,7 @@ Como operador, quero receber alertas de perda de comunicação com dispositivos,
 - [ ] **US23-T01:** Detalhar contrato e critérios propostos, resolver as decisões pertinentes e definir cenários de teste.
 - [ ] **US23-T02:** Implementar o recorte de backend com testes pertinentes e documentação.
 - [ ] **US23-T03:** Integrar a interface com testes pertinentes e documentação.
-- [ ] **US23-T04:** Verificar integração/aceite e registrar resultados e limitações.
+- [ ] **US23-T04:** Verificar integração/aceite e apresentar resultados e limitações.
 
 ### US24 — Consultar histórico de alertas por criticidade
 
@@ -648,7 +648,7 @@ Como gerente, quero visualizar o histórico de alertas gerados por criticidade, 
 - [ ] **US24-T01:** Detalhar contrato e critérios propostos, resolver as decisões pertinentes e definir cenários de teste.
 - [ ] **US24-T02:** Implementar o recorte de backend com testes pertinentes e documentação.
 - [ ] **US24-T03:** Integrar a interface com testes pertinentes e documentação.
-- [ ] **US24-T04:** Verificar integração/aceite e registrar resultados e limitações.
+- [ ] **US24-T04:** Verificar integração/aceite e apresentar resultados e limitações.
 
 ### US25 — Autenticar e restringir acesso por perfil
 
@@ -674,7 +674,7 @@ Como usuário, quero acessar o sistema com minhas credenciais e visualizar as fu
 - [ ] **US25-T01:** Detalhar contrato e critérios propostos, resolver as decisões pertinentes e definir cenários de teste.
 - [ ] **US25-T02:** Implementar o recorte de backend com testes pertinentes e documentação.
 - [ ] **US25-T03:** Integrar a interface com testes pertinentes e documentação.
-- [ ] **US25-T04:** Verificar integração/aceite e registrar resultados e limitações.
+- [ ] **US25-T04:** Verificar integração/aceite e apresentar resultados e limitações.
 
 ## Pendências
 
@@ -716,41 +716,43 @@ Como usuário, quero acessar o sistema com minhas credenciais e visualizar as fu
 
 ### PEN-05 — Completar README e execução
 
-**Status:** A fazer. A stack e os links da documentação estão registrados. Faltam as instruções do backend e a validação da execução completa.
+**Status:** Em andamento. A stack, os links da documentação e as instruções Maven do backend estão registrados. A configuração dos próximos módulos e a execução independente do procedimento permanecem pendentes.
 
 - [ ] **PEN-05-CA01:** Informar tecnologias, pré-requisitos e comandos para frontend e backend.
 - [ ] **PEN-05-CA02:** Outro integrante consegue executar o projeto seguindo o README.
 - [x] **PEN-05-T01:** Organizar os links da documentação no README.
 - [ ] **PEN-05-T02:** Documentar configuração e execução junto à implementação.
-- [ ] **PEN-05-T03:** Registrar a execução independente do procedimento.
+- [ ] **PEN-05-T03:** Verificar a execução independente do procedimento e apresentar os resultados.
 
 ### PEN-06 — Disponibilizar backend e API
 
-**Status:** A fazer. Stack definida: Java 25, Spring Boot 4.1.1, Spring Security gerenciado pelo framework, PostgreSQL e Flyway. Backend, endpoints e integração ainda não existem.
+**Status:** Em andamento. Base Java 24/Spring Boot 4.1.1 disponível para revisão. Endpoints e integração ainda não existem; Spring Security, PostgreSQL e Flyway serão configurados posteriormente.
 
 - [x] **PEN-06-CA01:** Definir a stack e registrá-la no README.
 - [ ] **PEN-06-CA02:** Executar a API localmente conforme as instruções e atender às rotas dos módulos da Sprint 4.
 - [ ] **PEN-06-CA03:** Frontend consome a API por variável de ambiente, sem endereço fixo no código.
 - [ ] **PEN-06-T01:** Preparar metadados do projeto, versões do ambiente e configuração de execução.
-- [ ] **PEN-06-T02:** Gerar a base Maven pelo Spring Initializr, preservar o pom.xml nativo e verificar build e inicialização.
+- [ ] **PEN-06-T02:** Gerar a base Maven pelo Spring Initializr, preservar sua estrutura com os ajustes descritos em "Estrutura do pom.xml" e verificar build e inicialização.
 - [ ] **PEN-06-T03:** Disponibilizar endpoints incrementalmente pelas tarefas de US25, US01, US03, US16 e US20.
 - [ ] **PEN-06-T04:** Integrar o frontend à API e verificar os contratos.
 
+**Em revisão — PEN-06-T01/PEN-06-T02:** Metadados, estrutura Maven, classe principal, teste de contexto e instruções de execução disponíveis. Os critérios de API e integração permanecem pendentes.
+
 ### PEN-07 — Registrar evidências de testes
 
-**Status:** A fazer. O local previsto é docs/testes/, conforme Sprint 4. Ainda não há evidências funcionais no repositório.
+**Status:** Em andamento. Os resultados das verificações são apresentados na revisão dos incrementos, sem arquivos de relatório ou logs no repositório. As evidências funcionais das histórias permanecem pendentes.
 
-- [ ] **PEN-07-CA01:** Cada história concluída possui evidência de teste em docs/testes/.
+- [ ] **PEN-07-CA01:** Cada história concluída possui evidências de teste apresentadas na revisão, fora dos arquivos do repositório.
 - [ ] **PEN-07-CA02:** Cada resultado identifica história, critérios, procedimento, ambiente e resultado.
-- [x] **PEN-07-T01:** Definir a organização dos registros de testes.
-- [ ] **PEN-07-T02:** Registrar a primeira execução com resultado real.
+- [x] **PEN-07-T01:** Definir a forma de apresentar os resultados de testes.
+- [ ] **PEN-07-T02:** Apresentar os resultados reais da primeira execução na revisão.
 - [ ] **PEN-07-T03:** Verificar as evidências na revisão de cada história.
 
 ## Sequência de implementação
 
 | Etapa | Entrega | Dependências principais |
 |---|---|---|
-| 1 | Base Java 25/Spring Boot 4.1.1 gerada pelo Initializr, build e inicialização | Metadados e ambiente de execução |
+| 1 | Base Java 24/Spring Boot 4.1.1 baseada no Initializr, build e inicialização | Metadados e ambiente de execução |
 | 2 | Autenticação e perfil único — US25 | Matriz de acesso e estratégia de sessão |
 | 3 | Cadastro de subestações — US01 | Backend e autenticação |
 | 4 | Alimentador mínimo — parte de US02 | Subestação e regras do cadastro |

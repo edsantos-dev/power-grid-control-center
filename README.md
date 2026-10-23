@@ -87,16 +87,16 @@ Geração e classificação de alertas por criticidade para eventos como:
 | Componente | Tecnologia |
 |---|---|
 | Frontend | React, TypeScript e Vite |
-| Linguagem do backend | Java 25 LTS |
+| Linguagem do backend | Java 24 |
 | Framework | Spring Boot 4.1.1 |
 | Segurança | Spring Security, com versão gerenciada pelo Spring Boot 4.1.1 |
 | Banco de dados | PostgreSQL |
 | Migrações | Flyway |
 | Build do backend | Maven, com estrutura gerada pelo Spring Initializr |
 
-O frontend existente utiliza dados simulados. A stack do backend está definida; sua implementação e integração com o banco de dados estão pendentes.
+O frontend existente utiliza dados simulados. O backend possui uma base Spring Boot com teste de carregamento de contexto. Os endpoints, a segurança e a integração com o banco de dados estão pendentes.
 
-O `pom.xml` do backend será gerado pelo Spring Initializr, preservando integralmente a estrutura e a formatação nativas, sem blocos ou customizações manuais. Os detalhes estão no [backlog](docs/backlog.md).
+O `pom.xml` do backend preserva a estrutura e a formatação do Spring Initializr, com Java 24 e os starters `spring-boot-starter-web` e `spring-boot-starter-test`. Os detalhes estão no [backlog](docs/backlog.md).
 
 ---
 
@@ -116,7 +116,7 @@ Os comandos `npm run build` e `npm run lint` estão definidos no frontend para g
 
 ### Backend
 
-O backend ainda não foi implementado. As instruções de configuração e execução serão adicionadas junto à estrutura inicial Java/Spring Boot.
+Os pré-requisitos e os comandos Maven para build, testes e execução estão no [README do backend](backend/README.md).
 
 ---
 
