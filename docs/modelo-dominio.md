@@ -73,7 +73,7 @@ Transferências e reinstalações precisam de tratamento histórico antes de ser
 
 A migration `V1__schema_inicial.sql` contém os cadastros, vínculos de integrantes, campos comuns dos eventos e alertas. Um evento pode possuir uma equipe designada; essa associação não substitui seu responsável individual.
 
-E-mail, matrícula, número de série do medidor e documento do consumidor possuem restrições NOT NULL e UNIQUE. A unicidade compara os valores armazenados; normalização de e-mail e documento não é realizada pelo schema.
+E-mail, matrícula, número de série do medidor e documento do consumidor possuem restrições NOT NULL e UNIQUE. O e-mail recebe `trim` e conversão para minúsculas com `Locale.ROOT` na aplicação, antes de inserções e atualizações JPA e antes da busca para autenticação. A unicidade compara os valores armazenados; normalização de documento permanece pendente. Inserções SQL, incluindo o provisionamento inicial, devem fornecer e-mails já normalizados.
 
 As chaves primárias compartilhadas dos ativos permitem o mapeamento JPA com herança JOINED. A exclusividade dos subtipos será garantida pela camada de aplicação/JPA, sem restrições adicionais no banco. A criação transacional deverá manter a consistência entre o ativo e seu subtipo.
 
@@ -162,7 +162,9 @@ O ciclo de referência é `ABERTO → RECONHECIDO → RESOLVIDO`. O contrato de 
 
 ## Perfis, estados e histórico
 
-Cada usuário possui um dos perfis: Operador, Gerente de Operações ou Técnico de Manutenção. Cargo profissional é descritivo e não concede permissões. A matriz de acesso será definida em US25.
+Cada usuário possui um dos perfis: Operador, Gerente de Operações ou Técnico de Manutenção. Cargo profissional é descritivo e não concede permissões. Login e obtenção de CSRF são públicos; as demais rotas exigem usuário autenticado. Futuras operações de gestão de acesso serão restritas ao perfil GERENTE_OPERACOES por segurança de método.
+
+A autenticação utiliza sessão HTTP com cookie HttpOnly e proteção CSRF, sem JWT. O login renova o identificador da sessão e seu token CSRF; o logout invalida a sessão. As respostas de autenticação expõem somente identificador, nome, e-mail e perfil. Senhas são verificadas por BCrypt, e o cadastro exigirá no mínimo oito caracteres. A migration V2 provisiona um usuário de cada perfil com hash BCrypt previamente calculado.
 
 O estado operacional principal do ativo é `OPERACIONAL`, `FALHA` ou `MANUTENCAO`. É uma classificação resumida: não descreve simultaneamente todas as condições de um equipamento em falha durante uma manutenção.
 
@@ -183,7 +185,7 @@ Mudanças de situação e responsabilidade devem preservar autor, instante e val
 |---|---|---|
 | Vínculos cadastrais | Vigência, instalação, transferência e retirada de medidores de campo | US02, US03, US06 |
 | Campos de cadastro | Obrigatoriedade dos demais campos; normalização e validação dos identificadores | US01–US07, US25 |
-| Acesso | Matriz de permissões e estratégia de sessão/autenticação | US25 |
+| Acesso | Duração da sessão; implementação das futuras operações de gestão de acesso; integração do frontend em incremento separado | US25 |
 | Ciclos de eventos | Datas obrigatórias, estado inicial, conclusão e registros retrospectivos | US16, US18 |
 | Alertas | Estados ativos, criticidade, reconhecimento, resolução e limites | US20–US24 |
 | Equipes | Integrantes, designação simples e disponibilidade | US04, US19 |
