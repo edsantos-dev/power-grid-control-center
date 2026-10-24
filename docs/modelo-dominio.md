@@ -69,6 +69,12 @@ O contrato de criação de US01 exige nome, latitude, longitude, tensão nominal
 
 O estado operacional, quando omitido ou nulo na criação, será OPERACIONAL; valores fora do catálogo serão rejeitados. O identificador é gerado em ativo_rede e compartilhado com subestacao. A persistência JPA utiliza herança JOINED; obrigatoriedade adicional, normalização, validação de precisão e aplicação do estado padrão pertencem ao contrato da API e não alteram a V1.
 
+### Cadastro de alimentadores
+
+O cadastro exige nome, latitude, longitude, tensão nominal em kV, data de instalação e subestacaoId. Nome recebe trim, não pode ser vazio e admite até 255 caracteres, sem unicidade. Coordenadas aceitam até sete casas decimais e respeitam os limites de latitude e longitude. Tensão deve ser positiva, com até 13 dígitos inteiros e seis decimais; excesso de precisão é rejeitado sem arredondamento. Datas futuras são permitidas. Estado omitido ou nulo assume OPERACIONAL. Não há capacidadeMva no Alimentador.
+
+SubestacaoId deve ser inteiro positivo compatível com Long e apontar para uma subestação existente; o contrato HTTP prevê 404 para referência inexistente e 400 para entrada inválida. Não há validação cruzada de tensão nem restrição pelo estado da subestação. O mapeamento JPA utiliza associação ManyToOne obrigatória e LAZY, sem cascata para a subestação. A persistência não substitui as validações do futuro DTO e serviço.
+
 ### Consumidor e histórico de fornecimento
 
 O MVP não contém UnidadeConsumidora. A identidade do titular e a localização do medidor são suficientes para o cadastro inicial, mas não preservam integralmente a identidade de uma instalação após trocas de titular ou de medidor.
