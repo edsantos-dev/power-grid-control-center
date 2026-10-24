@@ -4,7 +4,7 @@ O backlog reúne as histórias, os critérios de aceitação, as tarefas e as pe
 
 ## Estado do projeto
 
-O frontend possui páginas com dados simulados, filtros e navegação local. O backend possui uma base Spring Boot com classe principal e teste de carregamento de contexto. Endpoints, segurança e integração com banco de dados ainda não foram implementados.
+O frontend possui páginas com dados simulados, filtros e navegação local. O backend possui uma base Spring Boot com teste de carregamento de contexto, configuração PostgreSQL/JPA/Flyway, schema SQL inicial e H2 para testes. Entidades Java, endpoints, segurança e integração com o frontend ainda não foram implementados.
 
 As histórias US01–US25 permanecem **A fazer** para o trabalho restante. A presença de uma tela não representa a conclusão da história. O mapa geográfico ainda não está implementado, e o login realiza apenas validações locais antes da navegação.
 
@@ -22,17 +22,17 @@ Os arquivos de serviço de API e autenticação do frontend estão vazios. O tes
 | Build do backend | Maven, com estrutura gerada pelo Spring Initializr |
 | Frontend existente | React, TypeScript e Vite |
 
-O backend utiliza Java 24 com Spring Boot 4.1.1. As versões das dependências gerenciadas pelo framework devem seguir seu BOM, sem fixar uma versão independente do Spring Security. Segurança, PostgreSQL e Flyway serão adicionados em incrementos posteriores.
+O backend utiliza Java 24 com Spring Boot 4.1.1. As versões das dependências gerenciadas pelo framework seguem seu BOM. JPA, PostgreSQL e Flyway compõem a configuração de persistência; H2 é exclusivo dos testes. Spring Security permanece previsto para um incremento isolado.
 
 A configuração de segurança seguirá a estrutura de `SecurityFilterChain` com `HttpSecurity` e DSL lambda. A estratégia de autenticação e a matriz de permissões serão definidas em US25.
 
-PostgreSQL será o banco relacional e Flyway será responsável pelas migrações do schema. A versão do servidor e a configuração do ambiente serão definidas na preparação da execução local. O módulo de suporte PostgreSQL do Flyway deve fazer parte da configuração correspondente no Initializr.
+PostgreSQL é o banco relacional e Flyway é responsável pelas migrations do schema. A conexão utiliza variáveis de ambiente. A versão do servidor permanece a definir; o suporte a PostgreSQL está presente nas dependências do Flyway.
 
 ### Estrutura do pom.xml
 
 O projeto Maven usa o `pom.xml` retornado pelo [Spring Initializr](https://start.spring.io/) para Spring Boot 4.1.1, preservando a formatação, a ordem dos elementos, o parent e os plugins.
 
-A propriedade `java.version` utiliza o valor 24. As dependências diretas são `spring-boot-starter-web` e `spring-boot-starter-test`, esta última no escopo `test`. O único plugin declarado é `spring-boot-maven-plugin`.
+A propriedade `java.version` utiliza o valor 24. As dependências são Spring Web, Spring Data JPA, integração Spring Boot/Flyway, Flyway Core, suporte Flyway/PostgreSQL e driver PostgreSQL. Spring Boot Test e H2 utilizam escopo `test`. O único plugin declarado é `spring-boot-maven-plugin`.
 
 ### Referências técnicas
 
@@ -121,15 +121,15 @@ Como operador, quero cadastrar transformadores com sua capacidade operacional, p
 - **Status:** A fazer.
 - **Implementação existente:** Listagem filtrável; capacidade, carga e temperatura simuladas; subestação textual.
 - **Trabalho pendente:** Sem cadastro persistente; não há alimentador no tipo atual. A carga exibida não comprova integração.
-- **Dependências:** PEN-06; US25; US01; cadastro mínimo de alimentadores se obrigatório na criação.
+- **Dependências:** PEN-06; US25; US01; cadastro mínimo de alimentadores.
 - **Referências no frontend:** [Transformadores/index.tsx](../frontend/src/pages/Transformadores/index.tsx#L6) (linhas 6,16,37,143).
 
 **Critérios de aceitação:**
 
-- [ ] **US03-CA01:** Persistir nome identificador, capacidade operacional e subestação vinculada (S4, p. 5).
+- [ ] **US03-CA01:** Persistir nome identificador e capacidade operacional; obter a subestação vinculada por meio do alimentador (S4, p. 5).
 - [ ] **US03-CA02:** Aceitar somente capacidade positiva (S4, p. 5).
 - [ ] **US03-CA03:** Exibir percentual de carga atual na listagem, admitindo valor simulado (S4, p. 5).
-- [ ] **US03-CA04:** Incluir referência a Alimentador para o caminho Medidor → Transformador → Alimentador; definir obrigatoriedade por etapa no contrato.
+- [ ] **US03-CA04:** Exigir um Alimentador no cadastro do transformador; derivar a subestação desse vínculo, sem coluna duplicada no transformador.
 
 **Tarefas:**
 
@@ -193,15 +193,15 @@ Como operador, quero cadastrar medidores inteligentes vinculados aos consumidore
 - **Perfil e prioridade:** Operador. Prioridade: Média.
 - **Status:** A fazer.
 - **Implementação existente:** Listagem e filtros; consumidor/alimentador são strings e última leitura é relativa.
-- **Trabalho pendente:** Sem cadastro, vínculo com transformador ou persistência; associação direta simulada ao alimentador diverge do modelo de domínio.
+- **Trabalho pendente:** Schema inicial disponível, mas sem operações de cadastro, consulta ou instalação. A associação direta simulada ao alimentador diverge do modelo de domínio.
 - **Dependências:** PEN-02; PEN-03; PEN-06; US25; cadastro mínimo do titular em US07; US03 e alimentadores de US02.
 - **Referências no frontend:** [SmartMeters/index.tsx](../frontend/src/pages/SmartMeters/index.tsx#L6) (linhas 6,16,36).
 
 **Critérios de aceitação:**
 
-- [ ] **US06-CA01:** Vincular medidor ao titular, admitindo zero ou vários medidores por consumidor.
+- [ ] **US06-CA01:** Permitir medidores em estoque sem titular ou transformador; admitir zero ou vários medidores por consumidor.
 - [ ] **US06-CA02:** Usar a localização do medidor como referência temporária do endereço de fornecimento, sem UnidadeConsumidora.
-- [ ] **US06-CA03:** Referenciar Transformador e obter Alimentador por ele, sem vínculo cadastral direto Medidor–Alimentador.
+- [ ] **US06-CA03:** Quando vinculado, referenciar Transformador e obter Alimentador por ele, sem vínculo cadastral direto Medidor–Alimentador. As condições de instalação serão detalhadas no contrato.
 - [ ] **US06-CA04:** Persistir e consultar cadastro com referências válidas e consumo/instante de fonte definida; transferências não integram este aceite inicial. **A detalhar.**
 
 **Tarefas:**
@@ -680,17 +680,17 @@ Como usuário, quero acessar o sistema com minhas credenciais e visualizar as fu
 
 ### PEN-01 — Incluir Alimentador no modelo
 
-**Status:** A fazer. Alimentador já está descrito no modelo de domínio; falta alinhar o modelo relacional e a implementação.
+**Status:** Em andamento. Alimentador está descrito no domínio e na V1, com subestação obrigatória. Transformador referencia obrigatoriamente o alimentador; diagrama relacional e implementação Java permanecem pendentes.
 
 - [ ] **PEN-01-CA01:** Representar Alimentador ligado à Subestacao e ao Transformador nos modelos de domínio e de dados.
 - [ ] **PEN-01-CA02:** Manter consistência entre modelos, schema e implementação.
 - [x] **PEN-01-T01:** Documentar Alimentador e o caminho Medidor → Transformador → Alimentador.
-- [ ] **PEN-01-T02:** Definir obrigatoriedade e cardinalidades dos vínculos e atualizar o modelo relacional.
+- [ ] **PEN-01-T02:** Sincronizar o diagrama relacional com as cardinalidades e a obrigatoriedade definidas no domínio e na V1.
 - [ ] **PEN-01-T03:** Conferir as relações no schema e no código.
 
 ### PEN-02 — Alinhar Consumidor e Medidor
 
-**Status:** A fazer. A relação titular com zero ou vários medidores está definida no domínio; falta aplicá-la ao banco e ao código.
+**Status:** Em andamento. A V1 representa o titular com zero ou vários medidores e permite medidores em estoque sem titular ou transformador. Contratos, diagrama relacional, código e testes funcionais permanecem pendentes.
 
 - [ ] **PEN-02-CA01:** Modelo relacional e código representam um titular com zero ou vários medidores; medidor_id no consumidor não representa essa coleção.
 - [x] **PEN-02-CA02:** Documentar a localização provisória do fornecimento e a limitação do histórico de titularidade.
@@ -700,7 +700,7 @@ Como usuário, quero acessar o sistema com minhas credenciais e visualizar as fu
 
 ### PEN-03 — Corrigir nomenclatura documento
 
-**Status:** A fazer. O modelo atual usa documento; o diagrama de banco anterior ainda contém dccumento.
+**Status:** Em andamento. O domínio e a V1 usam documento, com restrições NOT NULL e UNIQUE no schema. O diagrama anterior ainda contém dccumento; normalização, validação e implementação do cadastro permanecem pendentes.
 
 - [ ] **PEN-03-CA01:** Usar documento no modelo relacional e no código.
 - [ ] **PEN-03-CA02:** Definir obrigatoriedade, unicidade e regras de validação do documento no contrato de Consumidor.
@@ -726,7 +726,7 @@ Como usuário, quero acessar o sistema com minhas credenciais e visualizar as fu
 
 ### PEN-06 — Disponibilizar backend e API
 
-**Status:** Em andamento. Base Java 24/Spring Boot 4.1.1 disponível para revisão. Endpoints e integração ainda não existem; Spring Security, PostgreSQL e Flyway serão configurados posteriormente.
+**Status:** Em andamento. Base Java 24/Spring Boot 4.1.1 com configuração de persistência e schema SQL inicial. Entidades Java, endpoints, autenticação e integração com o frontend permanecem pendentes.
 
 - [x] **PEN-06-CA01:** Definir a stack e registrá-la no README.
 - [ ] **PEN-06-CA02:** Executar a API localmente conforme as instruções e atender às rotas dos módulos da Sprint 4.
@@ -736,7 +736,7 @@ Como usuário, quero acessar o sistema com minhas credenciais e visualizar as fu
 - [ ] **PEN-06-T03:** Disponibilizar endpoints incrementalmente pelas tarefas de US25, US01, US03, US16 e US20.
 - [ ] **PEN-06-T04:** Integrar o frontend à API e verificar os contratos.
 
-**Em revisão — PEN-06-T01/PEN-06-T02:** Metadados, estrutura Maven, classe principal, teste de contexto e instruções de execução disponíveis. Os critérios de API e integração permanecem pendentes.
+**Em revisão — PEN-06-T01/PEN-06-T02:** Metadados, estrutura Maven, classe principal, teste de contexto e instruções de execução disponíveis. A configuração de persistência inclui PostgreSQL, JPA, Flyway, V1 e H2 para testes. Os critérios de API e integração permanecem pendentes.
 
 ### PEN-07 — Registrar evidências de testes
 
@@ -765,7 +765,7 @@ Como usuário, quero acessar o sistema com minhas credenciais e visualizar as fu
 | 11 | Alertas automáticos e histórico — US21–US24 | Monitoramento, limites e políticas de recuperação |
 | 12 | Equipes, usinas e integrações restantes — US04/US05 | Regras específicas de cada cadastro |
 
-O cadastro mínimo de alimentadores precede US03 caso o vínculo seja obrigatório na criação. A conclusão desse recorte não encerra toda US02.
+O cadastro mínimo de alimentadores precede US03. A conclusão desse recorte não encerra toda US02.
 
 A base do backend compreende a estrutura gerada, build, teste de inicialização e instruções de execução. Os endpoints de domínio serão entregues nos incrementos seguintes.
 

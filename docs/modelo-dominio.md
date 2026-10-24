@@ -7,7 +7,8 @@ O Power Grid Control Center reúne o cadastro da infraestrutura elétrica, medi�
 - Consumidor representa o titular do fornecimento, pessoa física ou jurídica.
 - Um consumidor pode possuir zero ou vários medidores. A localização do medidor representa temporariamente o endereço de fornecimento.
 - O caminho cadastral é **Medidor → Transformador → Alimentador → Subestação**.
-- Transformador mantém também sua referência à subestação, exigida por US03.
+- O transformador possui alimentador obrigatório; sua subestação é obtida por esse alimentador, sem referência duplicada.
+- Medidores em estoque podem não possuir consumidor nem transformador. Esses vínculos são preenchidos na instalação.
 - Eventos distinguem o usuário que registrou a ocorrência do usuário responsável por acompanhá-la.
 - Alertas podem estar associados a um ativo ou à rede monitorada.
 - Cada usuário possui um perfil de acesso; cargo profissional é uma informação independente.
@@ -23,7 +24,6 @@ flowchart LR
     M -->|vinculado a| T[Transformador]
     T -->|vinculado a| A[Alimentador]
     A -->|pertence a| S[Subestação]
-    T -->|subestação de cadastro| S
 ```
 
 ### Entidades e atributos
@@ -32,7 +32,7 @@ flowchart LR
 |---|---|
 | AtivoRede | Identificador, nome, localização geográfica, estado operacional e data de instalação |
 | Subestacao | Tensão nominal e capacidade em MVA |
-| Transformador | Capacidade operacional, subestação e alimentador |
+| Transformador | Capacidade operacional em MVA e alimentador; subestação derivada do alimentador |
 | Alimentador | Identificação, tensão nominal e subestação |
 | LinhaTransmissao | Extensão, tensão de operação e extremidades cadastrais |
 | UsinaGeradora | Tipo de geração e capacidade máxima em MW |
@@ -41,7 +41,7 @@ flowchart LR
 | Usuario | Nome, matrícula, e-mail, hash de senha, perfil e cargo profissional |
 | EquipeManutencao | Nome, situação, responsabilidades e especialidades |
 
-AtivoRede é a base conceitual de subestações, transformadores, alimentadores, linhas, usinas e medidores. Consumidor, usuário e equipe não são subclasses de ativo elétrico. A representação dessa generalização no banco será definida no mapeamento de persistência.
+AtivoRede é a base conceitual de subestações, transformadores, alimentadores, linhas, usinas e medidores. Consumidor, usuário e equipe não são subclasses de ativo elétrico. No schema inicial, cada subtipo possui tabela própria cuja chave primária também referencia `ativo_rede.id`.
 
 Capacidade nominal pertence ao cadastro. Carga, geração, consumo e última leitura são dados de monitoramento. Grandezas de capacidade devem possuir unidade explícita; a capacidade de transformadores aceita somente valores positivos, conforme US03.
 
@@ -50,24 +50,36 @@ Capacidade nominal pertence ao cadastro. Carga, geração, consumo e última lei
 | Relação | Definição |
 |---|---|
 | Subestacao → Alimentador | Cada alimentador está vinculado a uma subestação. Uma subestação pode possuir vários alimentadores. |
-| Subestacao → Transformador | Cada transformador possui subestação cadastrada. Uma subestação pode possuir vários transformadores. |
-| Alimentador → Transformador | O transformador referencia seu alimentador. A obrigatoriedade já na criação e a vigência dos vínculos serão detalhadas no contrato de cadastro. |
-| Transformador → Medidor | O medidor referencia o transformador; seu alimentador é obtido por esse caminho, sem associação direta independente. |
-| Consumidor → Medidor | O titular pode possuir zero ou vários medidores; um medidor associado ao fornecimento possui um titular atual. Medidores em estoque ainda não têm regra de cadastro definida. |
+| Subestacao → Transformador | A subestação do transformador é derivada por JOIN com seu alimentador. Uma subestação pode possuir vários transformadores por esse caminho. |
+| Alimentador → Transformador | Cada transformador cadastrado possui exatamente um alimentador. Um alimentador pode possuir vários transformadores. |
+| Transformador → Medidor | O medidor pode possuir zero ou um transformador. Quando vinculado, seu alimentador é obtido por esse caminho, sem associação direta independente. |
+| Consumidor → Medidor | O titular pode possuir zero ou vários medidores. O vínculo do medidor com o titular é opcional no banco para permitir estoque. |
 | AtivoRede → Medicao | Cada medição identifica seu ativo de origem; um ativo pode possuir várias medições. |
 | AtivoRede → EventoOperacional | Cada evento inicial envolve um ativo; um ativo pode possuir vários eventos. |
 | Usuario → EventoOperacional | Registrador e responsável são referências independentes e podem apontar para a mesma pessoa. |
 | AtivoRede → Alerta | Cada alerta de escopo ATIVO referencia um ativo; alertas de escopo REDE_MONITORADA não possuem ativo associado. |
 
-A cardinalidade cadastral proposta para os novos vínculos é um transformador por medidor e um alimentador por transformador. Cadastros intermediários, medidores sem titular e mudanças desses vínculos precisam de regras específicas.
+A tabela `transformador` exige `alimentador_id NOT NULL`. As colunas `medidor_inteligente.transformador_id` e `medidor_inteligente.consumidor_id` aceitam NULL, permitindo o cadastro de equipamentos em estoque. As condições de instalação, transferência e retirada de campo serão detalhadas nos contratos correspondentes.
 
-A subestação do transformador e a subestação do alimentador são informações relacionadas. A validação de igualdade entre elas precisa ser definida antes da implementação de US03. Caso o alimentador seja obrigatório na criação do transformador, o cadastro mínimo de alimentadores deve preceder essa entrega.
+A tabela `transformador` não possui `subestacao_id`. A referência exigida por US03 é obtida por `transformador.alimentador_id → alimentador.subestacao_id`. Não há chave estrangeira composta para comparar subestações. O cadastro mínimo de alimentadores precede US03.
 
 ### Consumidor e histórico de fornecimento
 
 O MVP não contém UnidadeConsumidora. A identidade do titular e a localização do medidor são suficientes para o cadastro inicial, mas não preservam integralmente a identidade de uma instalação após trocas de titular ou de medidor.
 
-Transferências e reinstalações precisam de tratamento histórico antes de serem disponibilizadas. Uma alteração de vínculo atual não deve reatribuir medições antigas ao novo titular. O atributo de identificação documental será denominado `documento`; obrigatoriedade, normalização e unicidade ainda serão especificadas.
+Transferências e reinstalações precisam de tratamento histórico antes de serem disponibilizadas. Uma alteração de vínculo atual não deve reatribuir medições antigas ao novo titular. O atributo `documento` é obrigatório e único, assim como e-mail, matrícula e número de série do medidor. Normalização e formatos de entrada ainda serão especificados nos contratos de cadastro.
+
+### Persistência inicial
+
+A migration `V1__schema_inicial.sql` contém os cadastros, vínculos de integrantes, campos comuns dos eventos e alertas. Um evento pode possuir uma equipe designada; essa associação não substitui seu responsável individual.
+
+E-mail, matrícula, número de série do medidor e documento do consumidor possuem restrições NOT NULL e UNIQUE. A unicidade compara os valores armazenados; normalização de e-mail e documento não é realizada pelo schema.
+
+As chaves primárias compartilhadas dos ativos permitem o mapeamento JPA com herança JOINED. A exclusividade dos subtipos será garantida pela camada de aplicação/JPA, sem restrições adicionais no banco. A criação transacional deverá manter a consistência entre o ativo e seu subtipo.
+
+Situações iniciais de eventos, equipes e alertas não possuem defaults. Campos cuja obrigatoriedade permanece em aberto aceitam NULL na estrutura inicial; isso não define as regras dos futuros comandos de cadastro.
+
+Medições, histórico de alterações, detalhes específicos de interrupção/manutenção e extremidades das linhas terão migrations próprias antes das funcionalidades correspondentes. A designação atual de equipe não constitui histórico de atendimento.
 
 ## Medições e indicadores
 
@@ -169,9 +181,8 @@ Mudanças de situação e responsabilidade devem preservar autor, instante e val
 
 | Tema | Definição necessária | Histórias |
 |---|---|---|
-| Vínculos cadastrais | Mínimos, obrigatoriedade, vigência e medidores sem titular | US02, US03, US06 |
-| Subestações relacionadas | Consistência entre transformador e alimentador | US03 |
-| Campos de cadastro | Unidades, obrigatoriedade e unicidade de códigos, séries e documentos | US01–US07 |
+| Vínculos cadastrais | Vigência, instalação, transferência e retirada de medidores de campo | US02, US03, US06 |
+| Campos de cadastro | Obrigatoriedade dos demais campos; normalização e validação dos identificadores | US01–US07, US25 |
 | Acesso | Matriz de permissões e estratégia de sessão/autenticação | US25 |
 | Ciclos de eventos | Datas obrigatórias, estado inicial, conclusão e registros retrospectivos | US16, US18 |
 | Alertas | Estados ativos, criticidade, reconhecimento, resolução e limites | US20–US24 |
@@ -194,7 +205,7 @@ Mudanças de situação e responsabilidade devem preservar autor, instante e val
 | Alertas | “Rede Geral” no campo de ativo |
 | Classes de eventos | Três subclasses não explicitam as seis categorias |
 
-Os diagramas anteriores precisam ser sincronizados com este modelo e com o futuro schema. As Sprints permanecem registros históricos do planejamento.
+Os diagramas anteriores precisam ser sincronizados com este modelo e com o schema inicial. As Sprints permanecem registros históricos do planejamento.
 
 ## Referências
 
