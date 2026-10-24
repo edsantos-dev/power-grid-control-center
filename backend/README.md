@@ -38,7 +38,7 @@ Crie o banco PostgreSQL e disponibilize credenciais de um usuário com permissã
 | `SERVER_PORT` | `8080` |
 | `FRONTEND_URL` | `http://localhost:5173` |
 
-Flyway aplica as migrations de `src/main/resources/db/migration/`. Hibernate utiliza `ddl-auto: validate` e não cria nem atualiza tabelas automaticamente. A entidade `Usuario` mapeia a tabela `usuario`, com um `PerfilAcesso` por usuário; e-mail e matrícula são obrigatórios e únicos. As demais entidades ainda não estão mapeadas.
+Flyway aplica as migrations de `src/main/resources/db/migration/`. Hibernate utiliza `ddl-auto: validate` e não cria nem atualiza tabelas automaticamente. A entidade `Usuario` mapeia a tabela `usuario`, com um `PerfilAcesso` por usuário; e-mail e matrícula são obrigatórios e únicos. AtivoRede e Subestacao utilizam herança JOINED, com ID compartilhado e repositório de subestações. As validações do contrato de criação e os endpoints de subestações permanecem pendentes.
 
 ## Execução
 
