@@ -24,7 +24,7 @@ cd backend
 mvn verify -Dsurefire.useFile=false -DdisableXmlReport=true -Dmaven.test.redirectTestOutputToFile=false
 ```
 
-O comando compila o projeto, executa o teste `contextLoads()` e gera o JAR em `target/`. Os resultados são exibidos no terminal, sem relatórios TXT/XML. O teste utiliza H2 em memória e executa a mesma migration Flyway usada pela aplicação.
+O comando compila o projeto, executa os testes de contexto e persistência de usuários e gera o JAR em `target/`. Os resultados são exibidos no terminal, sem relatórios TXT/XML. Os testes utilizam JUnit Jupiter 6, AssertJ e H2 em memória, com a mesma migration Flyway usada pela aplicação.
 
 ## Banco de dados
 
@@ -37,7 +37,7 @@ Crie o banco PostgreSQL e disponibilize credenciais de um usuário com permissã
 | `DB_PASSWORD` | Obrigatória, sem valor padrão |
 | `SERVER_PORT` | `8080` |
 
-Flyway aplica as migrations de `src/main/resources/db/migration/`. Hibernate utiliza `ddl-auto: validate` e não cria nem atualiza tabelas automaticamente. Ainda não existem entidades Java mapeadas.
+Flyway aplica as migrations de `src/main/resources/db/migration/`. Hibernate utiliza `ddl-auto: validate` e não cria nem atualiza tabelas automaticamente. A entidade `Usuario` mapeia a tabela `usuario`, com um `PerfilAcesso` por usuário; e-mail e matrícula são obrigatórios e únicos. As demais entidades ainda não estão mapeadas.
 
 ## Execução
 
@@ -56,7 +56,9 @@ O servidor utiliza a porta `8080` por padrão. A aplicação ainda não possui e
 - `spring-boot-flyway` e `flyway-core`.
 - `flyway-database-postgresql`.
 - `postgresql`, no escopo de execução.
+- `lombok`, como dependência opcional e processador de anotações, excluído do JAR executável.
 - `spring-boot-starter-test`, no escopo de testes.
+- `spring-boot-starter-data-jpa-test`, no escopo de testes.
 - `h2`, no escopo de testes.
 
 O `pom.xml` utiliza Java 24 e mantém a estrutura e a formatação do Spring Initializr. As versões das dependências são gerenciadas pelo parent do Spring Boot 4.1.1.

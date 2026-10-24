@@ -4,11 +4,11 @@ O backlog reúne as histórias, os critérios de aceitação, as tarefas e as pe
 
 ## Estado do projeto
 
-O frontend possui páginas com dados simulados, filtros e navegação local. O backend possui uma base Spring Boot com teste de carregamento de contexto, configuração PostgreSQL/JPA/Flyway, schema SQL inicial e H2 para testes. Entidades Java, endpoints, segurança e integração com o frontend ainda não foram implementados.
+O frontend possui páginas com dados simulados, filtros e navegação local. O backend possui uma base Spring Boot com configuração PostgreSQL/JPA/Flyway, schema SQL inicial, H2 para testes e persistência de usuários com perfil único. As demais entidades Java, endpoints, segurança e integração com o frontend ainda não foram implementados.
 
-As histórias US01–US25 permanecem **A fazer** para o trabalho restante. A presença de uma tela não representa a conclusão da história. O mapa geográfico ainda não está implementado, e o login realiza apenas validações locais antes da navegação.
+As histórias US01–US24 permanecem **A fazer** para o trabalho restante. US25 está **Em andamento**, com a base de persistência de usuários implementada. A presença de uma tela não representa a conclusão da história. O mapa geográfico ainda não está implementado, e o login realiza apenas validações locais antes da navegação.
 
-Os arquivos de serviço de API e autenticação do frontend estão vazios. O teste automatizado `contextLoads()` verifica a inicialização do contexto Spring; os testes funcionais das histórias permanecem pendentes.
+Os arquivos de serviço de API e autenticação do frontend estão vazios. `contextLoads()` verifica a inicialização do contexto Spring. `UsuarioRepositoryTest` cobre gravação e releitura, os três perfis e as restrições de obrigatoriedade e unicidade. Autenticação, autorização e os demais comportamentos funcionais permanecem pendentes.
 
 ## Stack tecnológica
 
@@ -32,7 +32,7 @@ PostgreSQL é o banco relacional e Flyway é responsável pelas migrations do sc
 
 O projeto Maven usa o `pom.xml` retornado pelo [Spring Initializr](https://start.spring.io/) para Spring Boot 4.1.1, preservando a formatação, a ordem dos elementos, o parent e os plugins.
 
-A propriedade `java.version` utiliza o valor 24. As dependências são Spring Web, Spring Data JPA, integração Spring Boot/Flyway, Flyway Core, suporte Flyway/PostgreSQL e driver PostgreSQL. Spring Boot Test e H2 utilizam escopo `test`. O único plugin declarado é `spring-boot-maven-plugin`.
+A propriedade `java.version` utiliza o valor 24. As dependências são Spring Web, Spring Data JPA, integração Spring Boot/Flyway, Flyway Core, suporte Flyway/PostgreSQL e driver PostgreSQL. Lombok é opcional e possui processamento de anotações configurado pelo `maven-compiler-plugin`; o `spring-boot-maven-plugin` o exclui do JAR executável. Spring Boot Test, Spring Boot Data JPA Test e H2 utilizam escopo `test`, com JUnit Jupiter 6 e AssertJ nas versões gerenciadas pelo framework.
 
 ### Referências técnicas
 
@@ -655,8 +655,8 @@ Como gerente, quero visualizar o histórico de alertas gerados por criticidade, 
 Como usuário, quero acessar o sistema com minhas credenciais e visualizar as funcionalidades do meu perfil, para realizar minhas atividades com acesso controlado.
 
 - **Perfil e prioridade:** Usuário dos perfis documentados. Prioridade: Fundação — inclusão S4.
-- **Status:** A fazer.
-- **Implementação existente:** Formulário valida localmente e navega ao dashboard; sem autenticação.
+- **Status:** Em andamento.
+- **Implementação existente:** Entidade Usuario, enum PerfilAcesso, UsuarioRepository e testes de persistência. O formulário do frontend valida localmente e navega ao dashboard; sem autenticação.
 - **Trabalho pendente:** Rotas sem guarda; serviços/contexto vazios; sem sessão, credenciais reais ou autorização.
 - **Dependências:** PEN-06; matriz de acesso e estratégia de autenticação.
 - **Referências no frontend:** [Login/index.tsx](../frontend/src/pages/Login/index.tsx#L12) (linhas 12,35).
@@ -675,6 +675,8 @@ Como usuário, quero acessar o sistema com minhas credenciais e visualizar as fu
 - [ ] **US25-T02:** Implementar o recorte de backend com testes pertinentes e documentação.
 - [ ] **US25-T03:** Integrar a interface com testes pertinentes e documentação.
 - [ ] **US25-T04:** Verificar integração/aceite e apresentar resultados e limitações.
+
+**Em revisão — recorte de US25-T02:** Mapeamento JPA de Usuario, perfil único, repositório e testes das restrições da tabela. Autenticação, geração de hash de senha, autorização e integração do login permanecem pendentes.
 
 ## Pendências
 
@@ -726,7 +728,7 @@ Como usuário, quero acessar o sistema com minhas credenciais e visualizar as fu
 
 ### PEN-06 — Disponibilizar backend e API
 
-**Status:** Em andamento. Base Java 24/Spring Boot 4.1.1 com configuração de persistência e schema SQL inicial. Entidades Java, endpoints, autenticação e integração com o frontend permanecem pendentes.
+**Status:** Em andamento. Base Java 24/Spring Boot 4.1.1 com configuração de persistência, schema SQL inicial e mapeamento de Usuario. As demais entidades Java, endpoints, autenticação e integração com o frontend permanecem pendentes.
 
 - [x] **PEN-06-CA01:** Definir a stack e registrá-la no README.
 - [ ] **PEN-06-CA02:** Executar a API localmente conforme as instruções e atender às rotas dos módulos da Sprint 4.
