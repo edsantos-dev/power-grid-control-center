@@ -38,7 +38,7 @@ Crie o banco PostgreSQL e disponibilize credenciais de um usuário com permissã
 | `SERVER_PORT` | `8080` |
 | `FRONTEND_URL` | `http://localhost:5173` |
 
-Flyway aplica as migrations de `src/main/resources/db/migration/`. Hibernate utiliza `ddl-auto: validate` e não cria nem atualiza tabelas automaticamente. A entidade `Usuario` mapeia a tabela `usuario`, com um `PerfilAcesso` por usuário; e-mail e matrícula são obrigatórios e únicos. AtivoRede e Subestacao utilizam herança JOINED, com ID compartilhado e repositório de subestações. O cadastro de subestações possui DTO validado e serviço transacional; consulta/listagem e edição permanecem pendentes.
+Flyway aplica as migrations de `src/main/resources/db/migration/`. Hibernate utiliza `ddl-auto: validate` e não cria nem atualiza tabelas automaticamente. A entidade `Usuario` mapeia a tabela `usuario`, com um `PerfilAcesso` por usuário; e-mail e matrícula são obrigatórios e únicos. AtivoRede e Subestacao utilizam herança JOINED, com ID compartilhado e repositório de subestações. Subestações possuem criação, consulta/listagem e edição, com DTO validado e serviço transacional.
 
 ## Execução
 
@@ -94,7 +94,7 @@ Essas credenciais são destinadas à demonstração local. A V2 é aplicada em t
 
 Login e logout rejeitam token CSRF ausente ou inválido com 403. O login renova o identificador da sessão e invalida o token CSRF anterior. Após autenticar, o cliente deve consultar `/api/auth/csrf` novamente antes das próximas operações de escrita.
 
-O frontend deve enviar cookies com `credentials: 'include'` em todas as requisições desse fluxo e enviar o token no cabeçalho indicado por `headerName`. O CORS permite credenciais somente para a origem exata de `FRONTEND_URL`, com métodos GET, POST e OPTIONS e cabeçalhos Content-Type e X-CSRF-TOKEN. As respostas de usuário não incluem senha nem hash.
+O frontend deve enviar cookies com `credentials: 'include'` em todas as requisições desse fluxo e enviar o token no cabeçalho indicado por `headerName`. O CORS permite credenciais somente para a origem exata de `FRONTEND_URL`, com métodos GET, POST, PUT e OPTIONS e cabeçalhos Content-Type e X-CSRF-TOKEN. As respostas de usuário não incluem senha nem hash.
 
 ## Cadastro de subestações
 
@@ -114,4 +114,14 @@ O frontend deve enviar cookies com `credentials: 'include'` em todas as requisi�
 
 Todos os campos são obrigatórios, exceto estadoOperacional, que assume OPERACIONAL quando omitido ou nulo. Nome recebe trim, não pode ser vazio e admite até 255 caracteres. Coordenadas aceitam até sete casas decimais, nos intervalos [-90, 90] e [-180, 180]. Tensão e capacidade devem ser positivas, com até 13 dígitos inteiros e seis decimais; excesso de precisão é rejeitado antes da persistência. Datas futuras são permitidas. Os estados aceitos são OPERACIONAL, FALHA e MANUTENCAO.
 
-A resposta 201 contém os campos cadastrados e o ID gerado; Location identifica /api/subestacoes/{id}. O endpoint GET desse endereço ainda não está implementado. Requisições inválidas retornam 400; ausência de autenticação com CSRF válido retorna 401; CSRF ausente ou inválido retorna 403.
+A resposta 201 contém os campos cadastrados e o ID gerado; Location identifica /api/subestacoes/{id}. GET desse endereço retorna o cadastro ou 404 se inexistente. Requisições inválidas retornam 400; ausência de autenticação com CSRF válido retorna 401; CSRF ausente ou inválido retorna 403.
+
+### Consulta e edição de subestações
+
+| Método | Caminho | Resposta |
+|---|---|---|
+| GET | `/api/subestacoes` | 200 com lista completa; lista vazia quando não há registros |
+| GET | `/api/subestacoes/{id}` | 200 com DTO; 404 se inexistente |
+| PUT | `/api/subestacoes/{id}` | 200 com DTO atualizado; 404 se inexistente; 400 para entrada inválida |
+
+Consultas exigem sessão autenticada. PUT exige também CSRF e substitui os dados pelo mesmo contrato JSON da criação, preservando o ID. Estado omitido ou nulo assume OPERACIONAL, inclusive se o estado anterior era outro. Uma entrada inválida não altera o cadastro. A listagem não é paginada e não garante ordenação.

@@ -31,13 +31,15 @@ import tools.jackson.databind.ObjectMapper;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.options;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.put;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.content;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.header;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
-@SpringBootTest
+@SpringBootTest(properties = "FRONTEND_URL=http://localhost:5173")
 @AutoConfigureMockMvc(print = MockMvcPrint.NONE)
 @Transactional
 class SubestacaoControllerTest {
@@ -180,6 +182,130 @@ class SubestacaoControllerTest {
 		assertThat(subestacaoRepository.count()).isEqualTo(total);
 	}
 
+	@Test
+	void deveListarColecaoVazia() throws Exception {
+		mockMvc.perform(get("/api/subestacoes").session(sessao))
+				.andExpect(status().isOk()).andExpect(content().json("[]"));
+	}
+
+	@Test
+	void deveListarTodasAsSubestacoes() throws Exception {
+		Long primeiroId = criarSubestacao();
+		Long segundoId = criarSubestacao();
+		MvcResult result = mockMvc.perform(get("/api/subestacoes").session(sessao))
+				.andExpect(status().isOk()).andReturn();
+		SubestacaoResponseDTO[] respostas = objectMapper.readValue(
+				result.getResponse().getContentAsString(), SubestacaoResponseDTO[].class);
+		assertThat(respostas).extracting(SubestacaoResponseDTO::id)
+				.containsExactlyInAnyOrder(primeiroId, segundoId);
+	}
+
+	@Test
+	void deveConsultarPorId() throws Exception {
+		Long id = criarSubestacao();
+		mockMvc.perform(get("/api/subestacoes/{id}", id).session(sessao))
+				.andExpect(status().isOk())
+				.andExpect(jsonPath("$.id").value(id))
+				.andExpect(jsonPath("$.nome").value("Subestação Central"))
+				.andExpect(jsonPath("$.estadoOperacional").value("FALHA"));
+	}
+
+	@Test
+	void deveRetornar404AoConsultarIdInexistente() throws Exception {
+		mockMvc.perform(get("/api/subestacoes/{id}", Long.MAX_VALUE).session(sessao))
+				.andExpect(status().isNotFound());
+	}
+
+	@ParameterizedTest
+	@EnumSource(EstadoOperacional.class)
+	@NullSource
+	void deveAtualizarTodosOsCamposPreservandoId(EstadoOperacional estado) throws Exception {
+		Long id = criarSubestacao();
+		long total = subestacaoRepository.count();
+		Map<String, Object> request = requestValido();
+		request.put("nome", "  Subestação Atualizada  ");
+		request.put("latitude", new BigDecimal("90.0000000"));
+		request.put("longitude", new BigDecimal("180.0000000"));
+		request.put("tensaoNominalKv", new BigDecimal("230.654321"));
+		request.put("capacidadeMva", new BigDecimal("150.123456"));
+		request.put("dataInstalacao", "2099-12-31");
+		request.put("estadoOperacional", estado);
+
+		MvcResult result = mockMvc.perform(put("/api/subestacoes/{id}", id).session(sessao)
+				.header(csrf.headerName(), csrf.token()).contentType(MediaType.APPLICATION_JSON)
+				.content(objectMapper.writeValueAsString(request)))
+				.andExpect(status().isOk()).andExpect(header().doesNotExist("Location"))
+				.andReturn();
+		SubestacaoResponseDTO response = objectMapper.readValue(
+				result.getResponse().getContentAsString(), SubestacaoResponseDTO.class);
+		assertThat(response.id()).isEqualTo(id);
+		assertThat(response.nome()).isEqualTo("Subestação Atualizada");
+		assertThat(response.estadoOperacional()).isEqualTo(estado == null ? EstadoOperacional.OPERACIONAL : estado);
+		entityManager.flush();
+		entityManager.clear();
+		Subestacao salva = subestacaoRepository.findById(id).orElseThrow();
+		assertThat(salva.getNome()).isEqualTo(response.nome());
+		assertThat(salva.getEstadoOperacional()).isEqualTo(response.estadoOperacional());
+		assertThat(salva.getLatitude()).isEqualByComparingTo("90.0000000");
+		assertThat(salva.getLongitude()).isEqualByComparingTo("180.0000000");
+		assertThat(salva.getTensaoNominalKv()).isEqualByComparingTo("230.654321");
+		assertThat(salva.getCapacidadeMva()).isEqualByComparingTo("150.123456");
+		assertThat(salva.getDataInstalacao()).isEqualTo(LocalDate.of(2099, 12, 31));
+		assertThat(subestacaoRepository.count()).isEqualTo(total);
+		mockMvc.perform(get("/api/subestacoes/{id}", id).session(sessao))
+				.andExpect(status().isOk()).andExpect(content().json(result.getResponse().getContentAsString()));
+	}
+
+	@Test
+	void deveUsarOperacionalNoPutComEstadoOmitido() throws Exception {
+		Long id = criarSubestacao();
+		mockMvc.perform(put("/api/subestacoes/{id}", id).session(sessao)
+				.header(csrf.headerName(), csrf.token()).contentType(MediaType.APPLICATION_JSON)
+				.content(objectMapper.writeValueAsString(requestValido())))
+				.andExpect(status().isOk()).andExpect(jsonPath("$.estadoOperacional").value("OPERACIONAL"));
+	}
+
+	@Test
+	void deveRetornar404NoPutSemCriarRegistro() throws Exception {
+		long total = subestacaoRepository.count();
+		mockMvc.perform(put("/api/subestacoes/{id}", Long.MAX_VALUE).session(sessao)
+				.header(csrf.headerName(), csrf.token()).contentType(MediaType.APPLICATION_JSON)
+				.content(objectMapper.writeValueAsString(requestValido())))
+				.andExpect(status().isNotFound());
+		assertThat(subestacaoRepository.count()).isEqualTo(total);
+	}
+
+	@Test
+	void deveRejeitarPutSemCsrf() throws Exception {
+		Long id = criarSubestacao();
+		mockMvc.perform(put("/api/subestacoes/{id}", id).session(sessao)
+				.contentType(MediaType.APPLICATION_JSON).content(objectMapper.writeValueAsString(requestValido())))
+				.andExpect(status().isForbidden());
+		assertThat(subestacaoRepository.findById(id).orElseThrow().getEstadoOperacional())
+				.isEqualTo(EstadoOperacional.FALHA);
+	}
+
+	@Test
+	void devePermitirPreflightPutDoFrontend() throws Exception {
+		mockMvc.perform(options("/api/subestacoes/1")
+				.header("Origin", "http://localhost:5173")
+				.header("Access-Control-Request-Method", "PUT")
+				.header("Access-Control-Request-Headers", "Content-Type,X-CSRF-TOKEN"))
+				.andExpect(status().isOk())
+				.andExpect(header().string("Access-Control-Allow-Origin", "http://localhost:5173"))
+				.andExpect(header().string("Access-Control-Allow-Credentials", "true"));
+	}
+
+	private Long criarSubestacao() throws Exception {
+		Map<String, Object> request = requestValido();
+		request.put("estadoOperacional", "FALHA");
+		MvcResult result = mockMvc.perform(post("/api/subestacoes").session(sessao)
+				.header(csrf.headerName(), csrf.token()).contentType(MediaType.APPLICATION_JSON)
+				.content(objectMapper.writeValueAsString(request)))
+				.andExpect(status().isCreated()).andReturn();
+		return objectMapper.readValue(result.getResponse().getContentAsString(), SubestacaoResponseDTO.class).id();
+	}
+
 	private void assertRequisicaoInvalida(Map<String, Object> request) throws Exception {
 		long total = subestacaoRepository.count();
 		mockMvc.perform(post("/api/subestacoes").session(sessao)
@@ -187,6 +313,21 @@ class SubestacaoControllerTest {
 				.content(objectMapper.writeValueAsString(request)))
 				.andExpect(status().isBadRequest()).andExpect(header().doesNotExist("Location"));
 		assertThat(subestacaoRepository.count()).isEqualTo(total);
+
+		Long id = criarSubestacao();
+		entityManager.flush();
+		entityManager.clear();
+		Subestacao antes = subestacaoRepository.findById(id).orElseThrow();
+		entityManager.clear();
+		mockMvc.perform(put("/api/subestacoes/{id}", id).session(sessao)
+				.header(csrf.headerName(), csrf.token()).contentType(MediaType.APPLICATION_JSON)
+				.content(objectMapper.writeValueAsString(request)))
+				.andExpect(status().isBadRequest());
+		entityManager.flush();
+		entityManager.clear();
+		assertThat(subestacaoRepository.findById(id).orElseThrow())
+				.usingRecursiveComparison().isEqualTo(antes);
+		assertThat(subestacaoRepository.count()).isEqualTo(total + 1);
 	}
 
 	private Map<String, Object> requestValido() {
