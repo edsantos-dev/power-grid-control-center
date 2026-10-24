@@ -1,5 +1,6 @@
 package br.com.powergrid.controlcenter.model;
 
+import br.com.powergrid.controlcenter.util.NormalizadorEmail;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.EnumType;
@@ -7,6 +8,8 @@ import jakarta.persistence.Enumerated;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
+import jakarta.persistence.PrePersist;
+import jakarta.persistence.PreUpdate;
 import jakarta.persistence.Table;
 import lombok.EqualsAndHashCode;
 import lombok.Getter;
@@ -47,5 +50,11 @@ public class Usuario {
 
 	@Column(name = "cargo_profissional", length = 255)
 	private String cargoProfissional;
+
+	@PrePersist
+	@PreUpdate
+	private void normalizarEmail() {
+		email = NormalizadorEmail.normalizar(email);
+	}
 
 }

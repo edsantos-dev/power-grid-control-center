@@ -24,7 +24,7 @@ cd backend
 mvn verify -Dsurefire.useFile=false -DdisableXmlReport=true -Dmaven.test.redirectTestOutputToFile=false
 ```
 
-O comando compila o projeto, executa os testes de contexto e persistência de usuários e gera o JAR em `target/`. Os resultados são exibidos no terminal, sem relatórios TXT/XML. Os testes utilizam JUnit Jupiter 6, AssertJ e H2 em memória, com a mesma migration Flyway usada pela aplicação.
+O comando compila o projeto, executa os testes de contexto, persistência e credenciais e gera o JAR em `target/`. Os resultados são exibidos no terminal, sem relatórios TXT/XML. Os testes utilizam JUnit Jupiter 6 e AssertJ; a persistência utiliza H2 em memória, com a mesma migration Flyway usada pela aplicação.
 
 ## Banco de dados
 
@@ -47,12 +47,13 @@ Dentro de `backend/`:
 mvn spring-boot:run
 ```
 
-O servidor utiliza a porta `8080` por padrão. A aplicação ainda não possui endpoints; uma requisição para `/` retorna HTTP 404. Use `Ctrl+C` para encerrar.
+O servidor utiliza a porta `8080` por padrão. A aplicação ainda não possui endpoints de domínio nem uma `SecurityFilterChain` própria; as requisições seguem a configuração automática do Spring Security. Use `Ctrl+C` para encerrar.
 
 ## Dependências
 
 - `spring-boot-starter-web`.
 - `spring-boot-starter-data-jpa`.
+- `spring-boot-starter-security`.
 - `spring-boot-flyway` e `flyway-core`.
 - `flyway-database-postgresql`.
 - `postgresql`, no escopo de execução.
@@ -63,4 +64,10 @@ O servidor utiliza a porta `8080` por padrão. A aplicação ainda não possui e
 
 O `pom.xml` utiliza Java 24 e mantém a estrutura e a formatação do Spring Initializr. As versões das dependências são gerenciadas pelo parent do Spring Boot 4.1.1.
 
-Spring Security e a autenticação da aplicação serão configurados em um incremento posterior.
+## Credenciais
+
+E-mails recebem `trim` e conversão para minúsculas com `Locale.ROOT` antes de inserções e atualizações JPA e antes da consulta de credenciais. `UsuarioUserDetailsService` carrega o usuário pelo e-mail normalizado e converte seu perfil em uma autoridade `ROLE_...`. O bean `PasswordEncoder` utiliza BCrypt.
+
+O fluxo HTTP utilizará sessão com cookie HttpOnly e proteção CSRF, sem JWT. Os contratos de login/logout, CORS e a matriz de autorização por rotas permanecem pendentes. O cadastro deverá exigir senha com pelo menos oito caracteres; essa validação será implementada junto ao cadastro.
+
+O provisionamento inicial será feito pela futura migration `V2__inserir_usuarios_admin.sql`, com e-mails normalizados e hashes BCrypt previamente calculados para pelo menos um usuário de cada perfil. Essa migration ainda não existe, e a V1 não insere contas.

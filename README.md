@@ -94,7 +94,7 @@ Geração e classificação de alertas por criticidade para eventos como:
 | Migrações | Flyway |
 | Build do backend | Maven, com estrutura gerada pelo Spring Initializr |
 
-O frontend existente utiliza dados simulados. O backend possui uma base Spring Boot com configuração PostgreSQL/JPA/Flyway, schema SQL inicial, H2 para testes e persistência de usuários com perfil único. As demais entidades Java, endpoints, segurança e integração com o frontend estão pendentes.
+O frontend existente utiliza dados simulados. O backend possui configuração PostgreSQL/JPA/Flyway, schema SQL inicial, persistência de usuários, normalização de e-mail, carregamento de credenciais pelo Spring Security e encoder BCrypt. As demais entidades Java, os contratos HTTP de autenticação, a autorização por rotas e a integração com o frontend estão pendentes.
 
 O `pom.xml` do backend preserva a estrutura e a formatação do Spring Initializr, com Java 24 e dependências gerenciadas pelo Spring Boot 4.1.1. Os detalhes estão no [backlog](docs/backlog.md).
 

@@ -84,6 +84,44 @@ class UsuarioRepositoryTest {
 		assertViolacaoDeIntegridade(duplicado, "23505");
 	}
 
+	@Test
+	void deveNormalizarEmailAntesDePersistirEPermitirBusca() {
+		Usuario salvo = usuarioRepository.saveAndFlush(
+				novoUsuario("MAT-001", "  OPERADOR@Example.COM  "));
+		entityManager.clear();
+
+		Usuario encontrado = usuarioRepository.findByEmail("operador@example.com").orElseThrow();
+
+		assertThat(encontrado.getId()).isEqualTo(salvo.getId());
+		assertThat(encontrado.getEmail()).isEqualTo("operador@example.com");
+	}
+
+	@Test
+	void deveNormalizarEmailAntesDeAtualizar() {
+		Usuario usuario = usuarioRepository.saveAndFlush(
+				novoUsuario("MAT-001", "operador@example.com"));
+		usuario.setEmail("  NOVO@Example.COM  ");
+		usuarioRepository.saveAndFlush(usuario);
+		entityManager.clear();
+
+		assertThat(usuarioRepository.findByEmail("novo@example.com"))
+				.hasValueSatisfying(atualizado -> assertThat(atualizado.getId()).isEqualTo(usuario.getId()));
+		assertThat(usuarioRepository.findByEmail("operador@example.com")).isEmpty();
+	}
+
+	@Test
+	void deveRejeitarEmailDuplicadoAposNormalizacao() {
+		usuarioRepository.saveAndFlush(novoUsuario("MAT-001", "operador@example.com"));
+		Usuario duplicado = novoUsuario("MAT-002", "  OPERADOR@Example.COM  ");
+
+		assertViolacaoDeIntegridade(duplicado, "23505");
+	}
+
+	@Test
+	void deveRetornarVazioParaEmailInexistente() {
+		assertThat(usuarioRepository.findByEmail("inexistente@example.com")).isEmpty();
+	}
+
 	private Usuario novoUsuario(String matricula, String email) {
 		Usuario usuario = new Usuario();
 		usuario.setNome("Operador de teste");
