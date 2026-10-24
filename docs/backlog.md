@@ -4,11 +4,11 @@ O backlog reúne as histórias, os critérios de aceitação, as tarefas e as pe
 
 ## Estado do projeto
 
-O frontend possui páginas com dados simulados, filtros e navegação local. O backend possui configuração PostgreSQL/JPA/Flyway, schema SQL inicial, H2 para testes, persistência de usuários e base de credenciais do Spring Security. As demais entidades Java, os contratos HTTP de autenticação, a autorização por rotas e a integração com o frontend ainda não foram implementados.
+O frontend possui páginas com dados simulados, filtros e navegação local. O backend possui configuração PostgreSQL/JPA/Flyway, schema SQL inicial, persistência de usuários e autenticação HTTP por sessão, com CORS e CSRF. A V2 provisiona os três perfis e a segurança por método está habilitada. As demais entidades Java e a integração com o frontend ainda não foram implementadas.
 
-As histórias US01–US24 permanecem **A fazer** para o trabalho restante. US25 está **Em andamento**, com a base de persistência de usuários implementada. A presença de uma tela não representa a conclusão da história. O mapa geográfico ainda não está implementado, e o login realiza apenas validações locais antes da navegação.
+As histórias US01–US24 permanecem **A fazer** para o trabalho restante. O recorte de backend de US25 está **Em revisão**, com persistência, autenticação HTTP, contas iniciais e segurança por método. A presença de uma tela não representa a conclusão da história. O mapa geográfico ainda não está implementado, e o login do frontend realiza apenas validações locais antes da navegação.
 
-Os arquivos de serviço de API e autenticação do frontend estão vazios. Os testes existentes cobrem contexto, persistência, normalização de e-mail, carregamento de credenciais, conversão de perfis e correspondência de senhas com BCrypt. Autenticação HTTP, autorização por rotas e os demais comportamentos funcionais permanecem pendentes.
+Os arquivos de serviço de API e autenticação do frontend estão vazios. Os testes existentes cobrem contexto, persistência, credenciais, autenticação HTTP, sessão, CORS e CSRF. A política de gestão de acesso restringe as futuras operações ao Gerente de Operações; esses endpoints ainda não existem.
 
 ## Stack tecnológica
 
@@ -24,7 +24,7 @@ Os arquivos de serviço de API e autenticação do frontend estão vazios. Os te
 
 O backend utiliza Java 24 com Spring Boot 4.1.1. As versões das dependências gerenciadas pelo framework seguem seu BOM. JPA, PostgreSQL e Flyway compõem a configuração de persistência; H2 é exclusivo dos testes. Spring Security fornece a base de credenciais e o encoder BCrypt.
 
-A autenticação utilizará sessão HTTP com cookie HttpOnly e proteção CSRF, sem JWT. A configuração HTTP própria seguirá a estrutura de `SecurityFilterChain` com `HttpSecurity` e DSL lambda. A matriz de permissões e os contratos HTTP serão detalhados em US25.
+A autenticação utiliza sessão HTTP com cookie HttpOnly e proteção CSRF, sem JWT. A `SecurityFilterChain` configura login/logout, rotas públicas e exigência de autenticação nas demais rotas. Os contratos HTTP estão no README do backend. Login e obtenção de CSRF são públicos; as demais rotas exigem autenticação. Futuras operações de gestão de acesso devem usar `@PreAuthorize("hasRole('GERENTE_OPERACOES')")`, com `@EnableMethodSecurity` habilitado.
 
 PostgreSQL é o banco relacional e Flyway é responsável pelas migrations do schema. A conexão utiliza variáveis de ambiente. A versão do servidor permanece a definir; o suporte a PostgreSQL está presente nas dependências do Flyway.
 
@@ -32,7 +32,7 @@ PostgreSQL é o banco relacional e Flyway é responsável pelas migrations do sc
 
 O projeto Maven usa o `pom.xml` retornado pelo [Spring Initializr](https://start.spring.io/) para Spring Boot 4.1.1, preservando a formatação, a ordem dos elementos, o parent e os plugins.
 
-A propriedade `java.version` utiliza o valor 24. As dependências são Spring Web, Spring Data JPA, Spring Security, integração Spring Boot/Flyway, Flyway Core, suporte Flyway/PostgreSQL e driver PostgreSQL. Lombok é opcional e possui processamento de anotações configurado pelo `maven-compiler-plugin`; o `spring-boot-maven-plugin` o exclui do JAR executável. Spring Boot Test, Spring Boot Data JPA Test e H2 utilizam escopo `test`, com JUnit Jupiter 6 e AssertJ nas versões gerenciadas pelo framework.
+A propriedade `java.version` utiliza o valor 24. As dependências são Spring Web, Spring Data JPA, Spring Security, integração Spring Boot/Flyway, Flyway Core, suporte Flyway/PostgreSQL e driver PostgreSQL. Lombok é opcional e possui processamento de anotações configurado pelo `maven-compiler-plugin`; o `spring-boot-maven-plugin` o exclui do JAR executável. Spring Boot Test, Spring Boot Data JPA Test, Spring Boot Web MVC Test e H2 utilizam escopo `test`, com JUnit Jupiter 6 e AssertJ nas versões gerenciadas pelo framework.
 
 ### Referências técnicas
 
@@ -56,7 +56,7 @@ Os identificadores US01–US25 e PEN-01–PEN-07 são mantidos. Critérios e tar
 
 Cada alteração deve formar uma unidade pequena de código, testes e documentação relacionados. As tarefas listadas podem ser divididas em recortes menores durante o planejamento.
 
-Antes do commit, executar os testes pertinentes, revisar o diff e atualizar o backlog. Utilizar Conventional Commits, como `feat`, `fix`, `test`, `docs`, `refactor` e `chore`. Integrações na branch principal passam por Pull Request e revisão.
+Antes do commit, executar os testes pertinentes, revisar o diff e atualizar o backlog. Utilizar Conventional Commits, como `feat`, `fix`, `test`, `docs`, `refactor` e `chore`. Os commits são locais durante a implementação; o push da branch ocorre ao concluir seu escopo. As instruções devem incluir o comando de push final. Integrações na branch principal passam por Pull Request e revisão, com título e descrição em Markdown preparados ao concluir o escopo da branch. Cada entrega deve indicar o próximo incremento proposto.
 
 Testes automatizados acompanham o código e verificam os critérios de aceitação. Os resultados são apresentados na revisão de cada incremento. Logs de erros, relatórios de execução e relatos dos passos técnicos realizados não integram os arquivos do repositório.
 
@@ -655,10 +655,10 @@ Como gerente, quero visualizar o histórico de alertas gerados por criticidade, 
 Como usuário, quero acessar o sistema com minhas credenciais e visualizar as funcionalidades do meu perfil, para realizar minhas atividades com acesso controlado.
 
 - **Perfil e prioridade:** Usuário dos perfis documentados. Prioridade: Fundação — inclusão S4.
-- **Status:** Em andamento.
-- **Implementação existente:** Entidade Usuario, enum PerfilAcesso, consulta por e-mail normalizado, UsuarioUserDetailsService, conversão de perfis em autoridades e bean BCrypt. O formulário do frontend ainda realiza apenas validação local.
-- **Trabalho pendente:** Contratos HTTP de login/logout e usuário autenticado, CORS, autorização por rotas, provisionamento inicial, cadastro com validação de senha e integração do frontend.
-- **Dependências:** PEN-06; matriz de acesso e contratos da autenticação por sessão.
+- **Status:** Em revisão — escopo do backend.
+- **Implementação existente:** Persistência e credenciais de usuários, login/logout por sessão, consulta do usuário autenticado em DTO seguro, token CSRF e CORS para o frontend local. A V2 inclui três contas iniciais com BCrypt; segurança por método habilitada. O formulário do frontend ainda realiza apenas validação local.
+- **Trabalho pendente:** Revisão do backend. Integração React e cadastro de usuários com validação de senha pertencem a incrementos posteriores e não bloqueiam esta PR.
+- **Dependências:** PEN-06; PostgreSQL configurado para execução da aplicação.
 - **Referências no frontend:** [Login/index.tsx](../frontend/src/pages/Login/index.tsx#L12) (linhas 12,35).
 
 **Critérios de aceitação:**
@@ -666,7 +666,7 @@ Como usuário, quero acessar o sistema com minhas credenciais e visualizar as fu
 - [ ] **US25-CA01:** Credenciais válidas levam ao dashboard e inválidas exibem erro (S4, p. 4).
 - [ ] **US25-CA02:** Armazenar senha com hash (S4, p. 4).
 - [ ] **US25-CA03:** Rotas internas só abrem a usuário autenticado (S4, p. 4).
-- [ ] **US25-CA04:** Operador, Gerente e Técnico acessam somente telas permitidas ao perfil (S4, p. 4); matriz a definir.
+- [ ] **US25-CA04:** Operador, Gerente e Técnico acessam somente telas permitidas ao perfil (S4, p. 4); política inicial: autenticação nas rotas privadas e perfil GERENTE_OPERACOES nas futuras operações de gestão de acesso. A aplicação dessa política nas telas fica fora desta PR.
 - [ ] **US25-CA05:** Um perfil por usuário no MVP; cargo não concede permissões.
 - [ ] **US25-CA06:** Normalizar e-mail com trim e minúsculas antes de salvar e durante a tentativa de login.
 - [ ] **US25-CA07:** Exigir senha com no mínimo oito caracteres no cadastro.
@@ -678,9 +678,11 @@ Como usuário, quero acessar o sistema com minhas credenciais e visualizar as fu
 - [ ] **US25-T02:** Implementar o recorte de backend com testes pertinentes e documentação.
 - [ ] **US25-T03:** Integrar a interface com testes pertinentes e documentação.
 - [ ] **US25-T04:** Verificar integração/aceite e apresentar resultados e limitações.
-- [ ] **US25-T05:** Criar futuramente `V2__inserir_usuarios_admin.sql` com as contas iniciais dos três perfis; definir os dados das contas e validar os hashes BCrypt.
+- [ ] **US25-T05:** Provisionar as três contas pela V2 e validar seus logins e perfis — Em revisão.
 
-**Em revisão — credenciais de US25-T02:** Normalização antes da persistência e da busca, carregamento pelo UserDetailsService, autoridades derivadas do perfil e PasswordEncoder BCrypt. A configuração HTTP, a integração do login, a validação de senha no cadastro e a V2 permanecem pendentes.
+**Escopo de backend em revisão — US25-T02/US25-T05:** API de autenticação com DTO seguro, sessão HttpOnly, CORS, CSRF, provisionamento dos três perfis e segurança por método. O aceite deste recorte exige autenticação das contas da V2, rejeição de credenciais inválidas, proteção das rotas, renovação/invalidação da sessão e restrição de métodos de gestão ao gerente. Não existem endpoints de gestão de acesso neste incremento.
+
+US25-CA01, CA03 e CA04 preservam os requisitos de interface da Sprint 4; a integração React será acompanhada em US25-T03. US25-CA07 será atendido com o futuro cadastro de usuários. Esses itens permanecem abertos, sem ampliar o escopo desta PR.
 
 ## Pendências
 
@@ -732,7 +734,7 @@ Como usuário, quero acessar o sistema com minhas credenciais e visualizar as fu
 
 ### PEN-06 — Disponibilizar backend e API
 
-**Status:** Em andamento. Base Java 24/Spring Boot 4.1.1 com configuração de persistência, schema SQL inicial e mapeamento de Usuario. As demais entidades Java, endpoints, autenticação e integração com o frontend permanecem pendentes.
+**Status:** Em andamento. Base Java 24/Spring Boot 4.1.1 com persistência, schema SQL inicial, mapeamento de Usuario e autenticação HTTP. As demais entidades Java, endpoints de cadastro e monitoramento e integração com o frontend permanecem pendentes.
 
 - [x] **PEN-06-CA01:** Definir a stack e registrá-la no README.
 - [ ] **PEN-06-CA02:** Executar a API localmente conforme as instruções e atender às rotas dos módulos da Sprint 4.

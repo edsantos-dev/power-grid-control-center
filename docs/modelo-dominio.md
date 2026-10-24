@@ -162,9 +162,9 @@ O ciclo de referência é `ABERTO → RECONHECIDO → RESOLVIDO`. O contrato de 
 
 ## Perfis, estados e histórico
 
-Cada usuário possui um dos perfis: Operador, Gerente de Operações ou Técnico de Manutenção. Cargo profissional é descritivo e não concede permissões. A matriz de acesso será definida em US25.
+Cada usuário possui um dos perfis: Operador, Gerente de Operações ou Técnico de Manutenção. Cargo profissional é descritivo e não concede permissões. Login e obtenção de CSRF são públicos; as demais rotas exigem usuário autenticado. Futuras operações de gestão de acesso serão restritas ao perfil GERENTE_OPERACOES por segurança de método.
 
-A autenticação utilizará sessão HTTP com cookie HttpOnly e proteção CSRF, sem JWT. Senhas serão armazenadas como hashes BCrypt, e o cadastro exigirá no mínimo oito caracteres. O provisionamento inicial deverá incluir pelo menos um usuário de cada perfil.
+A autenticação utiliza sessão HTTP com cookie HttpOnly e proteção CSRF, sem JWT. O login renova o identificador da sessão e seu token CSRF; o logout invalida a sessão. As respostas de autenticação expõem somente identificador, nome, e-mail e perfil. Senhas são verificadas por BCrypt, e o cadastro exigirá no mínimo oito caracteres. A migration V2 provisiona um usuário de cada perfil com hash BCrypt previamente calculado.
 
 O estado operacional principal do ativo é `OPERACIONAL`, `FALHA` ou `MANUTENCAO`. É uma classificação resumida: não descreve simultaneamente todas as condições de um equipamento em falha durante uma manutenção.
 
@@ -185,7 +185,7 @@ Mudanças de situação e responsabilidade devem preservar autor, instante e val
 |---|---|---|
 | Vínculos cadastrais | Vigência, instalação, transferência e retirada de medidores de campo | US02, US03, US06 |
 | Campos de cadastro | Obrigatoriedade dos demais campos; normalização e validação dos identificadores | US01–US07, US25 |
-| Acesso | Matriz de permissões, contratos HTTP e duração da sessão | US25 |
+| Acesso | Duração da sessão; implementação das futuras operações de gestão de acesso; integração do frontend em incremento separado | US25 |
 | Ciclos de eventos | Datas obrigatórias, estado inicial, conclusão e registros retrospectivos | US16, US18 |
 | Alertas | Estados ativos, criticidade, reconhecimento, resolução e limites | US20–US24 |
 | Equipes | Integrantes, designação simples e disponibilidade | US04, US19 |
