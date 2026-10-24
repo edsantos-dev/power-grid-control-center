@@ -6,7 +6,7 @@ O backlog reúne as histórias, os critérios de aceitação, as tarefas e as pe
 
 O frontend possui páginas com dados simulados, filtros e navegação local. O backend possui configuração PostgreSQL/JPA/Flyway, schema SQL inicial, persistência de usuários e autenticação HTTP por sessão, com CORS e CSRF. A V2 provisiona os três perfis e a segurança por método está habilitada. As demais entidades Java e a integração com o frontend ainda não foram implementadas.
 
-US01 está **Em andamento**, com persistência de subestações em revisão; US02–US24 permanecem **A fazer** para o trabalho restante. O recorte de backend de US25 está **Em revisão**, com persistência, autenticação HTTP, contas iniciais e segurança por método. A presença de uma tela não representa a conclusão da história. O mapa geográfico ainda não está implementado, e o login do frontend realiza apenas validações locais antes da navegação.
+US01 está **Em andamento**, com persistência e criação HTTP de subestações em revisão; US02–US24 permanecem **A fazer** para o trabalho restante. O recorte de backend de US25 está **Em revisão**, com persistência, autenticação HTTP, contas iniciais e segurança por método. A presença de uma tela não representa a conclusão da história. O mapa geográfico ainda não está implementado, e o login do frontend realiza apenas validações locais antes da navegação.
 
 Os arquivos de serviço de API e autenticação do frontend estão vazios. Os testes existentes cobrem contexto, persistência, credenciais, autenticação HTTP, sessão, CORS e CSRF. A política de gestão de acesso restringe as futuras operações ao Gerente de Operações; esses endpoints ainda não existem.
 
@@ -32,7 +32,7 @@ PostgreSQL é o banco relacional e Flyway é responsável pelas migrations do sc
 
 O projeto Maven usa o `pom.xml` retornado pelo [Spring Initializr](https://start.spring.io/) para Spring Boot 4.1.1, preservando a formatação, a ordem dos elementos, o parent e os plugins.
 
-A propriedade `java.version` utiliza o valor 24. As dependências são Spring Web, Spring Data JPA, Spring Security, integração Spring Boot/Flyway, Flyway Core, suporte Flyway/PostgreSQL e driver PostgreSQL. Lombok é opcional e possui processamento de anotações configurado pelo `maven-compiler-plugin`; o `spring-boot-maven-plugin` o exclui do JAR executável. Spring Boot Test, Spring Boot Data JPA Test, Spring Boot Web MVC Test e H2 utilizam escopo `test`, com JUnit Jupiter 6 e AssertJ nas versões gerenciadas pelo framework.
+A propriedade `java.version` utiliza o valor 24. As dependências são Spring Web, Jakarta Validation via starter-validation, Spring Data JPA, Spring Security, integração Spring Boot/Flyway, Flyway Core, suporte Flyway/PostgreSQL e driver PostgreSQL. Lombok é opcional e possui processamento de anotações configurado pelo `maven-compiler-plugin`; o `spring-boot-maven-plugin` o exclui do JAR executável. Spring Boot Test, Spring Boot Data JPA Test, Spring Boot Web MVC Test e H2 utilizam escopo `test`, com JUnit Jupiter 6 e AssertJ nas versões gerenciadas pelo framework.
 
 ### Referências técnicas
 
@@ -70,8 +70,8 @@ Como operador, quero cadastrar subestações com informações técnicas e local
 
 - **Perfil e prioridade:** Operador. Prioridade: Alta.
 - **Status:** Em andamento.
-- **Implementação existente:** Interface com dados simulados. Backend com AtivoRede e Subestacao em herança JOINED, repositório e testes de persistência; sem API de cadastro/edição.
-- **Trabalho pendente:** DTOs, validações do contrato, serviços, endpoints, formulário e integração. O tipo da tela ainda não contempla todos os campos.
+- **Implementação existente:** Interface com dados simulados. Backend com AtivoRede e Subestacao em herança JOINED, repositório e POST /api/subestacoes com validações, sessão e CSRF.
+- **Trabalho pendente:** Consulta/listagem, edição, formulário e integração. O tipo da tela ainda não contempla todos os campos.
 - **Dependências:** PEN-06; autenticação do backend em US25.
 - **Referências no frontend:** [Subestacoes/index.tsx](../frontend/src/pages/Subestacoes/index.tsx#L6) (linhas 6,17,38).
 
@@ -89,9 +89,9 @@ Como operador, quero cadastrar subestações com informações técnicas e local
 - [ ] **US01-T03:** Integrar a interface com testes pertinentes e documentação.
 - [ ] **US01-T04:** Verificar integração/aceite e apresentar resultados e limitações.
 
-**Contrato de criação:** Nome, latitude, longitude, tensão nominal, capacidade e data de instalação obrigatórios. Nome sem espaços nas extremidades, não vazio, até 255 caracteres e sem unicidade. Latitude entre -90 e 90; longitude entre -180 e 180; até sete casas decimais. Tensão e capacidade positivas, com até 13 dígitos inteiros e seis decimais. Excesso de precisão deve ser rejeitado, sem arredondamento. Data válida em YYYY-MM-DD, admitindo datas futuras. Estado opcional: OPERACIONAL quando omitido; rejeitar nulo explícito ou valor fora de OPERACIONAL/FALHA/MANUTENCAO. ID gerado pelo sistema.
+**Contrato de criação:** Nome, latitude, longitude, tensão nominal, capacidade e data de instalação obrigatórios. Nome sem espaços nas extremidades, não vazio, até 255 caracteres e sem unicidade. Latitude entre -90 e 90; longitude entre -180 e 180; até sete casas decimais. Tensão e capacidade positivas, com até 13 dígitos inteiros e seis decimais. Excesso de precisão deve ser rejeitado, sem arredondamento. Data válida em YYYY-MM-DD, admitindo datas futuras. Estado opcional: OPERACIONAL quando omitido ou nulo; rejeitar valor fora de OPERACIONAL/FALHA/MANUTENCAO. ID gerado pelo sistema.
 
-**US01-T02 — persistência em revisão:** Mapeamento JOINED, ID compartilhado e SubestacaoRepository disponíveis. A V1 permanece inalterada. As validações adicionais do contrato e o estado padrão ainda serão implementados na Camada Web; precision/scale do JPA não substituem a rejeição de arredondamento na entrada.
+**US01-T02 — criação em revisão:** Mapeamento JOINED, repositório, DTOs validados com Jakarta Validation, serviço transacional e POST /api/subestacoes disponíveis. A criação retorna 201, DTO com ID e Location. Entradas inválidas retornam 400 sem persistir; a segurança exige sessão e CSRF. A V1 permanece inalterada. Consulta/listagem e edição ainda são necessárias para US01-CA03; a história não está concluída.
 
 ### US02 — Cadastrar linhas e alimentadores
 

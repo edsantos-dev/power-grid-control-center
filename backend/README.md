@@ -38,7 +38,7 @@ Crie o banco PostgreSQL e disponibilize credenciais de um usuário com permissã
 | `SERVER_PORT` | `8080` |
 | `FRONTEND_URL` | `http://localhost:5173` |
 
-Flyway aplica as migrations de `src/main/resources/db/migration/`. Hibernate utiliza `ddl-auto: validate` e não cria nem atualiza tabelas automaticamente. A entidade `Usuario` mapeia a tabela `usuario`, com um `PerfilAcesso` por usuário; e-mail e matrícula são obrigatórios e únicos. AtivoRede e Subestacao utilizam herança JOINED, com ID compartilhado e repositório de subestações. As validações do contrato de criação e os endpoints de subestações permanecem pendentes.
+Flyway aplica as migrations de `src/main/resources/db/migration/`. Hibernate utiliza `ddl-auto: validate` e não cria nem atualiza tabelas automaticamente. A entidade `Usuario` mapeia a tabela `usuario`, com um `PerfilAcesso` por usuário; e-mail e matrícula são obrigatórios e únicos. AtivoRede e Subestacao utilizam herança JOINED, com ID compartilhado e repositório de subestações. O cadastro de subestações possui DTO validado e serviço transacional; consulta/listagem e edição permanecem pendentes.
 
 ## Execução
 
@@ -48,11 +48,12 @@ Dentro de `backend/`:
 mvn spring-boot:run
 ```
 
-O servidor utiliza a porta `8080` por padrão. A `SecurityFilterChain` expõe os contratos de autenticação e exige sessão para as demais rotas. Os cadastros de ativos ainda não possuem endpoints. Use `Ctrl+C` para encerrar.
+O servidor utiliza a porta `8080` por padrão. A `SecurityFilterChain` expõe os contratos de autenticação e exige sessão para as demais rotas. O endpoint POST /api/subestacoes cadastra subestações; os demais cadastros de ativos permanecem pendentes. Use `Ctrl+C` para encerrar.
 
 ## Dependências
 
 - `spring-boot-starter-web`.
+- `spring-boot-starter-validation`.
 - `spring-boot-starter-data-jpa`.
 - `spring-boot-starter-security`.
 - `spring-boot-flyway` e `flyway-core`.
@@ -94,3 +95,23 @@ Essas credenciais são destinadas à demonstração local. A V2 é aplicada em t
 Login e logout rejeitam token CSRF ausente ou inválido com 403. O login renova o identificador da sessão e invalida o token CSRF anterior. Após autenticar, o cliente deve consultar `/api/auth/csrf` novamente antes das próximas operações de escrita.
 
 O frontend deve enviar cookies com `credentials: 'include'` em todas as requisições desse fluxo e enviar o token no cabeçalho indicado por `headerName`. O CORS permite credenciais somente para a origem exata de `FRONTEND_URL`, com métodos GET, POST e OPTIONS e cabeçalhos Content-Type e X-CSRF-TOKEN. As respostas de usuário não incluem senha nem hash.
+
+## Cadastro de subestações
+
+`POST /api/subestacoes` recebe JSON, exige sessão autenticada e token CSRF renovado após o login. Todos os perfis autenticados seguem a política geral de acesso.
+
+```json
+{
+  "nome": "Subestação Central",
+  "latitude": -25.4284001,
+  "longitude": -49.2733001,
+  "tensaoNominalKv": 138.123456,
+  "capacidadeMva": 100.654321,
+  "dataInstalacao": "2099-01-15",
+  "estadoOperacional": "OPERACIONAL"
+}
+```
+
+Todos os campos são obrigatórios, exceto estadoOperacional, que assume OPERACIONAL quando omitido ou nulo. Nome recebe trim, não pode ser vazio e admite até 255 caracteres. Coordenadas aceitam até sete casas decimais, nos intervalos [-90, 90] e [-180, 180]. Tensão e capacidade devem ser positivas, com até 13 dígitos inteiros e seis decimais; excesso de precisão é rejeitado antes da persistência. Datas futuras são permitidas. Os estados aceitos são OPERACIONAL, FALHA e MANUTENCAO.
+
+A resposta 201 contém os campos cadastrados e o ID gerado; Location identifica /api/subestacoes/{id}. O endpoint GET desse endereço ainda não está implementado. Requisições inválidas retornam 400; ausência de autenticação com CSRF válido retorna 401; CSRF ausente ou inválido retorna 403.

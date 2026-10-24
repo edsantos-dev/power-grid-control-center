@@ -67,7 +67,7 @@ A tabela `transformador` não possui `subestacao_id`. A referência exigida por 
 
 O contrato de criação de US01 exige nome, latitude, longitude, tensão nominal em kV, capacidade em MVA e data de instalação. O nome recebe trim, não pode ficar vazio e possui limite de 255 caracteres, sem unicidade. Coordenadas aceitam até sete casas decimais, nos intervalos inclusivos de -90 a 90 e -180 a 180. Tensão e capacidade devem ser positivas, com até 13 dígitos inteiros e seis decimais. Entradas que excedam a precisão são rejeitadas, sem arredondamento silencioso. Datas futuras são permitidas.
 
-O estado operacional, quando omitido na criação, será OPERACIONAL; nulo explícito e valores fora do catálogo serão rejeitados. O identificador é gerado em ativo_rede e compartilhado com subestacao. A persistência JPA utiliza herança JOINED; obrigatoriedade adicional, normalização, validação de precisão e aplicação do estado padrão pertencem ao contrato da API e não alteram a V1.
+O estado operacional, quando omitido ou nulo na criação, será OPERACIONAL; valores fora do catálogo serão rejeitados. O identificador é gerado em ativo_rede e compartilhado com subestacao. A persistência JPA utiliza herança JOINED; obrigatoriedade adicional, normalização, validação de precisão e aplicação do estado padrão pertencem ao contrato da API e não alteram a V1.
 
 ### Consumidor e histórico de fornecimento
 
