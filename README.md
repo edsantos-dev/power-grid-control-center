@@ -82,38 +82,52 @@ Geração e classificação de alertas por criticidade para eventos como:
 
 ---
 
-## Tecnologias (a definir)
+## Tecnologias
 
-| Camada         | Tecnologia            |
-|----------------|------------------------|
-| Frontend       | _a definir_            |
-| Backend        | _a definir_            |
-| Banco de Dados | _a definir_            |
-| Infraestrutura | _a definir_            |
+| Componente | Tecnologia |
+|---|---|
+| Frontend | React, TypeScript e Vite |
+| Linguagem do backend | Java 24 |
+| Framework | Spring Boot 4.1.1 |
+| Segurança | Spring Security, com versão gerenciada pelo Spring Boot 4.1.1 |
+| Banco de dados | PostgreSQL |
+| Migrações | Flyway |
+| Build do backend | Maven, com estrutura gerada pelo Spring Initializr |
+
+O frontend existente utiliza dados simulados. O backend possui uma base Spring Boot com configuração PostgreSQL/JPA/Flyway, schema SQL inicial, H2 para testes e persistência de usuários com perfil único. As demais entidades Java, endpoints, segurança e integração com o frontend estão pendentes.
+
+O `pom.xml` do backend preserva a estrutura e a formatação do Spring Initializr, com Java 24 e dependências gerenciadas pelo Spring Boot 4.1.1. Os detalhes estão no [backlog](docs/backlog.md).
 
 ---
 
 ## Como Executar
 
-> _Instruções de instalação e execução serão detalhadas conforme o desenvolvimento avança._
+### Frontend
+
+Com Node.js e npm disponíveis:
 
 ```bash
-# Clonar o repositório
-git clone https://github.com/edsantos-dev/power-grid-control-center.git
-
-# Acessar a pasta do projeto
-cd power-grid-control-center
-
-# Instalar dependências
-# (comandos a definir)
-
-# Executar a aplicação
-# (comandos a definir)
+cd frontend
+npm ci
+npm run dev
 ```
+
+Os comandos `npm run build` e `npm run lint` estão definidos no frontend para geração da aplicação e verificação estática.
+
+### Backend
+
+Os pré-requisitos e os comandos Maven para build, testes e execução estão no [README do backend](backend/README.md).
 
 ---
 
 ## Documentação
+
+Documentação atual:
+
+- [Modelo de domínio](docs/modelo-dominio.md)
+- [Backlog e planejamento](docs/backlog.md)
+
+As Sprints registram o planejamento de cada período. O backlog contém o estado atual das entregas e o modelo descreve os relacionamentos e as regras de domínio.
 
 - [ ] Documentação técnica
 - [ ] Modelo de dados
