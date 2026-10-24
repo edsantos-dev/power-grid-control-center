@@ -63,6 +63,12 @@ A tabela `transformador` exige `alimentador_id NOT NULL`. As colunas `medidor_in
 
 A tabela `transformador` não possui `subestacao_id`. A referência exigida por US03 é obtida por `transformador.alimentador_id → alimentador.subestacao_id`. Não há chave estrangeira composta para comparar subestações. O cadastro mínimo de alimentadores precede US03.
 
+### Cadastro de subestações
+
+O contrato de criação de US01 exige nome, latitude, longitude, tensão nominal em kV, capacidade em MVA e data de instalação. O nome recebe trim, não pode ficar vazio e possui limite de 255 caracteres, sem unicidade. Coordenadas aceitam até sete casas decimais, nos intervalos inclusivos de -90 a 90 e -180 a 180. Tensão e capacidade devem ser positivas, com até 13 dígitos inteiros e seis decimais. Entradas que excedam a precisão são rejeitadas, sem arredondamento silencioso. Datas futuras são permitidas.
+
+O estado operacional, quando omitido ou nulo na criação, será OPERACIONAL; valores fora do catálogo serão rejeitados. O identificador é gerado em ativo_rede e compartilhado com subestacao. A persistência JPA utiliza herança JOINED; obrigatoriedade adicional, normalização, validação de precisão e aplicação do estado padrão pertencem ao contrato da API e não alteram a V1.
+
 ### Consumidor e histórico de fornecimento
 
 O MVP não contém UnidadeConsumidora. A identidade do titular e a localização do medidor são suficientes para o cadastro inicial, mas não preservam integralmente a identidade de uma instalação após trocas de titular ou de medidor.
