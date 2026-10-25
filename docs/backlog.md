@@ -6,7 +6,7 @@ O backlog reúne as histórias, os critérios de aceitação, as tarefas e as pe
 
 O frontend possui páginas com dados simulados, filtros e navegação local. O backend possui configuração PostgreSQL/JPA/Flyway, schema SQL inicial, persistência de usuários e autenticação HTTP por sessão, com CORS e CSRF. A V2 provisiona os três perfis e a segurança por método está habilitada. As demais entidades Java e a integração com o frontend ainda não foram implementadas.
 
-US01 está **Em andamento**, com persistência, criação, consulta e edição de subestações em revisão; US02 está **Em andamento**, com backend de Alimentador em revisão; US03 está **Em andamento**, com persistência de Transformador em revisão; US04–US24 permanecem **A fazer** para o trabalho restante. O recorte de backend de US25 está **Em revisão**, com persistência, autenticação HTTP, contas iniciais e segurança por método. A presença de uma tela não representa a conclusão da história. O mapa geográfico ainda não está implementado, e o login do frontend realiza apenas validações locais antes da navegação.
+US01 está **Em andamento**, com persistência, criação, consulta e edição de subestações em revisão; US02 está **Em andamento**, com backend de Alimentador em revisão; US03 está **Em andamento**, com persistência e API de Transformador em revisão; US04–US24 permanecem **A fazer** para o trabalho restante. O recorte de backend de US25 está **Em revisão**, com persistência, autenticação HTTP, contas iniciais e segurança por método. A presença de uma tela não representa a conclusão da história. O mapa geográfico ainda não está implementado, e o login do frontend realiza apenas validações locais antes da navegação.
 
 Os arquivos de serviço de API e autenticação do frontend estão vazios. Os testes existentes cobrem contexto, persistência, credenciais, autenticação HTTP, sessão, CORS e CSRF. A política de gestão de acesso restringe as futuras operações ao Gerente de Operações; esses endpoints ainda não existem.
 
@@ -127,8 +127,8 @@ Como operador, quero cadastrar transformadores com sua capacidade operacional, p
 
 - **Perfil e prioridade:** Operador. Prioridade: Alta.
 - **Status:** Em andamento.
-- **Implementação existente:** Interface com dados simulados. Backend com Transformador em herança JOINED, repositório e Alimentador obrigatório LAZY; subestação derivada pela associação do alimentador.
-- **Trabalho pendente:** DTOs, serviço, endpoints e integração. O tipo do frontend não possui alimentador. Telemetria será tratada em incremento futuro de Monitoramento.
+- **Implementação existente:** Interface com dados simulados. Backend com Transformador em herança JOINED, repositório e API de criação, listagem, consulta por ID e edição; Alimentador obrigatório e subestação derivada nas respostas.
+- **Trabalho pendente:** Integração com o frontend e aceite do recorte. O tipo do frontend não possui alimentador. Telemetria será tratada em incremento futuro de Monitoramento.
 - **Dependências:** PEN-06; US25; US01; cadastro mínimo de alimentadores.
 - **Referências no frontend:** [Transformadores/index.tsx](../frontend/src/pages/Transformadores/index.tsx#L6) (linhas 6,16,37,143).
 
@@ -146,9 +146,9 @@ Como operador, quero cadastrar transformadores com sua capacidade operacional, p
 - [ ] **US03-T03:** Integrar a interface com testes pertinentes e documentação.
 - [ ] **US03-T04:** Verificar integração/aceite e apresentar resultados e limitações.
 
-**US03-T02 — persistência em revisão:** Transformador compartilha o ID com AtivoRede, armazena capacidadeMva e referencia Alimentador obrigatório e LAZY, sem cascata. Não possui subestacaoId nem tensaoNominalKv. A V1 permanece inalterada.
+**US03-T02 — persistência e API em revisão:** Transformador compartilha o ID com AtivoRede, armazena capacidadeMva e referencia Alimentador obrigatório e LAZY, sem cascata. Não possui subestacaoId nem tensaoNominalKv. A V1 permanece inalterada.
 
-**Contrato de criação:** Nome, latitude, longitude, capacidadeMva, dataInstalacao e alimentadorId obrigatórios. Nome recebe trim, não pode ser vazio e admite até 255 caracteres, sem unicidade. Coordenadas aceitam sete casas decimais e respeitam os intervalos [-90, 90] e [-180, 180]. Capacidade estritamente positiva, com até 13 dígitos inteiros e seis decimais; precisão excedida será rejeitada sem arredondamento. Datas futuras são permitidas. AlimentadorId inteiro positivo compatível com Long, referenciando alimentador existente; o contrato HTTP prevê 404 para referência inexistente e 400 para entrada inválida. Estado omitido ou nulo assume OPERACIONAL; catálogo OPERACIONAL/FALHA/MANUTENCAO. ID gerado pelo sistema. O cliente não informa subestacaoId: a subestação é obtida pelo alimentador. Validações HTTP e estado padrão permanecem para a Camada Web.
+**Contrato de criação:** Nome, latitude, longitude, capacidadeMva, dataInstalacao e alimentadorId obrigatórios. Nome recebe trim, não pode ser vazio e admite até 255 caracteres, sem unicidade. Coordenadas aceitam sete casas decimais e respeitam os intervalos [-90, 90] e [-180, 180]. Capacidade estritamente positiva, com até 13 dígitos inteiros e seis decimais; precisão excedida será rejeitada sem arredondamento. Datas futuras são permitidas. AlimentadorId inteiro positivo compatível com Long, referenciando alimentador existente; o contrato HTTP prevê 404 para referência inexistente e 400 para entrada inválida. Estado omitido ou nulo assume OPERACIONAL; catálogo OPERACIONAL/FALHA/MANUTENCAO. ID gerado pelo sistema. O cliente não informa subestacaoId: a subestação é obtida pelo alimentador. POST /api/transformadores retorna 201 com Location; GET da coleção, GET por ID e PUT retornam 200. Transformador inexistente retorna 404. O PUT aplica o mesmo contrato da criação. As respostas incluem alimentadorId e subestacaoId derivado, inclusive após troca do alimentador. TransformadorControllerTest cobre US03-CA01, CA02 e CA04 no backend, validação, vínculo inexistente, consultas, edição, autenticação e CSRF.
 
 **Telemetria adiada:** US03-CA03 permanece aberto para uma futura entrega de Monitoramento. Percentual de carga e temperatura não integram o cadastro estrutural nem terão valores presumidos.
 

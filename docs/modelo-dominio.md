@@ -79,7 +79,7 @@ SubestacaoId deve ser inteiro positivo compatível com Long e apontar para uma s
 
 O cadastro estrutural exige nome, latitude, longitude, capacidadeMva, dataInstalacao e alimentadorId. Nome recebe trim, não pode ser vazio e admite até 255 caracteres, sem unicidade. Coordenadas respeitam os limites geográficos e até sete casas decimais. Capacidade é positiva, obrigatória e admite até 13 dígitos inteiros e seis decimais, sem arredondamento de entrada. Datas futuras são permitidas. Estado omitido ou nulo assume OPERACIONAL.
 
-AlimentadorId deve ser inteiro positivo compatível com Long e apontar para um alimentador existente; o contrato HTTP prevê 404 para referência inexistente e 400 para entrada inválida. O cliente não informa subestacaoId: a subestação é derivada do alimentador. Não há tensão nominal própria nem restrição pelo estado do alimentador. O mapeamento JPA utiliza herança JOINED e associação ManyToOne obrigatória e LAZY, sem cascata para o alimentador. Percentual de carga e temperatura pertencem ao futuro módulo de Monitoramento.
+AlimentadorId deve ser inteiro positivo compatível com Long e apontar para um alimentador existente; o contrato HTTP prevê 404 para referência inexistente e 400 para entrada inválida. O cliente não informa subestacaoId: a subestação é derivada do alimentador. A API retorna alimentadorId e subestacaoId; a edição permite trocar o alimentador, e a resposta reflete a subestação do novo vínculo. Não há tensão nominal própria nem restrição pelo estado do alimentador. O mapeamento JPA utiliza herança JOINED e associação ManyToOne obrigatória e LAZY, sem cascata para o alimentador. Percentual de carga e temperatura pertencem ao futuro módulo de Monitoramento.
 
 ### Consumidor e histórico de fornecimento
 
