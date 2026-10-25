@@ -176,7 +176,7 @@ Origem da detecção e escopo afetado são conceitos diferentes. A classificaç�
 
 Eventos e alertas possuem identidades e ciclos independentes. A geração de um alerta não cria automaticamente um evento, e concluir uma manutenção não resolve automaticamente seus alertas.
 
-O ciclo de referência é `ABERTO → RECONHECIDO → RESOLVIDO`. O contrato de US20 deve explicitar os estados considerados ativos. Reconhecimento e resolução preservam autor, instante e ação. Limiares, repetição, recuperação e resolução automática serão detalhados nas histórias de alertas.
+O ciclo de referência é `ABERTO → RECONHECIDO → RESOLVIDO`. US20 considera ABERTO e RECONHECIDO como ativos, excluindo RESOLVIDO. A ordem de criticidade é CRITICA, ALTA, MEDIA e BAIXA; os desempates usam geradoEm e id decrescentes. Na criação, o backend define geradoEm em UTC e situação ABERTO. Tipo, criticidade e escopo são obrigatórios no contrato de entrada. Reconhecimento e resolução preservam autor, instante e ação. Limiares, repetição, recuperação e resolução automática serão detalhados nas histórias de alertas.
 
 ## Perfis, estados e histórico
 
