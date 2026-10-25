@@ -152,3 +152,16 @@ Todas as rotas exigem sessão autenticada; POST e PUT exigem também CSRF válid
 Nome, coordenadas, tensão, subestacaoId e data são obrigatórios. Nome recebe trim e admite até 255 caracteres, sem unicidade. Coordenadas respeitam os limites geográficos e até sete casas decimais. Tensão é estritamente positiva e admite até 13 dígitos inteiros e seis decimais, sem arredondamento de entrada. SubestacaoId deve ser positivo. Datas futuras são permitidas. Estado omitido ou nulo assume OPERACIONAL; também são aceitos FALHA e MANUTENCAO. Não há capacidadeMva nem igualdade obrigatória entre tensões. O estado da subestação não impede o cadastro.
 
 Entradas inválidas retornam 400. Referência a subestação inexistente retorna 404 antes da inclusão ou alteração. PUT substitui os dados, preserva o ID e permite trocar a subestação; dados anteriores são preservados quando a requisição é rejeitada. A resposta contém ID, campos cadastrais e subestacaoId, sem entidade aninhada.
+
+## API de transformadores
+
+Transformador utiliza herança JOINED com AtivoRede e possui capacidadeMva obrigatória e positiva. O vínculo com Alimentador é obrigatório e LAZY; a subestação é obtida por esse alimentador, sem referência duplicada. A API exige sessão autenticada e token CSRF nas escritas. Carga e temperatura serão tratadas em Monitoramento.
+
+| Método | Caminho | Resultado |
+| --- | --- | --- |
+| POST | `/api/transformadores` | 201 e Location |
+| GET | `/api/transformadores` | 200, lista |
+| GET | `/api/transformadores/{id}` | 200 ou 404 |
+| PUT | `/api/transformadores/{id}` | 200 ou 404 |
+
+POST e PUT exigem nome (trim, até 255 caracteres), latitude e longitude válidas (até sete casas decimais), capacidadeMva positiva (até 13 dígitos inteiros e seis decimais), dataInstalacao e alimentadorId positivo existente. Datas futuras são permitidas. Estado omitido ou nulo assume OPERACIONAL. Entrada inválida retorna 400, sem arredondamento; alimentador inexistente retorna 404. A resposta inclui alimentadorId e subestacaoId derivado. O cliente não envia subestacaoId nem tensão nominal.

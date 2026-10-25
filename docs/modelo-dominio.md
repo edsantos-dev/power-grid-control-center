@@ -75,6 +75,12 @@ O cadastro exige nome, latitude, longitude, tensão nominal em kV, data de insta
 
 SubestacaoId deve ser inteiro positivo compatível com Long e apontar para uma subestação existente; o contrato HTTP prevê 404 para referência inexistente e 400 para entrada inválida. Não há validação cruzada de tensão nem restrição pelo estado da subestação. O mapeamento JPA utiliza associação ManyToOne obrigatória e LAZY, sem cascata para a subestação. O DTO valida os campos e a precisão; o serviço verifica a existência da subestação antes de alterar a entidade. A edição pode trocar a subestação por outra existente, mantendo o ID do alimentador.
 
+### Cadastro de transformadores
+
+O cadastro estrutural exige nome, latitude, longitude, capacidadeMva, dataInstalacao e alimentadorId. Nome recebe trim, não pode ser vazio e admite até 255 caracteres, sem unicidade. Coordenadas respeitam os limites geográficos e até sete casas decimais. Capacidade é positiva, obrigatória e admite até 13 dígitos inteiros e seis decimais, sem arredondamento de entrada. Datas futuras são permitidas. Estado omitido ou nulo assume OPERACIONAL.
+
+AlimentadorId deve ser inteiro positivo compatível com Long e apontar para um alimentador existente; o contrato HTTP prevê 404 para referência inexistente e 400 para entrada inválida. O cliente não informa subestacaoId: a subestação é derivada do alimentador. A API retorna alimentadorId e subestacaoId; a edição permite trocar o alimentador, e a resposta reflete a subestação do novo vínculo. Não há tensão nominal própria nem restrição pelo estado do alimentador. O mapeamento JPA utiliza herança JOINED e associação ManyToOne obrigatória e LAZY, sem cascata para o alimentador. Percentual de carga e temperatura pertencem ao futuro módulo de Monitoramento.
+
 ### Consumidor e histórico de fornecimento
 
 O MVP não contém UnidadeConsumidora. A identidade do titular e a localização do medidor são suficientes para o cadastro inicial, mas não preservam integralmente a identidade de uma instalação após trocas de titular ou de medidor.
