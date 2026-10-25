@@ -141,7 +141,7 @@ Os atributos comuns pertencem ao evento. Informações específicas, como causa 
 
 Início previsto e início efetivo são campos diferentes. Uma previsão não preenche automaticamente o instante efetivo.
 
-US16 exige estado inicial definido e rejeição de término anterior ao início. O contrato deve especificar quais instantes são obrigatórios em cada categoria e estado, incluindo registros retrospectivos. A comparação temporal deve usar pares compatíveis, como término efetivo e início efetivo.
+Na criação de MANOBRA e DESLIGAMENTO_PROGRAMADO pela US16, inicioPrevisto é obrigatório e terminoPrevisto é opcional, maior ou igual ao início previsto. Previsões passadas são permitidas. Datas possuem fuso. A situação inicial é ABERTO; inicioEfetivo, terminoEfetivo e equipe designada permanecem nulos. Registros efetivos e transições serão detalhados posteriormente. O banco compara separadamente cada par previsto ou efetivo e permite instantes iguais.
 
 A referência para o ciclo básico é `ABERTO → EM_ANDAMENTO → CONCLUIDO`. Estado inicial, permissões, encerramento e exceções serão detalhados nas operações de US16 e US18.
 
