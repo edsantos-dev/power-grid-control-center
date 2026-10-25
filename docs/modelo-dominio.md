@@ -73,7 +73,7 @@ O estado operacional, quando omitido ou nulo na criação, será OPERACIONAL; va
 
 O cadastro exige nome, latitude, longitude, tensão nominal em kV, data de instalação e subestacaoId. Nome recebe trim, não pode ser vazio e admite até 255 caracteres, sem unicidade. Coordenadas aceitam até sete casas decimais e respeitam os limites de latitude e longitude. Tensão deve ser positiva, com até 13 dígitos inteiros e seis decimais; excesso de precisão é rejeitado sem arredondamento. Datas futuras são permitidas. Estado omitido ou nulo assume OPERACIONAL. Não há capacidadeMva no Alimentador.
 
-SubestacaoId deve ser inteiro positivo compatível com Long e apontar para uma subestação existente; o contrato HTTP prevê 404 para referência inexistente e 400 para entrada inválida. Não há validação cruzada de tensão nem restrição pelo estado da subestação. O mapeamento JPA utiliza associação ManyToOne obrigatória e LAZY, sem cascata para a subestação. A persistência não substitui as validações do futuro DTO e serviço.
+SubestacaoId deve ser inteiro positivo compatível com Long e apontar para uma subestação existente; o contrato HTTP prevê 404 para referência inexistente e 400 para entrada inválida. Não há validação cruzada de tensão nem restrição pelo estado da subestação. O mapeamento JPA utiliza associação ManyToOne obrigatória e LAZY, sem cascata para a subestação. O DTO valida os campos e a precisão; o serviço verifica a existência da subestação antes de alterar a entidade. A edição pode trocar a subestação por outra existente, mantendo o ID do alimentador.
 
 ### Consumidor e histórico de fornecimento
 

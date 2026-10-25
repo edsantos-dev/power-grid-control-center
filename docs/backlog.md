@@ -6,7 +6,7 @@ O backlog reúne as histórias, os critérios de aceitação, as tarefas e as pe
 
 O frontend possui páginas com dados simulados, filtros e navegação local. O backend possui configuração PostgreSQL/JPA/Flyway, schema SQL inicial, persistência de usuários e autenticação HTTP por sessão, com CORS e CSRF. A V2 provisiona os três perfis e a segurança por método está habilitada. As demais entidades Java e a integração com o frontend ainda não foram implementadas.
 
-US01 está **Em andamento**, com persistência, criação, consulta e edição de subestações em revisão; US02 está **Em andamento**, com persistência de Alimentador em revisão; US03–US24 permanecem **A fazer** para o trabalho restante. O recorte de backend de US25 está **Em revisão**, com persistência, autenticação HTTP, contas iniciais e segurança por método. A presença de uma tela não representa a conclusão da história. O mapa geográfico ainda não está implementado, e o login do frontend realiza apenas validações locais antes da navegação.
+US01 está **Em andamento**, com persistência, criação, consulta e edição de subestações em revisão; US02 está **Em andamento**, com backend de Alimentador em revisão; US03–US24 permanecem **A fazer** para o trabalho restante. O recorte de backend de US25 está **Em revisão**, com persistência, autenticação HTTP, contas iniciais e segurança por método. A presença de uma tela não representa a conclusão da história. O mapa geográfico ainda não está implementado, e o login do frontend realiza apenas validações locais antes da navegação.
 
 Os arquivos de serviço de API e autenticação do frontend estão vazios. Os testes existentes cobrem contexto, persistência, credenciais, autenticação HTTP, sessão, CORS e CSRF. A política de gestão de acesso restringe as futuras operações ao Gerente de Operações; esses endpoints ainda não existem.
 
@@ -99,8 +99,8 @@ Como operador, quero cadastrar linhas de transmissão e alimentadores, para ter 
 
 - **Perfil e prioridade:** Operador. Prioridade: Alta.
 - **Status:** Em andamento.
-- **Implementação existente:** Frontend com duas listagens locais. Backend com Alimentador em herança JOINED, repositório e vínculo obrigatório LAZY com Subestacao; sem API de alimentadores.
-- **Trabalho pendente:** DTOs, serviços, endpoints, validações e integração de Alimentador; contrato e implementação de LinhaTransmissao. Strings de origem/destino não são topologia implementada.
+- **Implementação existente:** Frontend com duas listagens locais. Backend com Alimentador em herança JOINED, repositório, vínculo obrigatório LAZY com Subestacao e API de criação, listagem, consulta e edição.
+- **Trabalho pendente:** Revisão do backend e integração de Alimentador; contrato e implementação de LinhaTransmissao. Strings de origem/destino não são topologia implementada.
 - **Dependências:** PEN-01; PEN-06; US25; US01; definição de vínculos e extremidades.
 - **Referências no frontend:** [Linhas/index.tsx](../frontend/src/pages/Linhas/index.tsx#L6) (linhas 6,17,38); [Alimentadores/index.tsx](../frontend/src/pages/Alimentadores/index.tsx#L6) (linhas 6,17,38).
 
@@ -117,9 +117,9 @@ Como operador, quero cadastrar linhas de transmissão e alimentadores, para ter 
 - [ ] **US02-T03:** Implementar cadastro de LinhaTransmissao com testes/documentação após definir extremidades.
 - [ ] **US02-T04:** Integrar as duas interfaces e verificar critérios de linhas e alimentadores, com evidências.
 
-**US02-T02 — persistência em revisão:** Alimentador compartilha o ID com AtivoRede e referencia uma Subestacao existente por associação ManyToOne obrigatória e LAZY. Não há cascata de persistência ou remoção para a subestação. A V1 permanece inalterada.
+**US02-T02 — backend em revisão:** Alimentador compartilha o ID com AtivoRede e referencia uma Subestacao existente por associação ManyToOne obrigatória e LAZY. Não há cascata de persistência ou remoção para a subestação. A V1 permanece inalterada.
 
-**Contrato de criação de Alimentador:** Nome, latitude, longitude, tensão nominal, data de instalação e subestacaoId obrigatórios. Nome recebe trim, não pode ser vazio e admite até 255 caracteres, sem unicidade. Coordenadas admitem sete casas decimais, nos intervalos [-90, 90] e [-180, 180]. Tensão estritamente positiva, com até 13 dígitos inteiros e seis decimais. Precisão excedida será rejeitada sem arredondamento. Datas futuras são permitidas. SubestacaoId deve ser inteiro positivo compatível com Long; referência inexistente retornará 404 sem criar o alimentador. Entradas inválidas retornarão 400. Estado omitido ou nulo assumirá OPERACIONAL; os valores aceitos são OPERACIONAL, FALHA e MANUTENCAO. ID gerado pelo sistema; capacidadeMva não integra o cadastro. Não há igualdade obrigatória entre tensões nem restrição pelo estado da subestação. As validações HTTP e o estado padrão serão implementados na Camada Web.
+**Contrato de criação de Alimentador:** Nome, latitude, longitude, tensão nominal, data de instalação e subestacaoId obrigatórios. Nome recebe trim, não pode ser vazio e admite até 255 caracteres, sem unicidade. Coordenadas admitem sete casas decimais, nos intervalos [-90, 90] e [-180, 180]. Tensão estritamente positiva, com até 13 dígitos inteiros e seis decimais. Precisão excedida é rejeitada sem arredondamento. Datas futuras são permitidas. SubestacaoId deve ser inteiro positivo compatível com Long; referência inexistente retorna 404 sem criar o alimentador. Entradas inválidas retornam 400. Estado omitido ou nulo assume OPERACIONAL; os valores aceitos são OPERACIONAL, FALHA e MANUTENCAO. ID gerado pelo sistema; capacidadeMva não integra o cadastro. Não há igualdade obrigatória entre tensões nem restrição pelo estado da subestação. DTOs validados, serviço transacional e endpoints HTTP implementados. POST retorna 201 com Location; GET e PUT retornam 200; GET/PUT com alimentador inexistente retornam 404. POST/PUT com subestação inexistente retornam 404 sem incluir ou alterar registros. PUT preserva o ID e admite troca para outra subestação existente. Respostas expõem subestacaoId, sem serializar a entidade relacionada.
 
 ### US03 — Cadastrar transformadores
 
