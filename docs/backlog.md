@@ -6,7 +6,7 @@ O backlog reúne as histórias, os critérios de aceitação, as tarefas e as pe
 
 O frontend possui páginas com dados simulados, filtros e navegação local. O backend possui configuração PostgreSQL/JPA/Flyway, schema SQL inicial, persistência de usuários e autenticação HTTP por sessão, com CORS e CSRF. A V2 provisiona os três perfis e a segurança por método está habilitada. As demais entidades Java e a integração com o frontend ainda não foram implementadas.
 
-US01 está **Em andamento**, com persistência, criação, consulta e edição de subestações em revisão; US02 está **Em andamento**, com backend de Alimentador em revisão; US03 está **Em andamento**, com persistência e API de Transformador em revisão; US16 está **Em andamento**, com persistência de eventos em revisão; US04–US15 e US17–US24 permanecem **A fazer** para o trabalho restante. O recorte de backend de US25 está **Em revisão**, com persistência, autenticação HTTP, contas iniciais e segurança por método. A presença de uma tela não representa a conclusão da história. O mapa geográfico ainda não está implementado, e o login do frontend realiza apenas validações locais antes da navegação.
+US01 está **Em andamento**, com persistência, criação, consulta e edição de subestações em revisão; US02 está **Em andamento**, com backend de Alimentador em revisão; US03 está **Em andamento**, com persistência e API de Transformador em revisão; US16 está **Em andamento**, com persistência e API de eventos em revisão; US04–US15 e US17–US24 permanecem **A fazer** para o trabalho restante. O recorte de backend de US25 está **Em revisão**, com persistência, autenticação HTTP, contas iniciais e segurança por método. A presença de uma tela não representa a conclusão da história. O mapa geográfico ainda não está implementado, e o login do frontend realiza apenas validações locais antes da navegação.
 
 Os arquivos de serviço de API e autenticação do frontend estão vazios. Os testes existentes cobrem contexto, persistência, credenciais, autenticação HTTP, sessão, CORS e CSRF. A política de gestão de acesso restringe as futuras operações ao Gerente de Operações; esses endpoints ainda não existem.
 
@@ -449,8 +449,8 @@ Como operador, quero registrar eventos operacionais como manobras e desligamento
 
 - **Perfil e prioridade:** Operador. Prioridade: Alta.
 - **Status:** Em andamento.
-- **Implementação existente:** Frontend com tabela, busca e filtro local. Backend com entidade EventoOperacional, repositório e associações obrigatórias com ativo, registrador e responsável.
-- **Trabalho pendente:** DTOs, serviço, endpoints, identificação do registrador pela sessão, validações do contrato e integração com frontend.
+- **Implementação existente:** Frontend com tabela, busca e filtro local. Backend com entidade, repositório, criação e consultas de eventos; associações obrigatórias com ativo, registrador e responsável.
+- **Trabalho pendente:** Revisão do backend, integração com frontend e aceite funcional.
 - **Dependências:** PEN-06; US25; ao menos US01 para o ativo; contratos de datas e situação.
 - **Referências no frontend:** [Eventos/index.tsx](../frontend/src/pages/Eventos/index.tsx#L8) (linhas 8,21,51).
 
@@ -471,9 +471,9 @@ Como operador, quero registrar eventos operacionais como manobras e desligamento
 - [ ] **US16-T03:** Integrar a interface com testes pertinentes e documentação.
 - [ ] **US16-T04:** Verificar integração/aceite e apresentar resultados e limitações.
 
-**US16-T02 — persistência em revisão:** Relacionamentos ManyToOne LAZY, sem cascata; datas previstas e efetivas mapeadas com fuso. EventoOperacionalRepositoryTest cobre vínculos polimórficos, obrigatoriedade, referências inexistentes e períodos previstos/efetivos. Designação de equipe permanece sem mapeamento Java neste recorte. A V1 permanece inalterada.
+**US16-T02 — persistência e API em revisão:** Relacionamentos ManyToOne LAZY, sem cascata; datas previstas e efetivas mapeadas com fuso. EventoOperacionalRepositoryTest cobre vínculos polimórficos, obrigatoriedade, referências inexistentes e períodos previstos/efetivos. Designação de equipe permanece sem mapeamento Java neste recorte. A V1 permanece inalterada.
 
-**Contrato de criação:** MANOBRA ou DESLIGAMENTO_PROGRAMADO; ativoId, responsavelUsuarioId, descrição não vazia e inicioPrevisto obrigatórios. IDs positivos e existentes. Registrador obtido da sessão, nunca do DTO. Situação inicial ABERTO; datas efetivas e equipe nulas. TerminoPrevisto opcional e maior ou igual a inicioPrevisto; datas com fuso e previsões passadas permitidas. Criticidade opcional, até 32 caracteres, sem catálogo presumido. Registrador e responsável podem coincidir, sem restrição adicional de perfil do responsável. Entrada inválida retorna 400; referências inexistentes, 404. Essas regras de criação serão aplicadas na Camada Web.
+**Contrato de criação:** MANOBRA ou DESLIGAMENTO_PROGRAMADO; ativoId, responsavelUsuarioId, descrição não vazia e inicioPrevisto obrigatórios. IDs positivos e existentes. Registrador obtido da sessão, nunca do DTO. Situação inicial ABERTO; datas efetivas e equipe nulas. TerminoPrevisto opcional e maior ou igual a inicioPrevisto; datas com fuso e previsões passadas permitidas. Criticidade opcional, até 32 caracteres, sem catálogo presumido. Registrador e responsável podem coincidir, sem restrição adicional de perfil do responsável. Entrada inválida retorna 400; referências inexistentes, 404. POST /api/eventos-operacionais retorna 201 com Location; GET da coleção e GET /{id} retornam 200, ou 404 para evento inexistente. O serviço obtém o registrador pelo SecurityContextHolder. O DTO não permite atribuir registrador, situação ou datas efetivas. EventoOperacionalControllerTest cobre US16-CA01–CA07 no recorte de backend, incluindo autoria, CSRF, categorias permitidas, vínculos e validações temporais.
 
 ### US17 — Registrar interrupções de fornecimento
 

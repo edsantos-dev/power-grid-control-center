@@ -165,3 +165,11 @@ Transformador utiliza herança JOINED com AtivoRede e possui capacidadeMva obrig
 | PUT | `/api/transformadores/{id}` | 200 ou 404 |
 
 POST e PUT exigem nome (trim, até 255 caracteres), latitude e longitude válidas (até sete casas decimais), capacidadeMva positiva (até 13 dígitos inteiros e seis decimais), dataInstalacao e alimentadorId positivo existente. Datas futuras são permitidas. Estado omitido ou nulo assume OPERACIONAL. Entrada inválida retorna 400, sem arredondamento; alimentador inexistente retorna 404. A resposta inclui alimentadorId e subestacaoId derivado. O cliente não envia subestacaoId nem tensão nominal.
+
+## API de eventos operacionais
+
+POST `/api/eventos-operacionais` cria um evento e retorna 201 com Location. GET no mesmo caminho lista os eventos; GET `/{id}` consulta um evento, retornando 404 se inexistente. As rotas exigem sessão autenticada e a criação exige CSRF.
+
+A requisição exige ativoId e responsavelUsuarioId positivos e existentes, categoria MANOBRA ou DESLIGAMENTO_PROGRAMADO, descrição não vazia e inicioPrevisto com fuso. TerminoPrevisto é opcional e não pode anteceder o início, considerando os instantes; igualdade e previsões passadas são permitidas. Criticidade é opcional, com até 32 caracteres. Entrada inválida retorna 400; ativo ou responsável inexistente, 404.
+
+O registrador é obtido da sessão pelo serviço. A criação fixa ABERTO e mantém as datas efetivas nulas. A resposta contém os IDs do ativo e dos usuários, categoria, descrição, criticidade, situação e datas, sem credenciais. Alteração de situação, execução e integração com frontend ficam para incrementos posteriores.
