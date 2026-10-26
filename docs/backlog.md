@@ -4,9 +4,9 @@ O backlog reúne as histórias, os critérios de aceitação, as tarefas e as pe
 
 ## Estado do projeto
 
-O frontend possui páginas com dados simulados, filtros e navegação local. O backend possui configuração PostgreSQL/JPA/Flyway, schema SQL inicial, persistência de usuários e autenticação HTTP por sessão, com CORS e CSRF. A V2 provisiona os três perfis e a segurança por método está habilitada. As demais entidades Java e a integração com o frontend ainda não foram implementadas.
+O frontend possui páginas com dados simulados, filtros e navegação local. O backend possui configuração PostgreSQL/JPA/Flyway, schema SQL inicial, persistência de usuários e autenticação HTTP por sessão, com CORS e CSRF. A V2 provisiona os três perfis e a segurança por método está habilitada. O backend também possui cadastros de subestações, alimentadores e transformadores, APIs de eventos e alertas e persistência de consumidores. A integração com o frontend permanece pendente.
 
-US01 está **Em andamento**, com persistência, criação, consulta e edição de subestações em revisão; US02 está **Em andamento**, com backend de Alimentador em revisão; US03 está **Em andamento**, com persistência e API de Transformador em revisão; US16 está **Em andamento**, com persistência e API de eventos em revisão; US20 está **Em andamento**, com persistência e API de alertas em revisão; US04–US15, US17–US19 e US21–US24 permanecem **A fazer** para o trabalho restante. O recorte de backend de US25 está **Em revisão**, com persistência, autenticação HTTP, contas iniciais e segurança por método. A presença de uma tela não representa a conclusão da história. O mapa geográfico ainda não está implementado, e o login do frontend realiza apenas validações locais antes da navegação.
+US01 está **Em andamento**, com persistência, criação, consulta e edição de subestações em revisão; US02 está **Em andamento**, com backend de Alimentador em revisão; US03 está **Em andamento**, com persistência e API de Transformador em revisão; US16 está **Em andamento**, com persistência e API de eventos em revisão; US20 está **Em andamento**, com persistência e API de alertas em revisão; US07 está **Em andamento**, com persistência de consumidores em revisão; US04–US06, US08–US15, US17–US19 e US21–US24 permanecem **A fazer** para o trabalho restante. O recorte de backend de US25 está **Em revisão**, com persistência, autenticação HTTP, contas iniciais e segurança por método. A presença de uma tela não representa a conclusão da história. O mapa geográfico ainda não está implementado, e o login do frontend realiza apenas validações locais antes da navegação.
 
 Os arquivos de serviço de API e autenticação do frontend estão vazios. Os testes existentes cobrem contexto, persistência, credenciais, autenticação HTTP, sessão, CORS e CSRF. A política de gestão de acesso restringe as futuras operações ao Gerente de Operações; esses endpoints ainda não existem.
 
@@ -230,9 +230,9 @@ Como operador, quero cadastrar medidores inteligentes vinculados aos consumidore
 Como operador, quero cadastrar os consumidores da rede elétrica, para vincular os pontos de consumo aos ativos correspondentes.
 
 - **Perfil e prioridade:** Operador. Prioridade: Baixa.
-- **Status:** A fazer.
-- **Implementação existente:** Listagem/filtros; endereço e alimentador textuais; consumo médio simulado.
-- **Trabalho pendente:** Sem documento, cadastro de titular ou relações reais. Inadimplência/suspensão dos mocks não são regras definidas.
+- **Status:** Em andamento.
+- **Implementação existente:** Frontend com listagem/filtros e dados simulados. Backend com entidade Consumidor, TipoPessoa PF/PJ, repositório e consulta existsByDocumento.
+- **Trabalho pendente:** Normalização e validação de documento, DTOs, serviço, endpoints e integração com frontend. Vínculos reais com medidores serão tratados após US06. Inadimplência/suspensão dos mocks não são regras definidas.
 - **Dependências:** PEN-02; PEN-03; PEN-06; US25; consulta dos vínculos após US06.
 - **Referências no frontend:** [Consumidores/index.tsx](../frontend/src/pages/Consumidores/index.tsx#L7) (linhas 7,17,44).
 
@@ -245,10 +245,14 @@ Como operador, quero cadastrar os consumidores da rede elétrica, para vincular 
 
 **Tarefas:**
 
-- [ ] **US07-T01:** Definir contrato do titular e critérios de documento, respeitando a limitação histórica definida.
+- [x] **US07-T01:** Definir contrato do titular e critérios de documento, respeitando a limitação histórica definida.
 - [ ] **US07-T02:** Implementar cadastro mínimo do titular com testes/documentação; pode preceder US06 sem concluir a consulta dos vínculos.
 - [ ] **US07-T03:** Integrar interface e consulta de vínculos após US06, com testes/documentação.
 - [ ] **US07-T04:** Verificar aceite e apresentar resultados e limitações do MVP.
+
+**US07-T02 — persistência em revisão:** Consumidor mapeia as colunas existentes da V1, com documento obrigatório e único e tipoPessoa obrigatório. TipoPessoa é um enum PF/PJ persistido como VARCHAR. ConsumidorRepositoryTest cobre PF, PJ numérico/alfanumérico, consulta de existência, UNIQUE, NOT NULL e CHECK de tipo de pessoa; o CHECK é exercitado por INSERT SQL para não depender da restrição do enum Java. O titular pode existir sem medidores e sem endereço de correspondência.
+
+**Contrato de cadastro:** Nome/razão social obrigatório na API, com trim e até 255 caracteres; tipoPessoa PF/PJ e documento obrigatórios. Documento será validado por formato e dígitos verificadores conforme o tipo de pessoa, incluindo CNPJ alfanumérico. Aceitar máscara convencional ou entrada sem máscara, preservar zeros iniciais e armazenar sem pontuação, com letras maiúsculas. Entrada inválida retornará 400; duplicidade normalizada retornará 409, incluindo conflitos detectados pelo banco. Endereço de correspondência opcional, com trim e vazio convertido em nulo. Não há telefone ou e-mail na V1. ID gerado pelo banco. Normalização e validação de formato permanecem para a Camada Web.
 
 ### US08 — Monitorar tensão e corrente de linhas
 
