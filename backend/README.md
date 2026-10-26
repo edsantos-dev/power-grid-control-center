@@ -199,3 +199,9 @@ GET `/api/medidores` lista os cadastros; GET `/api/medidores/{id}` consulta por 
 PATCH `/api/medidores/{id}/instalacao` exige consumidorId e transformadorId positivos existentes, latitude [-90, 90], longitude [-180, 180] com até sete casas decimais e dataInstalacao não futura. Endereço de fornecimento é opcional (trim, vazio convertido em nulo). Validação inválida retorna 400; referência inexistente 404; presença prévia de qualquer vínculo de instalação 409. A operação preserva ID, série e estado operacional, e usa transação com bloqueio de escrita do medidor. Não há transferência ou reinstalação neste recorte.
 
 Todas as rotas exigem sessão; POST e PATCH exigem CSRF. O CORS permite PATCH para a origem configurada em FRONTEND_URL. Telemetria e integração com frontend permanecem pendentes.
+
+## Medidores por consumidor
+
+GET `/api/consumidores/{id}/medidores` exige sessão autenticada e retorna os medidores atualmente vinculados ao titular, independentemente do estado operacional. Reutiliza MedidorResponseDTO, em ordem crescente de id e sem paginação. IDs inválidos (incluindo zero e negativos) retornam 400; consumidor inexistente retorna 404; consumidor existente sem medidores retorna 200 com lista vazia.
+
+A resposta inclui transformadorId, alimentadorId e subestacaoId pela cadeia cadastral. Se o medidor vinculado não tiver transformador, esses três campos são nulos. Medidores em estoque sem consumidor e medidores de outros titulares não integram a resposta. A consulta não representa histórico de instalações nem toda a topologia elétrica real.

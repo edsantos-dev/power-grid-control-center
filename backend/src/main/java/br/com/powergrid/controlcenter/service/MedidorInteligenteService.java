@@ -66,6 +66,17 @@ public class MedidorInteligenteService {
     }
 
     @Transactional(readOnly = true)
+    public List<MedidorResponseDTO> listarPorConsumidor(Long consumidorId) {
+        if (consumidorId == null || consumidorId <= 0) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "ID do consumidor deve ser positivo.");
+        }
+        if (!consumidorRepository.existsById(consumidorId)) {
+            throw new ResponseStatusException(HttpStatus.NOT_FOUND, "Consumidor não encontrado.");
+        }
+        return repository.findByConsumidorIdOrderByIdAsc(consumidorId).stream().map(this::toResponse).toList();
+    }
+
+    @Transactional(readOnly = true)
     public MedidorResponseDTO buscarPorId(Long id) {
         return toResponse(repository.findById(id).orElseThrow(() ->
                 new ResponseStatusException(HttpStatus.NOT_FOUND, "Medidor não encontrado.")));

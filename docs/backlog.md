@@ -235,8 +235,8 @@ Como operador, quero cadastrar os consumidores da rede elétrica, para vincular 
 
 - **Perfil e prioridade:** Operador. Prioridade: Baixa.
 - **Status:** Em andamento.
-- **Implementação existente:** Frontend com listagem/filtros e dados simulados. Backend com entidade, repositório e API de criação, listagem e consulta de titulares PF/PJ, com documento normalizado e validado.
-- **Trabalho pendente:** Revisão do backend e integração com frontend. Vínculos reais com medidores serão tratados após US06. Inadimplência/suspensão dos mocks não são regras definidas.
+- **Implementação existente:** Frontend com listagem/filtros e dados simulados. Backend com cadastro e consultas de titulares PF/PJ, documento validado e consulta dos medidores por consumidor com vínculos de rede derivados.
+- **Trabalho pendente:** Revisão do backend e integração com frontend. Consulta de vínculos implementada no backend e em revisão; integração visual permanece pendente. Inadimplência/suspensão dos mocks não são regras definidas.
 - **Dependências:** PEN-02; PEN-03; PEN-06; US25; consulta dos vínculos após US06.
 - **Referências no frontend:** [Consumidores/index.tsx](../frontend/src/pages/Consumidores/index.tsx#L7) (linhas 7,17,44).
 
@@ -257,6 +257,8 @@ Como operador, quero cadastrar os consumidores da rede elétrica, para vincular 
 **US07-T02 — persistência e API em revisão:** Consumidor mapeia as colunas existentes da V1, com documento obrigatório e único e tipoPessoa obrigatório. TipoPessoa é um enum PF/PJ persistido como VARCHAR. ConsumidorRepositoryTest cobre PF, PJ numérico/alfanumérico, consulta de existência, UNIQUE, NOT NULL e CHECK de tipo de pessoa; o CHECK é exercitado por INSERT SQL para não depender da restrição do enum Java. O titular pode existir sem medidores e sem endereço de correspondência.
 
 **Contrato de cadastro:** Nome/razão social obrigatório na API, com trim e até 255 caracteres; tipoPessoa PF/PJ e documento obrigatórios. Documento será validado por formato e dígitos verificadores conforme o tipo de pessoa, incluindo CNPJ alfanumérico. Aceitar máscara convencional ou entrada sem máscara, preservar zeros iniciais e armazenar sem pontuação, com letras maiúsculas. Entrada inválida retornará 400; duplicidade normalizada retornará 409, incluindo conflitos detectados pelo banco. Endereço de correspondência opcional, com trim e vazio convertido em nulo. Não há telefone ou e-mail na V1. ID gerado pelo banco. A API aplica normalização, formato e dígitos verificadores; POST /api/consumidores retorna 201 com Location, GET da coleção e GET /{id} retornam 200, ou 404 para titular inexistente. ConsumidorControllerTest cobre o cadastro mínimo de US07-CA01/CA04, normalização, DV, unicidade, consultas, sessão e CSRF. A proteção de unicidade inclui o conflito detectado pelo banco após consulta prévia.
+
+**US07-CA03 / US07-T03 — consulta de vínculos em revisão:** GET /api/consumidores/{id}/medidores retorna MedidorResponseDTO em ordem crescente de ID, sem paginação e sem filtro por estado operacional. ID inválido retorna 400; titular inexistente retorna 404; titular sem medidores retorna 200 com lista vazia. A consulta inclui somente medidores do titular solicitado; medidores sem transformador permanecem na lista com IDs de rede nulos. Transformador, alimentador e subestação seguem a cadeia cadastral atual, sem histórico de titularidade. ConsumidorMedidoresControllerTest cobre ordenação, isolamento, vínculos derivados/nulos, respostas HTTP e autenticação. US07-T03 permanece aberto para integração com frontend.
 
 ### US08 — Monitorar tensão e corrente de linhas
 
