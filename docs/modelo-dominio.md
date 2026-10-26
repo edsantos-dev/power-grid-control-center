@@ -85,13 +85,13 @@ AlimentadorId deve ser inteiro positivo compatível com Long e apontar para um a
 
 O MVP não contém UnidadeConsumidora. A identidade do titular e a localização do medidor são suficientes para o cadastro inicial, mas não preservam integralmente a identidade de uma instalação após trocas de titular ou de medidor.
 
-Transferências e reinstalações precisam de tratamento histórico antes de serem disponibilizadas. Uma alteração de vínculo atual não deve reatribuir medições antigas ao novo titular. O atributo `documento` é obrigatório e único, assim como e-mail, matrícula e número de série do medidor. Normalização e formatos de entrada ainda serão especificados nos contratos de cadastro.
+Transferências e reinstalações precisam de tratamento histórico antes de serem disponibilizadas. Uma alteração de vínculo atual não deve reatribuir medições antigas ao novo titular. O atributo `documento` é obrigatório e único, assim como e-mail, matrícula e número de série do medidor. O contrato de cadastro exige nome/razão social, tipo PF/PJ e documento. Documento aceita máscara convencional ou formato sem máscara; deve preservar zeros iniciais, remover a pontuação prevista e converter letras para maiúsculas. A validação de formato e dígitos verificadores contempla CPF, CNPJ numérico e CNPJ alfanumérico. Endereço de correspondência é opcional, textual, com trim e vazio convertido em nulo. Não há campos de telefone ou e-mail.
 
 ### Persistência inicial
 
 A migration `V1__schema_inicial.sql` contém os cadastros, vínculos de integrantes, campos comuns dos eventos e alertas. Um evento pode possuir uma equipe designada; essa associação não substitui seu responsável individual.
 
-E-mail, matrícula, número de série do medidor e documento do consumidor possuem restrições NOT NULL e UNIQUE. O e-mail recebe `trim` e conversão para minúsculas com `Locale.ROOT` na aplicação, antes de inserções e atualizações JPA e antes da busca para autenticação. A unicidade compara os valores armazenados; normalização de documento permanece pendente. Inserções SQL, incluindo o provisionamento inicial, devem fornecer e-mails já normalizados.
+E-mail, matrícula, número de série do medidor e documento do consumidor possuem restrições NOT NULL e UNIQUE. O e-mail recebe `trim` e conversão para minúsculas com `Locale.ROOT` na aplicação, antes de inserções e atualizações JPA e antes da busca para autenticação. A unicidade compara os valores armazenados; normalização de documento é aplicada pelo serviço de cadastro do titular antes da consulta de unicidade e da persistência. Inserções SQL, incluindo o provisionamento inicial, devem fornecer e-mails já normalizados.
 
 As chaves primárias compartilhadas dos ativos permitem o mapeamento JPA com herança JOINED. A exclusividade dos subtipos será garantida pela camada de aplicação/JPA, sem restrições adicionais no banco. A criação transacional deverá manter a consistência entre o ativo e seu subtipo.
 
