@@ -179,3 +179,13 @@ O registrador é obtido da sessão pelo serviço. A criação fixa ABERTO e mant
 POST `/api/alertas` cria um alerta e retorna 201. Exige tipo não vazio (trim, até 128 caracteres), criticidade (BAIXA, MEDIA, ALTA ou CRITICA) e escopo (ATIVO ou REDE_MONITORADA). ATIVO exige ativoId positivo existente; REDE_MONITORADA exige ativoId nulo. Combinação inválida retorna 400; ativo inexistente no escopo ATIVO retorna 404. O servidor define geradoEm no instante atual UTC e situação ABERTO. Tipo é a mensagem principal, sem descrição separada.
 
 GET `/api/alertas` retorna 200 com alertas ABERTO e RECONHECIDO, ordenados por CRITICA, ALTA, MEDIA e BAIXA, depois geradoEm e id decrescentes. Alertas RESOLVIDO são excluídos; ausência de alertas ativos retorna lista vazia. A resposta contém id, tipo, criticidade, escopo, situacao, geradoEm e ativoId (nulo para rede monitorada). As duas rotas exigem sessão autenticada; POST exige CSRF. Detecção automática, transições e integração com frontend ficam para incrementos posteriores.
+
+## API de consumidores
+
+POST `/api/consumidores` cria um titular e retorna 201 com Location. GET da coleção e GET `/{id}` retornam 200; ID inexistente retorna 404. Exigem sessão autenticada; POST também exige CSRF.
+
+A entrada contém nomeRazaoSocial obrigatório (trim, até 255 caracteres), tipoPessoa PF/PJ, documento obrigatório e enderecoCorrespondencia opcional (trim, vazio convertido em nulo). Telefone e e-mail não integram a V1.
+
+O documento aceita formato sem máscara ou máscara convencional. São preservados zeros iniciais; a pontuação é removida e letras convertidas para maiúsculas. CPF exige 11 dígitos; CNPJ exige 14 posições, incluindo o formato alfanumérico. Formato inválido, sequências numéricas repetidas e dígitos verificadores incorretos retornam 400. O cálculo alfanumérico utiliza os valores ASCII menos 48, conforme a [documentação da Receita Federal](https://www.gov.br/receitafederal/pt-br/centrais-de-conteudo/publicacoes/documentos-tecnicos/cnpj). A validação não consulta situação cadastral externa.
+
+Documento duplicado após normalização retorna 409, tanto na consulta prévia quanto na violação da constraint de unicidade durante a gravação. A resposta contém id, nomeRazaoSocial, tipoPessoa, documento e enderecoCorrespondencia. O cadastro não exige medidores; seus vínculos serão implementados na US06.

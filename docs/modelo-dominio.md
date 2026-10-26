@@ -91,7 +91,7 @@ Transferências e reinstalações precisam de tratamento histórico antes de ser
 
 A migration `V1__schema_inicial.sql` contém os cadastros, vínculos de integrantes, campos comuns dos eventos e alertas. Um evento pode possuir uma equipe designada; essa associação não substitui seu responsável individual.
 
-E-mail, matrícula, número de série do medidor e documento do consumidor possuem restrições NOT NULL e UNIQUE. O e-mail recebe `trim` e conversão para minúsculas com `Locale.ROOT` na aplicação, antes de inserções e atualizações JPA e antes da busca para autenticação. A unicidade compara os valores armazenados; normalização de documento está definida no contrato do titular e permanece pendente de implementação. Inserções SQL, incluindo o provisionamento inicial, devem fornecer e-mails já normalizados.
+E-mail, matrícula, número de série do medidor e documento do consumidor possuem restrições NOT NULL e UNIQUE. O e-mail recebe `trim` e conversão para minúsculas com `Locale.ROOT` na aplicação, antes de inserções e atualizações JPA e antes da busca para autenticação. A unicidade compara os valores armazenados; normalização de documento é aplicada pelo serviço de cadastro do titular antes da consulta de unicidade e da persistência. Inserções SQL, incluindo o provisionamento inicial, devem fornecer e-mails já normalizados.
 
 As chaves primárias compartilhadas dos ativos permitem o mapeamento JPA com herança JOINED. A exclusividade dos subtipos será garantida pela camada de aplicação/JPA, sem restrições adicionais no banco. A criação transacional deverá manter a consistência entre o ativo e seu subtipo.
 
