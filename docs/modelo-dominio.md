@@ -163,7 +163,7 @@ O registro granular de executores e múltiplas equipes simultâneas não integra
 
 ## Alertas
 
-Alerta contém identificador, tipo, criticidade, instante de geração, situação e escopo.
+Alerta contém identificador, tipo, criticidade, instante de geração, situação e escopo. O campo tipo é a mensagem principal exibida pela interface, com até 128 caracteres; não existe campo separado de descrição na V1 nem no contrato da API.
 
 | Escopo | Relação com ativo |
 |---|---|

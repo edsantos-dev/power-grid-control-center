@@ -173,3 +173,9 @@ POST `/api/eventos-operacionais` cria um evento e retorna 201 com Location. GET 
 A requisição exige ativoId e responsavelUsuarioId positivos e existentes, categoria MANOBRA ou DESLIGAMENTO_PROGRAMADO, descrição não vazia e inicioPrevisto com fuso. TerminoPrevisto é opcional e não pode anteceder o início, considerando os instantes; igualdade e previsões passadas são permitidas. Criticidade é opcional, com até 32 caracteres. Entrada inválida retorna 400; ativo ou responsável inexistente, 404.
 
 O registrador é obtido da sessão pelo serviço. A criação fixa ABERTO e mantém as datas efetivas nulas. A resposta contém os IDs do ativo e dos usuários, categoria, descrição, criticidade, situação e datas, sem credenciais. Alteração de situação, execução e integração com frontend ficam para incrementos posteriores.
+
+## API de alertas
+
+POST `/api/alertas` cria um alerta e retorna 201. Exige tipo não vazio (trim, até 128 caracteres), criticidade (BAIXA, MEDIA, ALTA ou CRITICA) e escopo (ATIVO ou REDE_MONITORADA). ATIVO exige ativoId positivo existente; REDE_MONITORADA exige ativoId nulo. Combinação inválida retorna 400; ativo inexistente no escopo ATIVO retorna 404. O servidor define geradoEm no instante atual UTC e situação ABERTO. Tipo é a mensagem principal, sem descrição separada.
+
+GET `/api/alertas` retorna 200 com alertas ABERTO e RECONHECIDO, ordenados por CRITICA, ALTA, MEDIA e BAIXA, depois geradoEm e id decrescentes. Alertas RESOLVIDO são excluídos; ausência de alertas ativos retorna lista vazia. A resposta contém id, tipo, criticidade, escopo, situacao, geradoEm e ativoId (nulo para rede monitorada). As duas rotas exigem sessão autenticada; POST exige CSRF. Detecção automática, transições e integração com frontend ficam para incrementos posteriores.

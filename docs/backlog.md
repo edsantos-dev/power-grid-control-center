@@ -6,7 +6,7 @@ O backlog reúne as histórias, os critérios de aceitação, as tarefas e as pe
 
 O frontend possui páginas com dados simulados, filtros e navegação local. O backend possui configuração PostgreSQL/JPA/Flyway, schema SQL inicial, persistência de usuários e autenticação HTTP por sessão, com CORS e CSRF. A V2 provisiona os três perfis e a segurança por método está habilitada. As demais entidades Java e a integração com o frontend ainda não foram implementadas.
 
-US01 está **Em andamento**, com persistência, criação, consulta e edição de subestações em revisão; US02 está **Em andamento**, com backend de Alimentador em revisão; US03 está **Em andamento**, com persistência e API de Transformador em revisão; US16 está **Em andamento**, com persistência e API de eventos em revisão; US20 está **Em andamento**, com persistência de alertas em revisão; US04–US15, US17–US19 e US21–US24 permanecem **A fazer** para o trabalho restante. O recorte de backend de US25 está **Em revisão**, com persistência, autenticação HTTP, contas iniciais e segurança por método. A presença de uma tela não representa a conclusão da história. O mapa geográfico ainda não está implementado, e o login do frontend realiza apenas validações locais antes da navegação.
+US01 está **Em andamento**, com persistência, criação, consulta e edição de subestações em revisão; US02 está **Em andamento**, com backend de Alimentador em revisão; US03 está **Em andamento**, com persistência e API de Transformador em revisão; US16 está **Em andamento**, com persistência e API de eventos em revisão; US20 está **Em andamento**, com persistência e API de alertas em revisão; US04–US15, US17–US19 e US21–US24 permanecem **A fazer** para o trabalho restante. O recorte de backend de US25 está **Em revisão**, com persistência, autenticação HTTP, contas iniciais e segurança por método. A presença de uma tela não representa a conclusão da história. O mapa geográfico ainda não está implementado, e o login do frontend realiza apenas validações locais antes da navegação.
 
 Os arquivos de serviço de API e autenticação do frontend estão vazios. Os testes existentes cobrem contexto, persistência, credenciais, autenticação HTTP, sessão, CORS e CSRF. A política de gestão de acesso restringe as futuras operações ao Gerente de Operações; esses endpoints ainda não existem.
 
@@ -553,8 +553,8 @@ Como operador, quero visualizar os alertas ativos classificados por criticidade,
 
 - **Perfil e prioridade:** Operador. Prioridade: Alta.
 - **Status:** Em andamento.
-- **Implementação existente:** Frontend com dados simulados, filtros e contadores. Backend com entidade Alerta, enums, repositório e consulta de ativos ordenada por criticidade, instante e ID.
-- **Trabalho pendente:** DTOs, serviço, endpoints e integração com frontend; substituir o ativo textual fictício Rede Geral pelo escopo REDE_MONITORADA.
+- **Implementação existente:** Frontend com dados simulados, filtros e contadores. Backend com entidade, enums, repositório e API de criação e consulta de alertas ativos, ordenada por criticidade, instante e ID.
+- **Trabalho pendente:** Revisão do backend e integração com frontend; substituir o ativo textual fictício Rede Geral pelo escopo REDE_MONITORADA.
 - **Dependências:** PEN-06; US25; ativo cadastrado ou escopo geral; criticidade e estados ativos.
 - **Referências no frontend:** [Alertas/index.tsx](../frontend/src/pages/Alertas/index.tsx#L17) (linhas 17,42,122,156).
 
@@ -572,9 +572,11 @@ Como operador, quero visualizar os alertas ativos classificados por criticidade,
 - [ ] **US20-T03:** Integrar a interface com testes pertinentes e documentação.
 - [ ] **US20-T04:** Verificar integração/aceite e apresentar resultados e limitações.
 
-**US20-T02 — persistência em revisão:** AlertaRepository.buscarAtivos seleciona ABERTO e RECONHECIDO e ordena CRITICA, ALTA, MEDIA e BAIXA, depois geradoEm e id decrescentes. AlertaRepositoryTest cobre as restrições de escopo da V1, vínculos, estados ativos e ordenação. O relacionamento com AtivoRede é opcional, LAZY e sem cascata.
+**US20-T02 — persistência e API em revisão:** AlertaRepository.buscarAtivos seleciona ABERTO e RECONHECIDO e ordena CRITICA, ALTA, MEDIA e BAIXA, depois geradoEm e id decrescentes. AlertaRepositoryTest cobre as restrições de escopo da V1, vínculos, estados ativos e ordenação. O relacionamento com AtivoRede é opcional, LAZY e sem cascata.
 
-**Contrato de geração e consulta:** Tipo obrigatório, com trim e até 128 caracteres; criticidade e escopo obrigatórios. ATIVO exige ativoId positivo existente; REDE_MONITORADA exige ativoId nulo. ID gerado pelo banco, geradoEm definido pelo backend em UTC e situação inicial ABERTO. A API rejeitará entrada inválida com 400 e referência inexistente com 404. Consulta vazia retorna lista vazia. Geração automática, reconhecimento e resolução com auditoria permanecem para incrementos posteriores.
+**Contrato de geração e consulta:** Tipo obrigatório, com trim e até 128 caracteres; criticidade e escopo obrigatórios. ATIVO exige ativoId positivo existente; REDE_MONITORADA exige ativoId nulo. ID gerado pelo banco, geradoEm definido pelo backend em UTC e situação inicial ABERTO. A API rejeita entrada inválida com 400 e referência inexistente com 404. Consulta vazia retorna lista vazia. Geração automática, reconhecimento e resolução com auditoria permanecem para incrementos posteriores.
+
+**API:** POST /api/alertas retorna 201 com os sete campos da tabela; GET /api/alertas retorna 200 com os alertas ativos ordenados. Tipo é a mensagem principal exibida, sem campo adicional de descrição. O serviço valida a combinação escopo/ativo antes de persistir. Situação e instante de geração são definidos pelo servidor, sem aceitar atribuição pelo DTO. As rotas exigem sessão e o POST exige CSRF. AlertaControllerTest cobre o recorte de backend de US20-CA01–CA04; indicação visual, mensagem de vazio e integração permanecem pendentes no frontend.
 
 ### US21 — Gerar alerta automático de sobrecarga
 
