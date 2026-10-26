@@ -81,6 +81,12 @@ O cadastro estrutural exige nome, latitude, longitude, capacidadeMva, dataInstal
 
 AlimentadorId deve ser inteiro positivo compatível com Long e apontar para um alimentador existente; o contrato HTTP prevê 404 para referência inexistente e 400 para entrada inválida. O cliente não informa subestacaoId: a subestação é derivada do alimentador. A API retorna alimentadorId e subestacaoId; a edição permite trocar o alimentador, e a resposta reflete a subestação do novo vínculo. Não há tensão nominal própria nem restrição pelo estado do alimentador. O mapeamento JPA utiliza herança JOINED e associação ManyToOne obrigatória e LAZY, sem cascata para o alimentador. Percentual de carga e temperatura pertencem ao futuro módulo de Monitoramento.
 
+### Estoque e instalação de medidores
+
+O cadastro inicial exige nome e número de série, com trim e limites de 255 e 128 caracteres. A série preserva capitalização, zeros e pontuação interna; a unicidade distingue maiúsculas de minúsculas. O medidor nasce em estoque, com vínculos, coordenadas, endereço de fornecimento e data de instalação nulos. Estado operacional omitido ou nulo assume OPERACIONAL, independentemente da instalação.
+
+A instalação é uma operação específica que preenche atomicamente consumidor, transformador, latitude, longitude e data de instalação não futura. As coordenadas respeitam limites geográficos e até sete casas decimais. Endereço de fornecimento permanece opcional. Não existe coluna ou enum adicional de estoque/instalado; a situação é inferida pelo conjunto de dados de instalação. Instalação de medidor já instalado retorna conflito. Transferência, retirada e reinstalação ficam para contratos com histórico.
+
 ### Consumidor e histórico de fornecimento
 
 O MVP não contém UnidadeConsumidora. A identidade do titular e a localização do medidor são suficientes para o cadastro inicial, mas não preservam integralmente a identidade de uma instalação após trocas de titular ou de medidor.
