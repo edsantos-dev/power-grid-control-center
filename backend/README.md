@@ -189,3 +189,13 @@ A entrada contém nomeRazaoSocial obrigatório (trim, até 255 caracteres), tipo
 O documento aceita formato sem máscara ou máscara convencional. São preservados zeros iniciais; a pontuação é removida e letras convertidas para maiúsculas. CPF exige 11 dígitos; CNPJ exige 14 posições, incluindo o formato alfanumérico. Formato inválido, sequências numéricas repetidas e dígitos verificadores incorretos retornam 400. O cálculo alfanumérico utiliza os valores ASCII menos 48, conforme a [documentação da Receita Federal](https://www.gov.br/receitafederal/pt-br/centrais-de-conteudo/publicacoes/documentos-tecnicos/cnpj). A validação não consulta situação cadastral externa.
 
 Documento duplicado após normalização retorna 409, tanto na consulta prévia quanto na violação da constraint de unicidade durante a gravação. A resposta contém id, nomeRazaoSocial, tipoPessoa, documento e enderecoCorrespondencia. O cadastro não exige medidores; seus vínculos serão implementados na US06.
+
+## API de medidores inteligentes
+
+POST `/api/medidores` cria em estoque e retorna 201 com Location. Exige nome (trim, até 255 caracteres) e numeroSerie (trim, até 128 caracteres), preservando capitalização, zeros e pontuação interna. Série duplicada retorna 409, inclusive quando detectada pelo banco. Estado operacional é opcional e assume OPERACIONAL se ausente ou nulo. Dados de instalação não fazem parte do DTO de criação.
+
+GET `/api/medidores` lista os cadastros; GET `/api/medidores/{id}` consulta por ID, retornando 404 se inexistente. Respostas incluem dados herdados, série, endereço e IDs de consumidor, transformador, alimentador e subestação. Os dois últimos são derivados da cadeia cadastral.
+
+PATCH `/api/medidores/{id}/instalacao` exige consumidorId e transformadorId positivos existentes, latitude [-90, 90], longitude [-180, 180] com até sete casas decimais e dataInstalacao não futura. Endereço de fornecimento é opcional (trim, vazio convertido em nulo). Validação inválida retorna 400; referência inexistente 404; presença prévia de qualquer vínculo de instalação 409. A operação preserva ID, série e estado operacional, e usa transação com bloqueio de escrita do medidor. Não há transferência ou reinstalação neste recorte.
+
+Todas as rotas exigem sessão; POST e PATCH exigem CSRF. O CORS permite PATCH para a origem configurada em FRONTEND_URL. Telemetria e integração com frontend permanecem pendentes.
