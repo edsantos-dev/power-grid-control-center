@@ -103,7 +103,7 @@ As chaves primárias compartilhadas dos ativos permitem o mapeamento JPA com her
 
 Situações iniciais de eventos, equipes e alertas não possuem defaults. Campos cuja obrigatoriedade permanece em aberto aceitam NULL na estrutura inicial; isso não define as regras dos futuros comandos de cadastro.
 
-Medições, histórico de alterações, detalhes específicos de interrupção/manutenção e extremidades das linhas terão migrations próprias antes das funcionalidades correspondentes. A designação atual de equipe não constitui histórico de atendimento.
+A V3 define as extremidades das linhas por subestacao_origem_id e subestacao_destino_id, ambos NOT NULL e com FKs para subestacao.id. Um CHECK impede origem e destino iguais. O mapeamento de LinhaTransmissao utiliza herança JOINED e associações LAZY, sem cascata. Medições, histórico de alterações e detalhes específicos de interrupção/manutenção terão migrations próprias antes das funcionalidades correspondentes. A designação atual de equipe não constitui histórico de atendimento.
 
 ## Medições e indicadores
 

@@ -99,8 +99,8 @@ Como operador, quero cadastrar linhas de transmissão e alimentadores, para ter 
 
 - **Perfil e prioridade:** Operador. Prioridade: Alta.
 - **Status:** Em andamento.
-- **Implementação existente:** Frontend com duas listagens locais. Backend com Alimentador em herança JOINED, repositório, vínculo obrigatório LAZY com Subestacao e API de criação, listagem, consulta e edição.
-- **Trabalho pendente:** Revisão do backend e integração de Alimentador; contrato e implementação de LinhaTransmissao. Strings de origem/destino não são topologia implementada.
+- **Implementação existente:** Frontend com duas listagens locais. Backend com Alimentador em herança JOINED, repositório, vínculo obrigatório LAZY com Subestacao e API de criação, listagem, consulta e edição. LinhaTransmissao possui entidade JOINED, repositório e conexões obrigatórias com subestações pela V3.
+- **Trabalho pendente:** Camada Web de LinhaTransmissao, revisão do backend e integração das interfaces.
 - **Dependências:** PEN-01; PEN-06; US25; US01; definição de vínculos e extremidades.
 - **Referências no frontend:** [Linhas/index.tsx](../frontend/src/pages/Linhas/index.tsx#L6) (linhas 6,17,38); [Alimentadores/index.tsx](../frontend/src/pages/Alimentadores/index.tsx#L6) (linhas 6,17,38).
 
@@ -120,6 +120,8 @@ Como operador, quero cadastrar linhas de transmissão e alimentadores, para ter 
 **US02-T02 — backend em revisão:** Alimentador compartilha o ID com AtivoRede e referencia uma Subestacao existente por associação ManyToOne obrigatória e LAZY. Não há cascata de persistência ou remoção para a subestação. A V1 permanece inalterada.
 
 **Contrato de criação de Alimentador:** Nome, latitude, longitude, tensão nominal, data de instalação e subestacaoId obrigatórios. Nome recebe trim, não pode ser vazio e admite até 255 caracteres, sem unicidade. Coordenadas admitem sete casas decimais, nos intervalos [-90, 90] e [-180, 180]. Tensão estritamente positiva, com até 13 dígitos inteiros e seis decimais. Precisão excedida é rejeitada sem arredondamento. Datas futuras são permitidas. SubestacaoId deve ser inteiro positivo compatível com Long; referência inexistente retorna 404 sem criar o alimentador. Entradas inválidas retornam 400. Estado omitido ou nulo assume OPERACIONAL; os valores aceitos são OPERACIONAL, FALHA e MANUTENCAO. ID gerado pelo sistema; capacidadeMva não integra o cadastro. Não há igualdade obrigatória entre tensões nem restrição pelo estado da subestação. DTOs validados, serviço transacional e endpoints HTTP implementados. POST retorna 201 com Location; GET e PUT retornam 200; GET/PUT com alimentador inexistente retornam 404. POST/PUT com subestação inexistente retornam 404 sem incluir ou alterar registros. PUT preserva o ID e admite troca para outra subestação existente. Respostas expõem subestacaoId, sem serializar a entidade relacionada.
+
+**US02-T03 — persistência em revisão:** A V3 adiciona subestacao_origem_id e subestacao_destino_id obrigatórios, com FKs para subestacao.id e CHECK exigindo extremidades distintas. LinhaTransmissao mantém extensaoKm e tensaoOperacaoKv em NUMERIC(19,6), herança JOINED e associações LAZY sem cascata. LinhaTransmissaoRepositoryTest cobre conexões válidas, extremidades iguais, nulas ou inexistentes, limite numérico e excesso de dígitos inteiros. A rejeição de casas decimais excedentes sem arredondamento será aplicada na Camada Web. A V1 permanece inalterada.
 
 ### US03 — Cadastrar transformadores
 
