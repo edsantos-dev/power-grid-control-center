@@ -723,6 +723,12 @@ Como usuário, quero acessar o sistema com minhas credenciais e visualizar as fu
 
 US25-CA01, CA03 e CA04 preservam os requisitos de interface da Sprint 4; a integração React será acompanhada em US25-T03. US25-CA07 será atendido com o futuro cadastro de usuários. Esses itens permanecem abertos, sem ampliar o escopo desta PR.
 
+## Tarefas técnicas transversais
+
+### TT-01 — Padronizar erros da camada MVC
+
+**Status:** Em revisão. ApiError e GlobalExceptionHandler definem timestamp, status, error, message, path e fieldErrors. O tratamento preserva os status HTTP, retorna 409 para integridade e protege detalhes internos nos erros 500. GlobalExceptionHandlerTest cobre contrato JSON, validação, mensagens seguras e cabeçalhos. Respostas emitidas pelos filtros de segurança mantêm o comportamento existente. A tarefa se aplica às APIs já implementadas e aos próximos contratos, incluindo US08.
+
 ## Pendências
 
 ### PEN-01 — Incluir Alimentador no modelo

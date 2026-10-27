@@ -210,3 +210,11 @@ A resposta inclui transformadorId, alimentadorId e subestacaoId pela cadeia cada
 
 POST /api/linhas-transmissao retorna 201 com Location; GET geral, GET /{id} e PUT /{id} retornam 200. Nome obrigatório com trim e até 255 caracteres; extensaoKm e tensaoOperacaoKv obrigatórios, positivos e limitados a 13 dígitos inteiros e seis decimais. Data de instalação obrigatória, permitindo datas futuras. Coordenadas opcionais em conjunto, com sete decimais e limites geográficos. Origem e destino são IDs positivos de subestações existentes e distintas. Entradas inválidas retornam 400; linha ou subestação inexistente retorna 404. Estado ausente ou nulo assume OPERACIONAL no POST e PUT. Respostas expõem IDs das extremidades; consultas sem paginação. Todas as rotas exigem autenticação e as escritas exigem CSRF. 
 A V3 adiciona conexões NOT NULL para subestacao.id e CHECK de extremidades distintas. A migration pressupõe ausência de linhas legadas sem conexões; a V1 não é alterada. Capacidade e telemetria não integram este cadastro.
+
+## Respostas de erro da camada MVC
+
+Os erros tratados por GlobalExceptionHandler retornam timestamp UTC, status numérico, error (descrição HTTP), message, path e fieldErrors. A lista fieldErrors contém field e message para cada campo inválido e fica vazia nos demais casos; valores rejeitados não são incluídos.
+
+Validação de DTO retorna 400. ResponseStatusException preserva o status e a mensagem de negócio nos erros 4xx. Violações de integridade retornam 409 com mensagem genérica, sem SQL ou detalhes das constraints. Exceções inesperadas retornam 500 com mensagem segura. Erros MVC como JSON malformado, conversão de parâmetros e método não permitido preservam seus status; cabeçalhos HTTP, como Allow, são mantidos.
+
+O advice não intercepta respostas produzidas antes do DispatcherServlet pelos filtros de segurança. Login inválido, ausência de sessão e CSRF rejeitado mantêm o comportamento existente. Negação de acesso por método na camada MVC retorna 403 no formato padronizado.
