@@ -270,9 +270,9 @@ Como operador, quero cadastrar os consumidores da rede elétrica, para vincular 
 Como operador, quero visualizar em tempo real a tensão e a corrente das linhas de transmissão, para identificar rapidamente variações anormais.
 
 - **Perfil e prioridade:** Operador. Prioridade: Alta.
-- **Status:** A fazer.
-- **Implementação existente:** Valores fixos em Linhas e gráfico estático em Monitoramento.
-- **Trabalho pendente:** Sem fonte de medições, identidade de linha na série e atualização; tensão nominal/medida não separadas.
+- **Status:** Em andamento.
+- **Implementação existente:** Valores fixos no frontend. Persistência de FonteMedicao e MedicaoLinha, com migration V4 e testes de integridade, em revisão.
+- **Trabalho pendente:** Cadastro/provisionamento de fontes, ingestão e consulta HTTP, regras temporais, simulador e integração de monitoramento.
 - **Dependências:** PEN-06; US25; US02; fonte de medições ou simulador.
 - **Referências no frontend:** [Linhas/index.tsx](../frontend/src/pages/Linhas/index.tsx#L11) (linhas 11,17); [Monitoramento/index.tsx](../frontend/src/pages/Monitoramento/index.tsx#L13) (linhas 13,134).
 
@@ -288,6 +288,10 @@ Como operador, quero visualizar em tempo real a tensão e a corrente das linhas 
 - [ ] **US08-T02:** Implementar o recorte de backend com testes pertinentes e documentação.
 - [ ] **US08-T03:** Integrar a interface com testes pertinentes e documentação.
 - [ ] **US08-T04:** Verificar integração/aceite e apresentar resultados e limitações.
+
+**US08-T02 — persistência em revisão:** A V4 cria fonte_medicao com identificador único de até 128 caracteres, origem REAL/SIMULADA e linha obrigatória. medicao_linha referencia a fonte e armazena medidoEm, recebidoEm, tensão em kV e corrente em A. Ao menos uma grandeza deve existir; zero é válido e valores negativos são rejeitados. Grandezas usam NUMERIC(19,6); timestamps possuem fuso. Índice por fonte e instante de medição. As associações são LAZY, sem cascata. FonteMedicaoRepositoryTest e MedicaoLinhaRepositoryTest cobrem integridade e recuperação.
+
+**Contrato para a Camada Web:** Leituras históricas e parciais são aceitas; recebidoEm é definido pelo servidor e medidoEm preserva o instante do sensor. Tolerância futura configurável de 60 segundos; precisão numérica estrita sem arredondamento. A fonte deve pertencer à linha informada e não pode ser reatribuída após possuir medições. Essas regras de serviço, autenticação própria dos dispositivos, duplicidade e classificação de atraso não são implementadas nesta etapa de persistência.
 
 ### US09 — Monitorar potência ativa e reativa
 
