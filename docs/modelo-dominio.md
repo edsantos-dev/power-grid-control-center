@@ -107,7 +107,7 @@ A V3 define as extremidades das linhas por subestacao_origem_id e subestacao_des
 
 ## Medições e indicadores
 
-A V4 introduz FonteMedicao → LinhaTransmissao (N:1 obrigatório) e MedicaoLinha → FonteMedicao (N:1 obrigatório). A linha da leitura é derivada da fonte. FonteMedicao possui identificador único e origem REAL/SIMULADA. MedicaoLinha mantém os instantes medidoEm e recebidoEm e as grandezas opcionais tensaoKv e correnteA, exigindo pelo menos uma delas. Ambas representam magnitudes RMS não negativas; ausência não equivale a zero. As regras de imutabilidade do vínculo após leituras e de validação temporal serão aplicadas na camada de serviço.
+A V4 introduz FonteMedicao → LinhaTransmissao (N:1 obrigatório) e MedicaoLinha → FonteMedicao (N:1 obrigatório). A linha da leitura é derivada da fonte. FonteMedicao possui identificador único e origem REAL/SIMULADA. MedicaoLinha mantém os instantes medidoEm e recebidoEm e as grandezas opcionais tensaoKv e correnteA, exigindo pelo menos uma delas. Ambas representam magnitudes RMS não negativas; ausência não equivale a zero. A ingestão valida o vínculo fonte–linha e aceita instantes até 60 segundos à frente do relógio do servidor, com tolerância configurável. O instante de recebimento é gerado no backend. A regra de imutabilidade do vínculo após leituras deverá ser aplicada quando houver edição de fontes; esse endpoint ainda não existe.
 
 
 Medicao registra o ativo de origem, o instante da leitura, as grandezas com suas unidades e a origem real ou simulada dos valores. O monitoramento abrange tensão, corrente, potência ativa e reativa, frequência, fator de potência, consumo e demanda.

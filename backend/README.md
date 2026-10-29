@@ -218,3 +218,11 @@ Os erros tratados por GlobalExceptionHandler retornam timestamp UTC, status num�
 Validação de DTO retorna 400. ResponseStatusException preserva o status e a mensagem de negócio nos erros 4xx. Violações de integridade retornam 409 com mensagem genérica, sem SQL ou detalhes das constraints. Exceções inesperadas retornam 500 com mensagem segura. Erros MVC como JSON malformado, conversão de parâmetros e método não permitido preservam seus status; cabeçalhos HTTP, como Allow, são mantidos.
 
 O advice não intercepta respostas produzidas antes do DispatcherServlet pelos filtros de segurança. Login inválido, ausência de sessão e CSRF rejeitado mantêm o comportamento existente. Negação de acesso por método na camada MVC retorna 403 no formato padronizado.
+
+## Ingestão de medições de linhas
+
+POST /api/linhas-transmissao/{linhaId}/medicoes exige sessão e CSRF. O corpo contém fonteId positivo, medidoEm ISO 8601 com offset e ao menos uma grandeza: tensaoKv (kV) ou correnteA (A). Valores não negativos, com até 13 dígitos inteiros e seis decimais. Campos ausentes permanecem nulos; zero é válido.
+
+Linha ou fonte inexistente retorna 404; fonte de outra linha, conteúdo inválido ou instante além da tolerância futura retorna 400 no formato ApiError. A propriedade medicoes.tolerancia-futura-segundos configura a tolerância (padrão 60, inclusive). Leituras históricas são aceitas. O backend converte medidoEm para UTC e gera recebidoEm com seu relógio, sem aceitar atribuição pelo cliente. A origem REAL/SIMULADA vem da fonte cadastrada.
+
+Retorna 201 com Location e id, linhaId, fonteId, origem, medidoEm, recebidoEm, tensaoKv e correnteA. A URL individual indicada por Location ainda não possui GET neste incremento. Fontes devem existir previamente; o cadastro de fontes e as consultas de medições serão entregues separadamente. Não há deduplicação, alertas automáticos ou autenticação própria de dispositivos neste recorte.
