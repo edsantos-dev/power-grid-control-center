@@ -103,12 +103,9 @@ As chaves primárias compartilhadas dos ativos permitem o mapeamento JPA com her
 
 Situações iniciais de eventos, equipes e alertas não possuem defaults. Campos cuja obrigatoriedade permanece em aberto aceitam NULL na estrutura inicial; isso não define as regras dos futuros comandos de cadastro.
 
-A V3 define as extremidades das linhas por subestacao_origem_id e subestacao_destino_id, ambos NOT NULL e com FKs para subestacao.id. Um CHECK impede origem e destino iguais. O mapeamento de LinhaTransmissao utiliza herança JOINED e associações LAZY, sem cascata. Medições de linhas usam a V4. Histórico de alterações e detalhes específicos de interrupção/manutenção terão migrations próprias antes das funcionalidades correspondentes. A designação atual de equipe não constitui histórico de atendimento.
+A V3 define as extremidades das linhas por subestacao_origem_id e subestacao_destino_id, ambos NOT NULL e com FKs para subestacao.id. Um CHECK impede origem e destino iguais. O mapeamento de LinhaTransmissao utiliza herança JOINED e associações LAZY, sem cascata. Medições, histórico de alterações e detalhes específicos de interrupção/manutenção terão migrations próprias antes das funcionalidades correspondentes. A designação atual de equipe não constitui histórico de atendimento.
 
 ## Medições e indicadores
-
-A V4 introduz FonteMedicao → LinhaTransmissao (N:1 obrigatório) e MedicaoLinha → FonteMedicao (N:1 obrigatório). A linha da leitura é derivada da fonte. FonteMedicao possui identificador único e origem REAL/SIMULADA. MedicaoLinha mantém os instantes medidoEm e recebidoEm e as grandezas opcionais tensaoKv e correnteA, exigindo pelo menos uma delas. Ambas representam magnitudes RMS não negativas; ausência não equivale a zero. As regras de imutabilidade do vínculo após leituras e de validação temporal serão aplicadas na camada de serviço.
-
 
 Medicao registra o ativo de origem, o instante da leitura, as grandezas com suas unidades e a origem real ou simulada dos valores. O monitoramento abrange tensão, corrente, potência ativa e reativa, frequência, fator de potência, consumo e demanda.
 
