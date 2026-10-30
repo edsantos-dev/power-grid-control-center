@@ -11,5 +11,7 @@ public record MedicaoLinhaRequestDTO(
         @NotNull @Positive Long fonteId,
         @NotNull OffsetDateTime medidoEm,
         @PositiveOrZero @Digits(integer = 13, fraction = 6) BigDecimal tensaoKv,
-        @PositiveOrZero @Digits(integer = 13, fraction = 6) BigDecimal correnteA) {
+        @PositiveOrZero @Digits(integer = 13, fraction = 6) BigDecimal correnteA,
+        @Digits(integer = 13, fraction = 6) BigDecimal potenciaAtivaMw,
+        @Digits(integer = 13, fraction = 6) BigDecimal potenciaReativaMvar) {
 }

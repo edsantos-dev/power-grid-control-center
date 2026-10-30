@@ -35,4 +35,10 @@ public class MedicaoLinha {
 
     @Column(name = "corrente_a", precision = 19, scale = 6)
     private BigDecimal correnteA;
+
+    @Column(name = "potencia_ativa_mw", precision = 19, scale = 6)
+    private BigDecimal potenciaAtivaMw;
+
+    @Column(name = "potencia_reativa_mvar", precision = 19, scale = 6)
+    private BigDecimal potenciaReativaMvar;
 }

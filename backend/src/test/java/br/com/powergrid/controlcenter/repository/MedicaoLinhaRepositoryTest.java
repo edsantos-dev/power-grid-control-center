@@ -54,7 +54,7 @@ class MedicaoLinhaRepositoryTest {
     }
 
     @Test
-    void deveRejeitarAmbasGrandezasNulas() {
+    void deveRejeitarTodasGrandezasNulas() {
         MedicaoLinha leitura = leitura();
         leitura.setTensaoKv(null);
         leitura.setCorrenteA(null);
@@ -87,6 +87,45 @@ class MedicaoLinhaRepositoryTest {
         MedicaoLinha leitura = leitura();
         leitura.setFonte(entityManager.getReference(FonteMedicao.class, Long.MAX_VALUE));
         violacao(leitura, "23506", "fk_medicao_fonte");
+    }
+
+    @ParameterizedTest
+    @ValueSource(strings = {"ativaNegativa", "reativaNegativa", "ativaPositiva", "reativaPositiva", "zero", "limite"})
+    void devePersistirSomentePotenciaComSinal(String caso) {
+        MedicaoLinha leitura = leitura();
+        leitura.getFonte().setSubestacaoReferencia(leitura.getFonte().getLinha().getSubestacaoOrigem());
+        leitura.setTensaoKv(null);
+        leitura.setCorrenteA(null);
+        switch (caso) {
+            case "ativaNegativa" -> leitura.setPotenciaAtivaMw(new BigDecimal("-12.123456"));
+            case "reativaNegativa" -> leitura.setPotenciaReativaMvar(new BigDecimal("-3.123456"));
+            case "ativaPositiva" -> leitura.setPotenciaAtivaMw(new BigDecimal("12.123456"));
+            case "reativaPositiva" -> leitura.setPotenciaReativaMvar(new BigDecimal("3.123456"));
+            case "zero" -> leitura.setPotenciaAtivaMw(BigDecimal.ZERO);
+            default -> {
+                leitura.setPotenciaAtivaMw(new BigDecimal("-9999999999999.999999"));
+                leitura.setPotenciaReativaMvar(new BigDecimal("9999999999999.999999"));
+            }
+        }
+        repository.saveAndFlush(leitura);
+        entityManager.clear();
+        MedicaoLinha salvo = repository.findById(leitura.getId()).orElseThrow();
+        assertThat(salvo.getTensaoKv()).isNull();
+        assertThat(salvo.getCorrenteA()).isNull();
+        if (leitura.getPotenciaAtivaMw() == null) assertThat(salvo.getPotenciaAtivaMw()).isNull();
+        else assertThat(salvo.getPotenciaAtivaMw()).isEqualByComparingTo(leitura.getPotenciaAtivaMw());
+        if (leitura.getPotenciaReativaMvar() == null) assertThat(salvo.getPotenciaReativaMvar()).isNull();
+        else assertThat(salvo.getPotenciaReativaMvar()).isEqualByComparingTo(leitura.getPotenciaReativaMvar());
+    }
+
+    @ParameterizedTest
+    @ValueSource(strings = {"ativa", "reativa"})
+    void deveRejeitarEstouroDePrecisaoDaPotencia(String campo) {
+        MedicaoLinha leitura = leitura();
+        BigDecimal valor = new BigDecimal("10000000000000");
+        if (campo.equals("ativa")) leitura.setPotenciaAtivaMw(valor);
+        else leitura.setPotenciaReativaMvar(valor);
+        violacao(leitura, "22001", campo.equals("ativa") ? "potencia_ativa_mw" : "potencia_reativa_mvar");
     }
 
     private MedicaoLinha leitura() {

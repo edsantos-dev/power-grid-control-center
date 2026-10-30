@@ -186,6 +186,29 @@ class FontesConsultasControllerTest {
                 .andExpect(status().isForbidden());
     }
 
+    @ParameterizedTest
+    @ValueSource(strings = {"origem", "destino"})
+    void deveCadastrarFonteComTerminalDeReferencia(String terminal) throws Exception {
+        Long referencia = terminal.equals("origem") ? fonte.getLinha().getSubestacaoOrigem().getId()
+                : fonte.getLinha().getSubestacaoDestino().getId();
+        var request = Map.of("identificador", "COM-REFERENCIA", "origem", "REAL", "subestacaoReferenciaId", referencia);
+        mockMvc.perform(post(fontesUrl(linhaId)).session(sessao).header(csrf.headerName(), csrf.token())
+                .contentType(MediaType.APPLICATION_JSON).content(objectMapper.writeValueAsString(request)))
+                .andExpect(status().isCreated()).andExpect(jsonPath("$.subestacaoReferenciaId").value(referencia));
+        entityManager.flush(); entityManager.clear();
+        var salvo = entityManager.createQuery("select f from FonteMedicao f where f.identificador = :id", FonteMedicao.class)
+                .setParameter("id", "COM-REFERENCIA").getSingleResult();
+        assertThat(salvo.getSubestacaoReferencia().getId()).isEqualTo(referencia);
+    }
+
+    @Test
+    void deveRejeitarReferenciaInexistenteOuForaDaLinha() throws Exception {
+        fontePost(linhaId, Map.of("identificador", "NOVA", "origem", "REAL", "subestacaoReferenciaId", Long.MAX_VALUE), 404);
+        fontePost(linhaId, Map.of("identificador", "NOVA", "origem", "REAL", "subestacaoReferenciaId", linha().getSubestacaoOrigem().getId()), 400);
+        fontePost(linhaId, Map.of("identificador", "NOVA", "origem", "REAL", "subestacaoReferenciaId", 0), 400);
+        fontePost(linhaId, Map.of("identificador", "NOVA", "origem", "REAL", "subestacaoReferenciaId", -1), 400);
+    }
+
     private String url() { return "/api/linhas-transmissao/" + linhaId + "/medicoes"; }
     private String fontesUrl(Long id) { return "/api/linhas-transmissao/" + id + "/fontes"; }
     private void fontePost(Long id, Map<String, ?> req, int esperado) throws Exception {

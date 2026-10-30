@@ -107,6 +107,9 @@ A V3 define as extremidades das linhas por subestacao_origem_id e subestacao_des
 
 ## Medições e indicadores
 
+A V5 estende MedicaoLinha com potenciaAtivaMw (MW) e potenciaReativaMvar (MVAr), ambas opcionais em NUMERIC(19,6), com sinal. Ao menos uma entre tensão, corrente, potência ativa e reativa deve existir. FonteMedicao passa a possuir subestacaoReferencia opcional (N:1, LAZY), preservando nulo para fontes antigas. A convenção positiva indica entrada na linha pelo terminal de referência; as potências possuem sinais independentes. A Camada Web exige referência válida para ingestão de potência. Não existe endpoint de edição ou reatribuição de fontes; se disponibilizado futuramente, deverá preservar o histórico após leituras. A FK simples garante existência da subestação, não sua condição de extremidade da linha.
+
+
 A V4 introduz FonteMedicao → LinhaTransmissao (N:1 obrigatório) e MedicaoLinha → FonteMedicao (N:1 obrigatório). A linha da leitura é derivada da fonte. FonteMedicao possui identificador único e origem REAL/SIMULADA. MedicaoLinha mantém os instantes medidoEm e recebidoEm e as grandezas opcionais tensaoKv e correnteA, exigindo pelo menos uma delas. Ambas representam magnitudes RMS não negativas; ausência não equivale a zero. A ingestão valida o vínculo fonte–linha e aceita instantes até 60 segundos à frente do relógio do servidor, com tolerância configurável. O instante de recebimento é gerado no backend. A regra de imutabilidade do vínculo após leituras deverá ser aplicada quando houver edição de fontes; esse endpoint ainda não existe.
 
 

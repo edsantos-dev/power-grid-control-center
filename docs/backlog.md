@@ -306,9 +306,9 @@ A entrega atende ao recorte de backend de US08-T02. Integração com a interface
 Como operador, quero acompanhar a potência ativa e reativa da rede, para avaliar a qualidade do fornecimento de energia.
 
 - **Perfil e prioridade:** Operador. Prioridade: Alta.
-- **Status:** A fazer.
-- **Implementação existente:** Gráfico e cartão com valores constantes.
-- **Trabalho pendente:** Sem origem/escopo definidos, leituras persistidas e atualização.
+- **Status:** Em andamento.
+- **Implementação existente:** Gráfico e cartão com valores constantes no frontend. Persistência de potências ativa e reativa em MedicaoLinha e referência de subestação em FonteMedicao pela V5, em revisão.
+- **Trabalho pendente:** Revisão do backend de potência; integração e atualização da interface.
 - **Dependências:** PEN-06; US25; infraestrutura de medições de US08.
 - **Referências no frontend:** [Monitoramento/index.tsx](../frontend/src/pages/Monitoramento/index.tsx#L22) (linhas 22,74,148).
 
@@ -324,6 +324,10 @@ Como operador, quero acompanhar a potência ativa e reativa da rede, para avalia
 - [ ] **US09-T02:** Implementar o recorte de backend com testes pertinentes e documentação.
 - [ ] **US09-T03:** Integrar a interface com testes pertinentes e documentação.
 - [ ] **US09-T04:** Verificar integração/aceite e apresentar resultados e limitações.
+
+**US09-T02 — persistência e API em revisão:** V5 adiciona potencia_ativa_mw e potencia_reativa_mvar em NUMERIC(19,6), opcionais, com sinais positivos ou negativos e rejeição de valores não finitos. O CHECK exige ao menos uma das quatro grandezas; tensão e corrente continuam não negativas. FonteMedicao referencia opcionalmente Subestacao por FK simples e associação LAZY, sem cascata. Fontes existentes preservam referência nula, sem inferência automática. Os testes de repositório cobrem potências isoladas, sinais, zero, limites numéricos e referência da fonte.
+
+**Contrato para a Camada Web:** Potência ativa em MW e reativa em MVAr; positivo representa entrada na linha pelo terminal de referência. A fonte deve identificar uma extremidade válida antes de ingerir potência. A API de fontes aceita subestacaoReferenciaId opcional, exige existência (404) e condição de extremidade da linha (400). Ingestão com P ou Q exige fonte com referência válida (400), preservando fontes sem referência para tensão/corrente. POST e GET de medições expõem as potências e subestacaoReferenciaId. A API exige ao menos uma das quatro grandezas e precisão 13,6; violações de integridade na gravação da medição são convertidas em 400. Referências não podem ser reatribuídas pela API, que não possui endpoint de edição de fontes. A FK simples não garante a condição de extremidade. MedicaoLinhaControllerTest e FontesConsultasControllerTest cobrem sinais, precisão, persistência, consulta e terminais.
 
 ### US10 — Monitorar frequência e fator de potência
 

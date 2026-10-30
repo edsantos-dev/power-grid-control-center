@@ -221,11 +221,11 @@ O advice não intercepta respostas produzidas antes do DispatcherServlet pelos f
 
 ## Ingestão de medições de linhas
 
-POST /api/linhas-transmissao/{linhaId}/medicoes exige sessão e CSRF. O corpo contém fonteId positivo, medidoEm ISO 8601 com offset e ao menos uma grandeza: tensaoKv (kV) ou correnteA (A). Valores não negativos, com até 13 dígitos inteiros e seis decimais. Campos ausentes permanecem nulos; zero é válido.
+POST /api/linhas-transmissao/{linhaId}/medicoes exige sessão e CSRF. O corpo contém fonteId positivo, medidoEm ISO 8601 com offset e ao menos uma grandeza: tensaoKv (kV), correnteA (A), potenciaAtivaMw (MW) ou potenciaReativaMvar (MVAr). Tensão e corrente são não negativas; as potências aceitam sinais. Todas admitem até 13 dígitos inteiros e seis decimais. Campos ausentes permanecem nulos; zero é válido.
 
 Linha ou fonte inexistente retorna 404; fonte de outra linha, conteúdo inválido ou instante além da tolerância futura retorna 400 no formato ApiError. A propriedade medicoes.tolerancia-futura-segundos configura a tolerância (padrão 60, inclusive). Leituras históricas são aceitas. O backend converte medidoEm para UTC e gera recebidoEm com seu relógio, sem aceitar atribuição pelo cliente. A origem REAL/SIMULADA vem da fonte cadastrada.
 
-Retorna 201 com Location e id, linhaId, fonteId, origem, medidoEm, recebidoEm, tensaoKv e correnteA. A URL individual indicada por Location ainda não possui GET neste incremento. Fontes podem ser cadastradas pela API e as medições possuem consulta paginada, conforme descrito abaixo. Não há deduplicação, alertas automáticos ou autenticação própria de dispositivos neste recorte.
+Retorna 201 com Location e id, linhaId, fonteId, origem, medidoEm, recebidoEm, tensaoKv, correnteA, potenciaAtivaMw, potenciaReativaMvar e subestacaoReferenciaId. A URL individual indicada por Location ainda não possui GET neste incremento. Fontes podem ser cadastradas pela API e as medições possuem consulta paginada, conforme descrito abaixo. Não há deduplicação, alertas automáticos ou autenticação própria de dispositivos neste recorte.
 
 ## Fontes e consulta de medições
 
@@ -236,3 +236,11 @@ GET /api/linhas-transmissao/{linhaId}/medicoes exige sessão. Parâmetros page e
 Filtros opcionais dataInicio e dataFim exigem ISO 8601 com offset e são comparados em UTC sobre medidoEm. O início é inclusivo e o fim exclusivo. Quando ambos são enviados, dataInicio deve ser anterior a dataFim. Cada limite também pode ser usado isoladamente. Linha inexistente retorna 404; ausência de leituras ou página além do total retorna 200 com content vazio.
 
 O envelope contém apenas content, page, size, totalElements, totalPages, first e last. Os itens reutilizam MedicaoLinhaResponseDTO. A consulta inclui todas as fontes da linha informada e não inclui medições de outras linhas. Edição de fontes, deduplicação e atualização da interface são etapas distintas; a edição de fontes não está disponível. Paginação por offset não constitui snapshot entre requisições durante ingestão concorrente.
+
+## Potência ativa e reativa — US09
+
+Os DTOs de fontes aceitam e retornam subestacaoReferenciaId. O campo é opcional para compatibilidade com fontes de tensão/corrente. Quando informado, deve identificar uma subestação existente (404 se ausente) e uma extremidade da linha (400 caso contrário). IDs não positivos retornam 400. A API não permite edição ou reatribuição de fontes.
+
+POST e GET /api/linhas-transmissao/{linhaId}/medicoes incluem potenciaAtivaMw (MW), potenciaReativaMvar (MVAr) e, nas respostas, subestacaoReferenciaId. As potências aceitam valores positivos, negativos e zero, com até 13 dígitos inteiros e seis decimais. Positivo representa entrada na linha pelo terminal de referência; os sinais de P e Q são independentes. Cada leitura exige ao menos uma das quatro grandezas; ausência continua nula. Tensão e corrente permanecem não negativas.
+
+Ingestão contendo P ou Q exige referência de fonte válida como extremidade da linha, retornando 400 caso não exista ou seja incompatível. Não é inferida referência para fontes antigas. A origem, referência e recebidoEm são obtidos pelo servidor; a requisição da medição não permite escolher o terminal. Mantêm-se tolerância temporal, sessão, CSRF, paginação e filtros da US08. Violações de integridade na gravação de medições retornam 400 com mensagem limpa. A V5 fornece persistência das potências e FK opcional da referência.

@@ -5,5 +5,6 @@ import java.time.OffsetDateTime;
 import br.com.powergrid.controlcenter.model.OrigemMedicao;
 
 public record MedicaoLinhaResponseDTO(Long id, Long linhaId, Long fonteId, OrigemMedicao origem,
-        OffsetDateTime medidoEm, OffsetDateTime recebidoEm, BigDecimal tensaoKv, BigDecimal correnteA) {
+        OffsetDateTime medidoEm, OffsetDateTime recebidoEm, BigDecimal tensaoKv, BigDecimal correnteA,
+        BigDecimal potenciaAtivaMw, BigDecimal potenciaReativaMvar, Long subestacaoReferenciaId) {
 }
