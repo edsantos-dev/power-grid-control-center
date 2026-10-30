@@ -8,7 +8,7 @@ O frontend possui páginas com dados simulados, filtros e navegação local. O b
 
 US01 está **Em andamento**, com persistência, criação, consulta e edição de subestações em revisão; US02 está **Em andamento**, com backend de Alimentador em revisão; US03 está **Em andamento**, com persistência e API de Transformador em revisão; US16 está **Em andamento**, com persistência e API de eventos em revisão; US20 está **Em andamento**, com persistência e API de alertas em revisão; US07 está **Em andamento**, com persistência e API de consumidores em revisão; US06 está **Em andamento**, com persistência e API de medidores em revisão; US04–US05, US08–US15, US17–US19 e US21–US24 permanecem **A fazer** para o trabalho restante. O recorte de backend de US25 está **Em revisão**, com persistência, autenticação HTTP, contas iniciais e segurança por método. A presença de uma tela não representa a conclusão da história. O mapa geográfico ainda não está implementado.
 
-O frontend consome a autenticação pela API, com endereço definido em VITE_API_URL; as demais telas continuam com dados simulados. Os testes existentes cobrem contexto, persistência, credenciais, autenticação HTTP, sessão, CORS e CSRF. A política de gestão de acesso restringe as futuras operações ao Gerente de Operações; esses endpoints ainda não existem.
+O frontend consome a autenticação e o cadastro de subestações pela API, com endereço definido em VITE_API_URL; as demais telas continuam com dados simulados. Os testes existentes cobrem contexto, persistência, credenciais, autenticação HTTP, sessão, CORS e CSRF. A política de gestão de acesso restringe as futuras operações ao Gerente de Operações; esses endpoints ainda não existem.
 
 ## Stack tecnológica
 
@@ -70,8 +70,8 @@ Como operador, quero cadastrar subestações com informações técnicas e local
 
 - **Perfil e prioridade:** Operador. Prioridade: Alta.
 - **Status:** Em andamento.
-- **Implementação existente:** Interface com dados simulados. Backend com AtivoRede e Subestacao em herança JOINED, repositório e endpoints de criação, listagem, consulta por ID e edição, com validações, sessão e CSRF.
-- **Trabalho pendente:** Revisão do backend, formulário e integração. O tipo da tela ainda não contempla todos os campos.
+- **Implementação existente:** Interface com listagem, cadastro e edição pela API. Backend com AtivoRede e Subestacao em herança JOINED, repositório e endpoints de criação, listagem, consulta por ID e edição, com validações, sessão e CSRF.
+- **Trabalho pendente:** Revisão do backend e da integração; aceite de US01.
 - **Dependências:** PEN-06; autenticação do backend em US25.
 - **Referências no frontend:** [Subestacoes/index.tsx](../frontend/src/pages/Subestacoes/index.tsx#L6) (linhas 6,17,38).
 
@@ -91,7 +91,9 @@ Como operador, quero cadastrar subestações com informações técnicas e local
 
 **Contrato de criação:** Nome, latitude, longitude, tensão nominal, capacidade e data de instalação obrigatórios. Nome sem espaços nas extremidades, não vazio, até 255 caracteres e sem unicidade. Latitude entre -90 e 90; longitude entre -180 e 180; até sete casas decimais. Tensão e capacidade positivas, com até 13 dígitos inteiros e seis decimais. Excesso de precisão deve ser rejeitado, sem arredondamento. Data válida em YYYY-MM-DD, admitindo datas futuras. Estado opcional: OPERACIONAL quando omitido ou nulo; rejeitar valor fora de OPERACIONAL/FALHA/MANUTENCAO. ID gerado pelo sistema.
 
-**US01-T02 — backend em revisão:** Mapeamento JOINED, repositório, DTOs validados e serviço transacional disponíveis. POST retorna 201 e Location; GET da coleção e por ID retornam 200; PUT substitui os dados e retorna 200 mantendo o ID. GET por ID e PUT retornam 404 se o registro não existir. PUT usa as mesmas validações e estado padrão do POST; entradas inválidas retornam 400 sem alterar dados. Consultas exigem autenticação, e escritas exigem também CSRF. A V1 permanece inalterada. A integração com a interface e o aceite de US01-CA03 permanecem pendentes.
+**US01-T02 — backend em revisão:** Mapeamento JOINED, repositório, DTOs validados e serviço transacional disponíveis. POST retorna 201 e Location; GET da coleção e por ID retornam 200; PUT substitui os dados e retorna 200 mantendo o ID. GET por ID e PUT retornam 404 se o registro não existir. PUT usa as mesmas validações e estado padrão do POST; entradas inválidas retornam 400 sem alterar dados. Consultas exigem autenticação, e escritas exigem também CSRF. A V1 permanece inalterada. 
+
+**US01-T03 — interface em revisão:** A tela lista, cadastra e edita subestações pela API, com busca e filtro por status. O formulário aplica localmente obrigatoriedade, limites geográficos e precisão, e exibe os erros de campo devolvidos pelo backend. Decimais são enviados como texto, sem arredondamento no cliente. Região, tensão secundária, carga e disponibilidade simuladas foram removidas por não integrarem o contrato; a disponibilidade será tratada em US14. Subestacoes.test.tsx cobre US01-CA02, CA03 e CA04 na interface.
 
 ### US02 — Cadastrar linhas e alimentadores
 
