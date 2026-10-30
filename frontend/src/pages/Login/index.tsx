@@ -1,15 +1,19 @@
 import { useState, type FormEvent } from 'react'
-import { useNavigate } from 'react-router-dom'
+import { Navigate, useNavigate } from 'react-router-dom'
+import axios from 'axios'
 import { Zap } from 'lucide-react'
+import { useAuth } from '../../hooks/useAuth'
 
 function Login() {
   const navigate = useNavigate()
+  const { usuario, login } = useAuth()
 
   const [email, setEmail] = useState('')
   const [senha, setSenha] = useState('')
   const [erro, setErro] = useState('')
+  const [enviando, setEnviando] = useState(false)
 
-  function handleSubmit(e: FormEvent<HTMLFormElement>) {
+  async function handleSubmit(e: FormEvent<HTMLFormElement>) {
     e.preventDefault()
     setErro('')
 
@@ -21,18 +25,29 @@ function Login() {
       return
     }
 
-    if (!emailRegex.test(email)) {
+    if (!emailRegex.test(email.trim())) {
       setErro('Informe um e-mail válido.')
       return
     }
 
-    if (senha.length < 6) {
-      setErro('A senha deve ter no mínimo 6 caracteres.')
-      return
-    }
+    setEnviando(true)
 
-    // Sem integração com backend por enquanto — só navega
-    navigate('/dashboard')
+    try {
+      await login(email, senha)
+      navigate('/dashboard', { replace: true })
+    } catch (error) {
+      setErro(
+        axios.isAxiosError(error) && error.response?.status === 401
+          ? 'E-mail ou senha inválidos.'
+          : 'Não foi possível conectar ao servidor. Tente novamente.'
+      )
+    } finally {
+      setEnviando(false)
+    }
+  }
+
+  if (usuario) {
+    return <Navigate to="/dashboard" replace />
   }
 
   return (
@@ -89,9 +104,10 @@ function Login() {
 
           <button
             type="submit"
-            className="w-full rounded-lg bg-blue-600 px-4 py-3 font-semibold text-white transition hover:bg-blue-500"
+            disabled={enviando}
+            className="w-full rounded-lg bg-blue-600 px-4 py-3 font-semibold text-white transition hover:bg-blue-500 disabled:cursor-not-allowed disabled:opacity-60"
           >
-            Entrar no sistema
+            {enviando ? 'Entrando...' : 'Entrar no sistema'}
           </button>
         </form>
 

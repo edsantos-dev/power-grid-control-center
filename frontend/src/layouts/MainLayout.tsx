@@ -1,5 +1,6 @@
 // src/layouts/MainLayout.tsx
 import { Outlet } from 'react-router-dom'
+import Header from '../components/layout/Header'
 import Sidebar from '../components/layout/Sidebar'
 
 function MainLayout() {
@@ -8,11 +9,7 @@ function MainLayout() {
       <Sidebar />
 
       <div className="flex flex-1 flex-col">
-        <header className="border-b border-slate-800 bg-slate-900 px-6 py-4">
-          <h1 className="text-xl font-bold">
-            Power Grid Control Center
-          </h1>
-        </header>
+        <Header />
 
         <main className="flex-1 overflow-y-auto p-6">
           <Outlet />

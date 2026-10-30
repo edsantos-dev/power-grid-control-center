@@ -1,4 +1,5 @@
-import { BrowserRouter, Route, Routes } from 'react-router-dom'
+import { BrowserRouter, Navigate, Route, Routes } from 'react-router-dom'
+import RotaPrivada from './RotaPrivada'
 import Login from '../pages/Login'
 import Dashboard from '../pages/Dashboard'
 import Monitoramento from '../pages/Monitoramento'
@@ -20,24 +21,26 @@ function AppRoutes() {
   return (
     <BrowserRouter>
       <Routes>
-        <Route path="/" element={<Login />} />
+        <Route path="/" element={<Navigate to="/dashboard" replace />} />
         <Route path="/login" element={<Login />} />
 
-        <Route element={<MainLayout />}>
-          <Route path="/dashboard" element={<Dashboard />} />
-          <Route path="/monitoramento" element={<Monitoramento />} />
-          <Route path="/alertas" element={<Alertas />} />
-          <Route path="/eventos" element={<Eventos />} />
-          <Route path="/usinas" element={<Usinas />} />
-          <Route path="/subestacoes" element={<Subestacoes />} />
-          <Route path="/transformadores" element={<Transformadores />} />
-          <Route path="/linhas" element={<Linhas />} />
-          <Route path="/alimentadores" element={<Alimentadores />} />
-          <Route path="/smartmeters" element={<SmartMeters />} />
-          <Route path="/consumidores" element={<Consumidores />} />
-          <Route path="/equipes" element={<Equipes />} />
-          <Route path="/relatorios" element={<Relatorios />} />
-          <Route path="/configuracoes" element={<Configuracoes />} />
+        <Route element={<RotaPrivada />}>
+          <Route element={<MainLayout />}>
+            <Route path="/dashboard" element={<Dashboard />} />
+            <Route path="/monitoramento" element={<Monitoramento />} />
+            <Route path="/alertas" element={<Alertas />} />
+            <Route path="/eventos" element={<Eventos />} />
+            <Route path="/usinas" element={<Usinas />} />
+            <Route path="/subestacoes" element={<Subestacoes />} />
+            <Route path="/transformadores" element={<Transformadores />} />
+            <Route path="/linhas" element={<Linhas />} />
+            <Route path="/alimentadores" element={<Alimentadores />} />
+            <Route path="/smartmeters" element={<SmartMeters />} />
+            <Route path="/consumidores" element={<Consumidores />} />
+            <Route path="/equipes" element={<Equipes />} />
+            <Route path="/relatorios" element={<Relatorios />} />
+            <Route path="/configuracoes" element={<Configuracoes />} />
+          </Route>
         </Route>
       </Routes>
     </BrowserRouter>

@@ -1,4 +1,26 @@
-# React + TypeScript + Vite
+# Power Grid Control Center — Frontend
+
+## Execução
+
+Com o backend em execução, a partir de `frontend/`:
+
+```bash
+cp .env.example .env.local
+npm install
+npm run dev
+```
+
+`VITE_API_URL` define o endereço da API. A aplicação deve ser aberta em `http://localhost:5173`, origem liberada por `FRONTEND_URL` no backend; `127.0.0.1` é rejeitado pelo CORS.
+
+## Verificação
+
+```bash
+npm test
+npm run lint
+npm run build
+```
+
+## React + TypeScript + Vite
 
 This template provides a minimal setup to get React working in Vite with HMR and some Oxlint rules.
 
