@@ -4,6 +4,10 @@ import br.com.powergrid.controlcenter.dto.MedicaoLinhaRequestDTO;
 import br.com.powergrid.controlcenter.dto.MedicaoLinhaResponseDTO;
 import br.com.powergrid.controlcenter.service.MedicaoLinhaService;
 import jakarta.validation.Valid;
+import br.com.powergrid.controlcenter.dto.PageResponseDTO;
+import org.springframework.util.MultiValueMap;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.RequestParam;
 import jakarta.validation.constraints.Positive;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -20,6 +24,12 @@ public class MedicaoLinhaController {
 
     public MedicaoLinhaController(MedicaoLinhaService service) {
         this.service = service;
+    }
+
+    @GetMapping
+    public PageResponseDTO<MedicaoLinhaResponseDTO> listar(@PathVariable @Positive Long linhaId,
+            @RequestParam MultiValueMap<String, String> params) {
+        return service.listar(linhaId, params);
     }
 
     @PostMapping

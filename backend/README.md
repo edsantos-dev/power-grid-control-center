@@ -225,4 +225,14 @@ POST /api/linhas-transmissao/{linhaId}/medicoes exige sessão e CSRF. O corpo co
 
 Linha ou fonte inexistente retorna 404; fonte de outra linha, conteúdo inválido ou instante além da tolerância futura retorna 400 no formato ApiError. A propriedade medicoes.tolerancia-futura-segundos configura a tolerância (padrão 60, inclusive). Leituras históricas são aceitas. O backend converte medidoEm para UTC e gera recebidoEm com seu relógio, sem aceitar atribuição pelo cliente. A origem REAL/SIMULADA vem da fonte cadastrada.
 
-Retorna 201 com Location e id, linhaId, fonteId, origem, medidoEm, recebidoEm, tensaoKv e correnteA. A URL individual indicada por Location ainda não possui GET neste incremento. Fontes devem existir previamente; seu cadastro e as consultas de medições serão entregues separadamente. Não há deduplicação, alertas automáticos ou autenticação própria de dispositivos neste recorte.
+Retorna 201 com Location e id, linhaId, fonteId, origem, medidoEm, recebidoEm, tensaoKv e correnteA. A URL individual indicada por Location ainda não possui GET neste incremento. Fontes podem ser cadastradas pela API e as medições possuem consulta paginada, conforme descrito abaixo. Não há deduplicação, alertas automáticos ou autenticação própria de dispositivos neste recorte.
+
+## Fontes e consulta de medições
+
+POST /api/linhas-transmissao/{linhaId}/fontes exige identificador (trim, não vazio, até 128 caracteres) e origem REAL ou SIMULADA. Preserva capitalização e exige identificador globalmente único. Retorna 201 com id, identificador, linhaId e origem. Linha inexistente retorna 404; entrada inválida 400; duplicidade 409, inclusive quando detectada pela constraint do banco. Exige sessão e CSRF.
+
+GET /api/linhas-transmissao/{linhaId}/medicoes exige sessão. Parâmetros page e size são opcionais, com padrões 0 e 20; page deve ser não negativo e size entre 1 e 100. Parâmetros vazios, repetidos, malformados ou fora dos limites retornam 400. Qualquer presença de sort retorna 400. A ordenação fixa é medidoEm DESC, id DESC. Pageable é construído após validação explícita dos parâmetros.
+
+Filtros opcionais dataInicio e dataFim exigem ISO 8601 com offset e são comparados em UTC sobre medidoEm. O início é inclusivo e o fim exclusivo. Quando ambos são enviados, dataInicio deve ser anterior a dataFim. Cada limite também pode ser usado isoladamente. Linha inexistente retorna 404; ausência de leituras ou página além do total retorna 200 com content vazio.
+
+O envelope contém apenas content, page, size, totalElements, totalPages, first e last. Os itens reutilizam MedicaoLinhaResponseDTO. A consulta inclui todas as fontes da linha informada e não inclui medições de outras linhas. Edição de fontes, deduplicação e atualização da interface são etapas distintas; a edição de fontes não está disponível. Paginação por offset não constitui snapshot entre requisições durante ingestão concorrente.
