@@ -363,8 +363,8 @@ Como operador, quero visualizar a carga dos transformadores em tempo real, para 
 
 - **Perfil e prioridade:** Operador. Prioridade: Alta.
 - **Status:** Em andamento.
-- **Implementação existente:** Percentuais fixos no frontend. V7, fonte polimórfica e persistência de MedicaoTransformador em revisão.
-- **Trabalho pendente:** Cadastro de fontes de transformadores, ingestão e consultas HTTP, cálculo do percentual, integração e atualização da interface.
+- **Implementação existente:** Percentuais fixos no frontend. V7, fontes polimórficas, persistência e API de medições de transformadores em revisão.
+- **Trabalho pendente:** Revisão do backend, integração, atualização da interface e política de dados ausentes/atrasados.
 - **Dependências:** US03; US06 se o cálculo utilizar medidores; infraestrutura de medições.
 - **Referências no frontend:** [Transformadores/index.tsx](../frontend/src/pages/Transformadores/index.tsx#L11) (linhas 11,20,46,147).
 
@@ -384,9 +384,9 @@ Como operador, quero visualizar a carga dos transformadores em tempo real, para 
 
 **US11-T02 — Lote 1 em revisão:** A V7 renomeia fonte_medicao.linha_id para ativo_id, preservando os dados e substituindo a FK por referência a ativo_rede. FonteMedicao referencia AtivoRede por associação LAZY. A tabela medicao_transformador mantém fonte, instantes, potência aparente não negativa e capacidade de referência estritamente positiva, ambos NUMERIC(19,6). O snapshot é um valor persistido independente da capacidade cadastral. Não há percentual armazenado nem limitação a 100%.
 
-**Compatibilidade:** Os serviços e consultas de linhas usam o novo vínculo sem alterar seus contratos HTTP. FonteMedicaoRepository permite consulta por ativo. MedicaoTransformadorRepositoryTest cobre integridade, sobrecarga e preservação do snapshot; FontesV7MigrationTest verifica a atualização de uma base V6 com fonte e leitura existentes. A API de linhas rejeita fonte vinculada a transformador. O banco garante existência do ativo, não sua compatibilidade com o tipo de medição; essa validação será aplicada nos serviços do Lote 2.
+**Compatibilidade:** Os serviços e consultas de linhas usam o novo vínculo sem alterar seus contratos HTTP. FonteMedicaoRepository permite consulta por ativo. MedicaoTransformadorRepositoryTest cobre integridade, sobrecarga e preservação do snapshot; FontesV7MigrationTest verifica a atualização de uma base V6 com fonte e leitura existentes. A API de linhas rejeita fonte vinculada a transformador. O banco garante existência do ativo, não sua compatibilidade com o tipo de medição; os serviços validam o vínculo ao ativo tipado da rota.
 
-**Próximo lote:** Fonte simulada de transformador, POST/GET de medições e cálculo S/capacidadeReferencia*100 com BigDecimal e seis casas HALF_EVEN. A capacidade de referência deverá ser copiada pelo servidor durante a ingestão, nunca recebida do cliente. Integração React e aceite funcional continuam pendentes.
+**US11-T02 — Lote 2 em revisão:** POST /api/transformadores/{id}/fontes cadastra fonte com identificador único e origem. POST /api/transformadores/{id}/medicoes exige fonteId, medidoEm e potenciaAparenteMva não negativa com precisão 13,6. O serviço valida ativo/fonte, tolerância temporal e captura capacidadeMva no snapshot. GET consulta com os mesmos filtros, paginação e ordenação das linhas, compartilhando ParametrosConsultaMedicao. A carga é derivada por S*100/capacidadeReferencia com seis casas HALF_EVEN, sem limite de 100%. MedicaoTransformadorControllerTest cobre sobrecarga, arredondamento, snapshot, vínculos, validações e segurança. Integração React e aceite funcional continuam pendentes.
 
 ### US12 — Acompanhar perdas técnicas
 

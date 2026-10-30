@@ -3,6 +3,8 @@ package br.com.powergrid.controlcenter.service;
 import br.com.powergrid.controlcenter.dto.FonteMedicaoRequestDTO;
 import br.com.powergrid.controlcenter.dto.FonteMedicaoResponseDTO;
 import br.com.powergrid.controlcenter.model.FonteMedicao;
+import br.com.powergrid.controlcenter.dto.FonteTransformadorResponseDTO;
+import br.com.powergrid.controlcenter.repository.TransformadorRepository;
 import br.com.powergrid.controlcenter.repository.FonteMedicaoRepository;
 import br.com.powergrid.controlcenter.repository.LinhaTransmissaoRepository;
 import org.springframework.http.HttpStatus;
@@ -18,10 +20,13 @@ public class FonteMedicaoService {
 
     private final SubestacaoRepository subestacoes;
 
-    public FonteMedicaoService(FonteMedicaoRepository fontes, LinhaTransmissaoRepository linhas, SubestacaoRepository subestacoes) {
+    private final TransformadorRepository transformadores;
+
+    public FonteMedicaoService(FonteMedicaoRepository fontes, LinhaTransmissaoRepository linhas, SubestacaoRepository subestacoes, TransformadorRepository transformadores) {
         this.fontes = fontes;
         this.linhas = linhas;
         this.subestacoes = subestacoes;
+        this.transformadores = transformadores;
     }
 
     @Transactional
@@ -47,5 +52,21 @@ public class FonteMedicaoService {
         fontes.saveAndFlush(fonte);
         return new FonteMedicaoResponseDTO(fonte.getId(), fonte.getIdentificador(), linhaId, fonte.getOrigem(),
                 fonte.getSubestacaoReferencia() == null ? null : fonte.getSubestacaoReferencia().getId());
+    }
+
+    @Transactional
+    public FonteTransformadorResponseDTO criarParaTransformador(Long id, FonteMedicaoRequestDTO request) {
+        var transformador = transformadores.findById(id).orElseThrow(() ->
+                new ResponseStatusException(HttpStatus.NOT_FOUND, "Transformador não encontrado."));
+        if (request.subestacaoReferenciaId() != null) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Referência de subestação é exclusiva de fontes de linhas.");
+        }
+        if (fontes.existsByIdentificador(request.identificador())) {
+            throw new ResponseStatusException(HttpStatus.CONFLICT, "Identificador de fonte já cadastrado.");
+        }
+        FonteMedicao fonte = new FonteMedicao();
+        fonte.setAtivo(transformador); fonte.setIdentificador(request.identificador()); fonte.setOrigem(request.origem());
+        fontes.saveAndFlush(fonte);
+        return new FonteTransformadorResponseDTO(fonte.getId(), fonte.getIdentificador(), id, fonte.getOrigem());
     }
 }

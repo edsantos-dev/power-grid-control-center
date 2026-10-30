@@ -5,11 +5,7 @@ import java.math.BigDecimal;
 import java.math.MathContext;
 import java.math.RoundingMode;
 import br.com.powergrid.controlcenter.model.SituacaoFatorPotencia;
-import java.time.OffsetDateTime;
-import java.time.format.DateTimeParseException;
 import br.com.powergrid.controlcenter.dto.PageResponseDTO;
-import org.springframework.data.domain.PageRequest;
-import org.springframework.data.domain.Sort;
 import org.springframework.util.MultiValueMap;
 import java.time.Instant;
 import java.time.ZoneOffset;
@@ -99,20 +95,11 @@ public class MedicaoLinhaService {
 
     @Transactional(readOnly = true)
     public PageResponseDTO<MedicaoLinhaResponseDTO> listar(Long linhaId, MultiValueMap<String, String> params) {
-        if (params.containsKey("sort")) throw invalido("Ordenação personalizada não é permitida.");
-        int page = inteiro(params, "page", 0);
-        int size = inteiro(params, "size", 20);
-        if (page < 0 || size < 1 || size > 100) throw invalido("Página deve ser não negativa e tamanho entre 1 e 100.");
-        OffsetDateTime inicio = instante(params, "dataInicio");
-        OffsetDateTime fim = instante(params, "dataFim");
-        if (inicio != null && fim != null && !inicio.toInstant().isBefore(fim.toInstant())) {
-            throw invalido("dataInicio deve ser anterior a dataFim.");
-        }
+        var consulta = br.com.powergrid.controlcenter.util.ParametrosConsultaMedicao.from(params);
         if (!linhas.existsById(linhaId)) {
             throw new ResponseStatusException(HttpStatus.NOT_FOUND, "Linha de transmissão não encontrada.");
         }
-        var pageable = PageRequest.of(page, size, Sort.by(Sort.Direction.DESC, "medidoEm", "id"));
-        return PageResponseDTO.from(repository.buscarPorLinhaEPeriodo(linhaId, inicio, fim, pageable)
+        return PageResponseDTO.from(repository.buscarPorLinhaEPeriodo(linhaId, consulta.inicio(), consulta.fim(), consulta.pageable())
                 .map(this::toResponse));
     }
 
@@ -138,36 +125,6 @@ public class MedicaoLinhaService {
                 medicao.getRecebidoEm().withOffsetSameInstant(ZoneOffset.UTC), medicao.getTensaoKv(), medicao.getCorrenteA(),
                 p, q, fonte.getSubestacaoReferencia() == null ? null : fonte.getSubestacaoReferencia().getId(),
                 medicao.getFrequenciaHz(), fp, situacao);
-    }
-
-    private String parametro(MultiValueMap<String, String> params, String nome) {
-        if (!params.containsKey(nome)) return null;
-        var values = params.get(nome);
-        if (values == null || values.size() != 1 || values.getFirst() == null || values.getFirst().isBlank()) {
-            throw invalido("Parâmetro inválido: " + nome);
-        }
-        return values.getFirst();
-    }
-
-    private int inteiro(MultiValueMap<String, String> params, String nome, int padrao) {
-        String valor = parametro(params, nome);
-        if (valor == null) return padrao;
-        try {
-            if (!valor.matches("[0-9]+")) throw new NumberFormatException();
-            return Integer.parseInt(valor);
-        } catch (NumberFormatException ex) {
-            throw invalido("Parâmetro inteiro inválido: " + nome);
-        }
-    }
-
-    private OffsetDateTime instante(MultiValueMap<String, String> params, String nome) {
-        String valor = parametro(params, nome);
-        if (valor == null) return null;
-        try {
-            return OffsetDateTime.parse(valor).withOffsetSameInstant(ZoneOffset.UTC);
-        } catch (DateTimeParseException ex) {
-            throw invalido("Informe " + nome + " em ISO 8601 com offset.");
-        }
     }
 
     private ResponseStatusException invalido(String message) {
