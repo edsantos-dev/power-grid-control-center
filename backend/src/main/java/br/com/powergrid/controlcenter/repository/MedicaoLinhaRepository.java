@@ -17,7 +17,7 @@ public interface MedicaoLinhaRepository extends JpaRepository<MedicaoLinha, Long
             OffsetDateTime fim, Pageable pageable) {
         Specification<MedicaoLinha> filtro = (root, query, builder) -> {
             var predicates = new ArrayList<Predicate>();
-            predicates.add(builder.equal(root.get("fonte").get("linha").get("id"), linhaId));
+            predicates.add(builder.equal(root.get("fonte").get("ativo").get("id"), linhaId));
             if (inicio != null) predicates.add(builder.greaterThanOrEqualTo(root.get("medidoEm"), inicio));
             if (fim != null) predicates.add(builder.lessThan(root.get("medidoEm"), fim));
             return builder.and(predicates.toArray(Predicate[]::new));

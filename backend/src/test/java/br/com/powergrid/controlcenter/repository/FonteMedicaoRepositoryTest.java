@@ -35,13 +35,13 @@ class FonteMedicaoRepositoryTest {
         FonteMedicao fonte = fonte();
         fonte.setOrigem(origem);
         repository.saveAndFlush(fonte);
-        Long linhaId = fonte.getLinha().getId();
+        Long linhaId = fonte.getAtivo().getId();
         entityManager.clear();
         FonteMedicao salvo = repository.findById(fonte.getId()).orElseThrow();
         assertThat(salvo.getIdentificador()).isEqualTo("SENSOR-01");
         assertThat(salvo.getOrigem()).isEqualTo(origem);
-        assertThat(Hibernate.isInitialized(salvo.getLinha())).isFalse();
-        assertThat(salvo.getLinha().getId()).isEqualTo(linhaId);
+        assertThat(Hibernate.isInitialized(salvo.getAtivo())).isFalse();
+        assertThat(salvo.getAtivo().getId()).isEqualTo(linhaId);
     }
 
     @Test
@@ -49,7 +49,7 @@ class FonteMedicaoRepositoryTest {
         FonteMedicao fonte = repository.saveAndFlush(fonte());
         FonteMedicao duplicada = new FonteMedicao();
         duplicada.setIdentificador(fonte.getIdentificador());
-        duplicada.setLinha(fonte.getLinha());
+        duplicada.setAtivo(fonte.getAtivo());
         duplicada.setOrigem(OrigemMedicao.SIMULADA);
         violacao(duplicada, "23505");
     }
@@ -61,7 +61,7 @@ class FonteMedicaoRepositoryTest {
         switch (campo) {
             case "identificador" -> fonte.setIdentificador(null);
             case "origem" -> fonte.setOrigem(null);
-            default -> fonte.setLinha(null);
+            default -> fonte.setAtivo(null);
         }
         violacao(fonte, "23502");
     }
@@ -69,7 +69,7 @@ class FonteMedicaoRepositoryTest {
     @Test
     void deveRejeitarLinhaInexistente() {
         FonteMedicao fonte = fonte();
-        fonte.setLinha(entityManager.getReference(LinhaTransmissao.class, Long.MAX_VALUE));
+        fonte.setAtivo(entityManager.getReference(LinhaTransmissao.class, Long.MAX_VALUE));
         violacao(fonte, "23506");
     }
 
@@ -77,7 +77,7 @@ class FonteMedicaoRepositoryTest {
     void deveRejeitarOrigemForaDoEnumNoBanco() {
         Long linhaId = linha().getId();
         DataIntegrityViolationException ex = assertThrows(DataIntegrityViolationException.class,
-                () -> jdbcTemplate.update("INSERT INTO fonte_medicao (identificador, linha_id, origem) VALUES (?, ?, ?)",
+                () -> jdbcTemplate.update("INSERT INTO fonte_medicao (identificador, ativo_id, origem) VALUES (?, ?, ?)",
                         "INVALIDO", linhaId, "OUTRA"));
         assertThat(ex.getMostSpecificCause()).isInstanceOfSatisfying(SQLException.class,
                 cause -> assertThat(cause.getSQLState()).isEqualTo("23513"));
@@ -86,7 +86,7 @@ class FonteMedicaoRepositoryTest {
     @Test
     void devePersistirReferenciaDeSubestacaoLazy() {
         FonteMedicao fonte = fonte();
-        fonte.setSubestacaoReferencia(fonte.getLinha().getSubestacaoOrigem());
+        fonte.setSubestacaoReferencia(((LinhaTransmissao) org.hibernate.Hibernate.unproxy(fonte.getAtivo())).getSubestacaoOrigem());
         Long referenciaId = fonte.getSubestacaoReferencia().getId();
         repository.saveAndFlush(fonte);
         entityManager.clear();
@@ -141,7 +141,7 @@ class FonteMedicaoRepositoryTest {
     private FonteMedicao fonte() {
         FonteMedicao fonte = new FonteMedicao();
         fonte.setIdentificador("SENSOR-01");
-        fonte.setLinha(linha());
+        fonte.setAtivo(linha());
         fonte.setOrigem(OrigemMedicao.REAL);
         return fonte;
     }

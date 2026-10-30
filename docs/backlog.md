@@ -362,9 +362,9 @@ Como operador, quero monitorar a frequência e o fator de potência da rede, par
 Como operador, quero visualizar a carga dos transformadores em tempo real, para prevenir sobrecargas nos equipamentos.
 
 - **Perfil e prioridade:** Operador. Prioridade: Alta.
-- **Status:** A fazer.
-- **Implementação existente:** Percentuais fixos e média local; há exemplo de carga de 108%.
-- **Trabalho pendente:** Sem cálculo rastreável e atualização; o modelo de domínio não define por si a fórmula de carga.
+- **Status:** Em andamento.
+- **Implementação existente:** Percentuais fixos no frontend. V7, fonte polimórfica e persistência de MedicaoTransformador em revisão.
+- **Trabalho pendente:** Cadastro de fontes de transformadores, ingestão e consultas HTTP, cálculo do percentual, integração e atualização da interface.
 - **Dependências:** US03; US06 se o cálculo utilizar medidores; infraestrutura de medições.
 - **Referências no frontend:** [Transformadores/index.tsx](../frontend/src/pages/Transformadores/index.tsx#L11) (linhas 11,20,46,147).
 
@@ -381,6 +381,12 @@ Como operador, quero visualizar a carga dos transformadores em tempo real, para 
 - [ ] **US11-T02:** Implementar o recorte de backend com testes pertinentes e documentação.
 - [ ] **US11-T03:** Integrar a interface com testes pertinentes e documentação.
 - [ ] **US11-T04:** Verificar integração/aceite e apresentar resultados e limitações.
+
+**US11-T02 — Lote 1 em revisão:** A V7 renomeia fonte_medicao.linha_id para ativo_id, preservando os dados e substituindo a FK por referência a ativo_rede. FonteMedicao referencia AtivoRede por associação LAZY. A tabela medicao_transformador mantém fonte, instantes, potência aparente não negativa e capacidade de referência estritamente positiva, ambos NUMERIC(19,6). O snapshot é um valor persistido independente da capacidade cadastral. Não há percentual armazenado nem limitação a 100%.
+
+**Compatibilidade:** Os serviços e consultas de linhas usam o novo vínculo sem alterar seus contratos HTTP. FonteMedicaoRepository permite consulta por ativo. MedicaoTransformadorRepositoryTest cobre integridade, sobrecarga e preservação do snapshot; FontesV7MigrationTest verifica a atualização de uma base V6 com fonte e leitura existentes. A API de linhas rejeita fonte vinculada a transformador. O banco garante existência do ativo, não sua compatibilidade com o tipo de medição; essa validação será aplicada nos serviços do Lote 2.
+
+**Próximo lote:** Fonte simulada de transformador, POST/GET de medições e cálculo S/capacidadeReferencia*100 com BigDecimal e seis casas HALF_EVEN. A capacidade de referência deverá ser copiada pelo servidor durante a ingestão, nunca recebida do cliente. Integração React e aceite funcional continuam pendentes.
 
 ### US12 — Acompanhar perdas técnicas
 

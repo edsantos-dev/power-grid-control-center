@@ -55,7 +55,7 @@ class MedicaoLinhaControllerTest {
         fonte = fonte();
         entityManager.persist(fonte);
         entityManager.flush();
-        linhaId = fonte.getLinha().getId();
+        linhaId = fonte.getAtivo().getId();
 		MvcResult inicial = mockMvc.perform(get("/api/auth/csrf")).andExpect(status().isOk()).andReturn();
 		sessao = (MockHttpSession) inicial.getRequest().getSession(false);
 		CsrfResponse token = objectMapper.readValue(inicial.getResponse().getContentAsString(), CsrfResponse.class);
@@ -174,7 +174,7 @@ class MedicaoLinhaControllerTest {
     @ParameterizedTest
     @ValueSource(strings = {"ativaNegativa", "reativaNegativa", "ambas", "zero", "limite"})
     void deveIngerirEConsultarPotenciasComReferencia(String caso) throws Exception {
-        fonte.setSubestacaoReferencia(fonte.getLinha().getSubestacaoOrigem());
+        fonte.setSubestacaoReferencia(((LinhaTransmissao) org.hibernate.Hibernate.unproxy(fonte.getAtivo())).getSubestacaoOrigem());
         Long referenciaId = fonte.getSubestacaoReferencia().getId();
         Map<String, Object> request = valido();
         request.put("tensaoKv", null); request.put("correnteA", null);
@@ -216,7 +216,7 @@ class MedicaoLinhaControllerTest {
     @CsvSource({"potenciaAtivaMw,1.1234567", "potenciaReativaMvar,-1.1234567",
             "potenciaAtivaMw,10000000000000", "potenciaReativaMvar,-10000000000000"})
     void deveRejeitarPrecisaoExcedidaDaPotencia(String campo, String valor) throws Exception {
-        fonte.setSubestacaoReferencia(fonte.getLinha().getSubestacaoOrigem());
+        fonte.setSubestacaoReferencia(((LinhaTransmissao) org.hibernate.Hibernate.unproxy(fonte.getAtivo())).getSubestacaoOrigem());
         Map<String, Object> request = valido(); request.put(campo, new BigDecimal(valor));
         rejeitar(request);
     }
@@ -231,7 +231,7 @@ class MedicaoLinhaControllerTest {
 
     @Test
     void deveAceitarQuatroGrandezasComSinaisIndependentes() throws Exception {
-        fonte.setSubestacaoReferencia(fonte.getLinha().getSubestacaoDestino());
+        fonte.setSubestacaoReferencia(((LinhaTransmissao) org.hibernate.Hibernate.unproxy(fonte.getAtivo())).getSubestacaoDestino());
         Map<String, Object> request = valido();
         request.put("potenciaAtivaMw", new BigDecimal("5"));
         request.put("potenciaReativaMvar", new BigDecimal("-2"));
@@ -273,7 +273,7 @@ class MedicaoLinhaControllerTest {
             "NULL,NULL,NULL,DADOS_INSUFICIENTES"
     }, nullValues = "NULL")
     void deveCalcularFatorPotenciaNoPostENaConsulta(String ativa, String reativa, String esperado, String situacao) throws Exception {
-        fonte.setSubestacaoReferencia(fonte.getLinha().getSubestacaoOrigem());
+        fonte.setSubestacaoReferencia(((LinhaTransmissao) org.hibernate.Hibernate.unproxy(fonte.getAtivo())).getSubestacaoOrigem());
         Map<String, Object> request = valido();
         request.put("tensaoKv", null); request.put("correnteA", null);
         request.put("potenciaAtivaMw", ativa == null ? null : new BigDecimal(ativa));
@@ -295,7 +295,7 @@ class MedicaoLinhaControllerTest {
 
     @Test
     void naoDeveCombinarPotenciasDeLeiturasDiferentes() throws Exception {
-        fonte.setSubestacaoReferencia(fonte.getLinha().getSubestacaoOrigem());
+        fonte.setSubestacaoReferencia(((LinhaTransmissao) org.hibernate.Hibernate.unproxy(fonte.getAtivo())).getSubestacaoOrigem());
         Map<String, Object> request = valido();
         request.put("tensaoKv", null); request.put("correnteA", null);
         request.put("potenciaAtivaMw", new BigDecimal("3"));
@@ -322,6 +322,20 @@ class MedicaoLinhaControllerTest {
         br.com.powergrid.controlcenter.dto.PageResponseDTO<MedicaoLinhaResponseDTO> pagina = objectMapper.readValue(json,
                 new tools.jackson.core.type.TypeReference<br.com.powergrid.controlcenter.dto.PageResponseDTO<MedicaoLinhaResponseDTO>>() {});
         return pagina.content().getFirst();
+    }
+
+    @Test
+    void deveRejeitarFonteDeTransformadorNaApiDeLinhas() throws Exception {
+        var linha = ((LinhaTransmissao) org.hibernate.Hibernate.unproxy(fonte.getAtivo()));
+        Alimentador alimentador = new Alimentador();
+        alimentador.setNome("Alimentador"); alimentador.setEstadoOperacional(EstadoOperacional.OPERACIONAL);
+        alimentador.setSubestacao(linha.getSubestacaoOrigem()); entityManager.persist(alimentador);
+        Transformador transformador = new Transformador();
+        transformador.setNome("Transformador"); transformador.setEstadoOperacional(EstadoOperacional.OPERACIONAL);
+        transformador.setAlimentador(alimentador); transformador.setCapacidadeMva(new BigDecimal("10"));
+        entityManager.persist(transformador); fonte.setAtivo(transformador); entityManager.flush();
+        enviar(linhaId, valido(), 400);
+        assertThat(repository.count()).isZero();
     }
 
     private void rejeitar(Map<String, Object> request) throws Exception {
@@ -372,7 +386,7 @@ class MedicaoLinhaControllerTest {
     private FonteMedicao fonte() {
         FonteMedicao fonte = new FonteMedicao();
         fonte.setIdentificador("SENSOR-01");
-        fonte.setLinha(linha());
+        fonte.setAtivo(linha());
         fonte.setOrigem(OrigemMedicao.REAL);
         return fonte;
     }

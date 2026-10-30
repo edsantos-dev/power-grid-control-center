@@ -24,8 +24,8 @@ public class FonteMedicao {
     private String identificador;
 
     @ManyToOne(fetch = FetchType.LAZY, optional = false)
-    @JoinColumn(name = "linha_id", nullable = false)
-    private LinhaTransmissao linha;
+    @JoinColumn(name = "ativo_id", nullable = false)
+    private AtivoRede ativo;
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "subestacao_referencia_id")

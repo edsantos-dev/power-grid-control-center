@@ -53,7 +53,7 @@ public class MedicaoLinhaService {
         }
         FonteMedicao fonte = fontes.findById(request.fonteId())
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Fonte de medição não encontrada."));
-        if (!fonte.getLinha().getId().equals(linhaId)) {
+        if (!fonte.getAtivo().getId().equals(linhaId)) {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "A fonte não pertence à linha informada.");
         }
         if (request.tensaoKv() == null && request.correnteA() == null
@@ -67,7 +67,7 @@ public class MedicaoLinhaService {
         }
         if (request.potenciaAtivaMw() != null || request.potenciaReativaMvar() != null) {
             var referencia = fonte.getSubestacaoReferencia();
-            var linha = fonte.getLinha();
+            var linha = linhas.getReferenceById(linhaId);
             if (referencia == null || (!referencia.getId().equals(linha.getSubestacaoOrigem().getId())
                     && !referencia.getId().equals(linha.getSubestacaoDestino().getId()))) {
                 throw invalido("Ingestão de potência exige fonte com terminal de referência válido.");
@@ -133,7 +133,7 @@ public class MedicaoLinhaService {
             }
         }
         FonteMedicao fonte = medicao.getFonte();
-        return new MedicaoLinhaResponseDTO(medicao.getId(), fonte.getLinha().getId(), fonte.getId(), fonte.getOrigem(),
+        return new MedicaoLinhaResponseDTO(medicao.getId(), fonte.getAtivo().getId(), fonte.getId(), fonte.getOrigem(),
                 medicao.getMedidoEm().withOffsetSameInstant(ZoneOffset.UTC),
                 medicao.getRecebidoEm().withOffsetSameInstant(ZoneOffset.UTC), medicao.getTensaoKv(), medicao.getCorrenteA(),
                 p, q, fonte.getSubestacaoReferencia() == null ? null : fonte.getSubestacaoReferencia().getId(),

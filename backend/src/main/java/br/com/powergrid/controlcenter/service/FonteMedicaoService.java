@@ -34,7 +34,7 @@ public class FonteMedicaoService {
         FonteMedicao fonte = new FonteMedicao();
         fonte.setIdentificador(request.identificador());
         fonte.setOrigem(request.origem());
-        fonte.setLinha(linha);
+        fonte.setAtivo(linha);
         if (request.subestacaoReferenciaId() != null) {
             var referencia = subestacoes.findById(request.subestacaoReferenciaId()).orElseThrow(() ->
                     new ResponseStatusException(HttpStatus.NOT_FOUND, "Subestação de referência não encontrada."));
