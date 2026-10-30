@@ -6,9 +6,9 @@ O backlog reúne as histórias, os critérios de aceitação, as tarefas e as pe
 
 O frontend possui páginas com dados simulados, filtros e navegação local. O backend possui configuração PostgreSQL/JPA/Flyway, schema SQL inicial, persistência de usuários e autenticação HTTP por sessão, com CORS e CSRF. A V2 provisiona os três perfis e a segurança por método está habilitada. O backend também possui cadastros de subestações, alimentadores e transformadores, APIs de eventos e alertas e persistência de consumidores. A integração com o frontend permanece pendente.
 
-US01 está **Em andamento**, com persistência, criação, consulta e edição de subestações em revisão; US02 está **Em andamento**, com backend de Alimentador em revisão; US03 está **Em andamento**, com persistência e API de Transformador em revisão; US16 está **Em andamento**, com persistência e API de eventos em revisão; US20 está **Em andamento**, com persistência e API de alertas em revisão; US07 está **Em andamento**, com persistência e API de consumidores em revisão; US06 está **Em andamento**, com persistência e API de medidores em revisão; US04–US05, US08–US15, US17–US19 e US21–US24 permanecem **A fazer** para o trabalho restante. O recorte de backend de US25 está **Em revisão**, com persistência, autenticação HTTP, contas iniciais e segurança por método. A presença de uma tela não representa a conclusão da história. O mapa geográfico ainda não está implementado, e o login do frontend realiza apenas validações locais antes da navegação.
+US01 está **Em andamento**, com persistência, criação, consulta e edição de subestações em revisão; US02 está **Em andamento**, com backend de Alimentador em revisão; US03 está **Em andamento**, com persistência e API de Transformador em revisão; US16 está **Em andamento**, com persistência e API de eventos em revisão; US20 está **Em andamento**, com persistência e API de alertas em revisão; US07 está **Em andamento**, com persistência e API de consumidores em revisão; US06 está **Em andamento**, com persistência e API de medidores em revisão; US04–US05, US08–US15, US17–US19 e US21–US24 permanecem **A fazer** para o trabalho restante. O recorte de backend de US25 está **Em revisão**, com persistência, autenticação HTTP, contas iniciais e segurança por método. A presença de uma tela não representa a conclusão da história. O mapa geográfico ainda não está implementado.
 
-Os arquivos de serviço de API e autenticação do frontend estão vazios. Os testes existentes cobrem contexto, persistência, credenciais, autenticação HTTP, sessão, CORS e CSRF. A política de gestão de acesso restringe as futuras operações ao Gerente de Operações; esses endpoints ainda não existem.
+O frontend consome a autenticação pela API, com endereço definido em VITE_API_URL; as demais telas continuam com dados simulados. Os testes existentes cobrem contexto, persistência, credenciais, autenticação HTTP, sessão, CORS e CSRF. A política de gestão de acesso restringe as futuras operações ao Gerente de Operações; esses endpoints ainda não existem.
 
 ## Stack tecnológica
 
@@ -721,8 +721,8 @@ Como usuário, quero acessar o sistema com minhas credenciais e visualizar as fu
 
 - **Perfil e prioridade:** Usuário dos perfis documentados. Prioridade: Fundação — inclusão S4.
 - **Status:** Em revisão — escopo do backend.
-- **Implementação existente:** Persistência e credenciais de usuários, login/logout por sessão, consulta do usuário autenticado em DTO seguro, token CSRF e CORS para o frontend local. A V2 inclui três contas iniciais com BCrypt; segurança por método habilitada. O formulário do frontend ainda realiza apenas validação local.
-- **Trabalho pendente:** Revisão do backend. Integração React e cadastro de usuários com validação de senha pertencem a incrementos posteriores e não bloqueiam esta PR.
+- **Implementação existente:** Persistência e credenciais de usuários, login/logout por sessão, consulta do usuário autenticado em DTO seguro, token CSRF e CORS para o frontend local. A V2 inclui três contas iniciais com BCrypt; segurança por método habilitada. O frontend autentica pela API e protege as rotas internas.
+- **Trabalho pendente:** Revisão do backend e da integração React; matriz de telas por perfil (US25-CA04). Cadastro de usuários com validação de senha pertence a incrementos posteriores.
 - **Dependências:** PEN-06; PostgreSQL configurado para execução da aplicação.
 - **Referências no frontend:** [Login/index.tsx](../frontend/src/pages/Login/index.tsx#L12) (linhas 12,35).
 
@@ -748,6 +748,8 @@ Como usuário, quero acessar o sistema com minhas credenciais e visualizar as fu
 **Escopo de backend em revisão — US25-T02/US25-T05:** API de autenticação com DTO seguro, sessão HttpOnly, CORS, CSRF, provisionamento dos três perfis e segurança por método. O aceite deste recorte exige autenticação das contas da V2, rejeição de credenciais inválidas, proteção das rotas, renovação/invalidação da sessão e restrição de métodos de gestão ao gerente. Não existem endpoints de gestão de acesso neste incremento.
 
 US25-CA01, CA03 e CA04 preservam os requisitos de interface da Sprint 4; a integração React será acompanhada em US25-T03. US25-CA07 será atendido com o futuro cadastro de usuários. Esses itens permanecem abertos, sem ampliar o escopo desta PR.
+
+**US25-T03 — interface em revisão:** O login usa POST /api/auth/login com CSRF, a sessão é restaurada por GET /api/auth/me e o logout invalida a sessão no servidor. Rotas internas redirecionam para /login sem usuário autenticado; sessão expirada retorna ao login. O token CSRF é renovado após login e logout, e uma vez após resposta 403 em escrita. O cabeçalho exibe nome, perfil e a ação de sair. api.test.ts e AppRoutes.test.tsx cobrem US25-CA01 e CA03 no frontend. US25-CA04 permanece aberto: não há matriz de telas por perfil definida, e todas as telas seguem disponíveis a qualquer usuário autenticado.
 
 ## Tarefas técnicas transversais
 
