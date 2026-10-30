@@ -334,9 +334,9 @@ Como operador, quero acompanhar a potência ativa e reativa da rede, para avalia
 Como operador, quero monitorar a frequência e o fator de potência da rede, para garantir a estabilidade do sistema elétrico.
 
 - **Perfil e prioridade:** Operador. Prioridade: Alta.
-- **Status:** A fazer.
-- **Implementação existente:** Frequência em série fixa e fator de potência literal.
-- **Trabalho pendente:** Sem fonte/escopo ou definição do cálculo e atualização.
+- **Status:** Em andamento.
+- **Implementação existente:** Frontend com valores simulados fixos. Persistência de frequenciaHz em MedicaoLinha pela V6, com testes de integridade em revisão.
+- **Trabalho pendente:** Revisão do backend, integração e atualização da interface, política de atraso e aceite funcional.
 - **Dependências:** PEN-06; US25; infraestrutura de medições.
 - **Referências no frontend:** [Monitoramento/index.tsx](../frontend/src/pages/Monitoramento/index.tsx#L13) (linhas 13,85,96).
 
@@ -352,6 +352,10 @@ Como operador, quero monitorar a frequência e o fator de potência da rede, par
 - [ ] **US10-T02:** Implementar o recorte de backend com testes pertinentes e documentação.
 - [ ] **US10-T03:** Integrar a interface com testes pertinentes e documentação.
 - [ ] **US10-T04:** Verificar integração/aceite e apresentar resultados e limitações.
+
+**US10-T02 — persistência e API em revisão:** V6 adiciona frequencia_hz opcional em NUMERIC(9,6), com restrição estritamente positiva e rejeição de valores não finitos. O CHECK exige ao menos uma das cinco grandezas ingeridas. Leituras anteriores podem manter frequência nula; valores positivos fora da faixa nominal são aceitos. MedicaoLinhaRepositoryTest cobre frequência isolada, limites, zero/negativos e compatibilidade de tensão, corrente e potências.
+
+**Contrato para a Camada Web:** Frequência em Hz, nominal didático de 60 Hz; eventual faixa demonstrativa não bloqueia ingestão. FP será calculado no serviço com P e Q da mesma medição, usando |P|/sqrt(P²+Q²), seis casas e HALF_EVEN, sem coluna persistida. P ou Q ausente resulta em DADOS_INSUFICIENTES; ambos zero em POTENCIA_APARENTE_NULA; demais casos em CALCULADO. DTOs expõem frequenciaHz, fatorPotencia e situacaoFatorPotencia. A conversão única no serviço atende POST e GET, com BigDecimal, raiz DECIMAL128 e arredondamento final HALF_EVEN em seis casas. Frequência aceita até três inteiros e seis decimais, sempre positiva. FP e situação são definidos pelo servidor, sem persistência ou cálculo entre leituras. MedicaoLinhaControllerTest cobre frequência isolada, precisão, os três estados e compatibilidade do contrato.
 
 ### US11 — Monitorar carga dos transformadores
 

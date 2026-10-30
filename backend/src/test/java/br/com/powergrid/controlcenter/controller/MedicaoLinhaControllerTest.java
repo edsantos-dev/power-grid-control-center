@@ -238,6 +238,92 @@ class MedicaoLinhaControllerTest {
         enviar(linhaId, request, 201);
     }
 
+    @ParameterizedTest
+    @ValueSource(strings = {"60.000000", "58.000000", "62.000000", "0.000001", "999.999999"})
+    void deveIngerirFrequenciaIsolada(String valor) throws Exception {
+        Map<String, Object> request = valido();
+        request.put("tensaoKv", null); request.put("correnteA", null);
+        request.put("frequenciaHz", new BigDecimal(valor));
+        MedicaoLinhaResponseDTO dto = resposta(enviar(linhaId, request, 201));
+        assertThat(dto.frequenciaHz()).isEqualByComparingTo(valor);
+        assertThat(dto.fatorPotencia()).isNull();
+        assertThat(dto.situacaoFatorPotencia()).isEqualTo(SituacaoFatorPotencia.DADOS_INSUFICIENTES);
+        entityManager.flush(); entityManager.clear();
+        assertThat(repository.findById(dto.id()).orElseThrow().getFrequenciaHz()).isEqualByComparingTo(valor);
+        var consultado = consultarPrimeiro();
+        assertThat(consultado.frequenciaHz()).isEqualByComparingTo(valor);
+        assertThat(consultado.fatorPotencia()).isNull();
+        assertThat(consultado.situacaoFatorPotencia()).isEqualTo(dto.situacaoFatorPotencia());
+    }
+
+    @ParameterizedTest
+    @ValueSource(strings = {"0", "-1", "-0.000001", "60.1234567", "1000"})
+    void deveRejeitarFrequenciaInvalida(String valor) throws Exception {
+        Map<String, Object> request = valido();
+        request.put("frequenciaHz", new BigDecimal(valor));
+        rejeitar(request);
+    }
+
+    @ParameterizedTest
+    @CsvSource(value = {
+            "3,4,0.600000,CALCULADO", "-3,4,0.600000,CALCULADO", "3,-4,0.600000,CALCULADO",
+            "1,1,0.707107,CALCULADO", "2,3,0.554700,CALCULADO", "0,2,0.000000,CALCULADO",
+            "-2,0,1.000000,CALCULADO", "0,0,NULL,POTENCIA_APARENTE_NULA",
+            "NULL,4,NULL,DADOS_INSUFICIENTES", "3,NULL,NULL,DADOS_INSUFICIENTES",
+            "NULL,NULL,NULL,DADOS_INSUFICIENTES"
+    }, nullValues = "NULL")
+    void deveCalcularFatorPotenciaNoPostENaConsulta(String ativa, String reativa, String esperado, String situacao) throws Exception {
+        fonte.setSubestacaoReferencia(fonte.getLinha().getSubestacaoOrigem());
+        Map<String, Object> request = valido();
+        request.put("tensaoKv", null); request.put("correnteA", null);
+        request.put("potenciaAtivaMw", ativa == null ? null : new BigDecimal(ativa));
+        request.put("potenciaReativaMvar", reativa == null ? null : new BigDecimal(reativa));
+        request.put("frequenciaHz", new BigDecimal("60"));
+        request.put("fatorPotencia", new BigDecimal("0.123456"));
+        request.put("situacaoFatorPotencia", "VALOR_DO_CLIENTE");
+        MedicaoLinhaResponseDTO criado = resposta(enviar(linhaId, request, 201));
+        entityManager.flush(); entityManager.clear();
+        for (MedicaoLinhaResponseDTO dto : new MedicaoLinhaResponseDTO[] {criado, consultarPrimeiro()}) {
+            assertThat(dto.situacaoFatorPotencia()).isEqualTo(SituacaoFatorPotencia.valueOf(situacao));
+            if (esperado == null) assertThat(dto.fatorPotencia()).isNull();
+            else {
+                assertThat(dto.fatorPotencia()).isEqualTo(new BigDecimal(esperado));
+                assertThat(dto.fatorPotencia()).isBetween(BigDecimal.ZERO, BigDecimal.ONE);
+            }
+        }
+    }
+
+    @Test
+    void naoDeveCombinarPotenciasDeLeiturasDiferentes() throws Exception {
+        fonte.setSubestacaoReferencia(fonte.getLinha().getSubestacaoOrigem());
+        Map<String, Object> request = valido();
+        request.put("tensaoKv", null); request.put("correnteA", null);
+        request.put("potenciaAtivaMw", new BigDecimal("3"));
+        resposta(enviar(linhaId, request, 201));
+        request.put("potenciaAtivaMw", null); request.put("potenciaReativaMvar", new BigDecimal("4"));
+        resposta(enviar(linhaId, request, 201));
+        String json = mockMvc.perform(get(url(linhaId)).session(sessao)).andExpect(status().isOk())
+                .andReturn().getResponse().getContentAsString();
+        br.com.powergrid.controlcenter.dto.PageResponseDTO<MedicaoLinhaResponseDTO> pagina = objectMapper.readValue(json,
+                new tools.jackson.core.type.TypeReference<br.com.powergrid.controlcenter.dto.PageResponseDTO<MedicaoLinhaResponseDTO>>() {});
+        assertThat(pagina.content()).hasSize(2).allSatisfy(dto -> {
+            assertThat(dto.fatorPotencia()).isNull();
+            assertThat(dto.situacaoFatorPotencia()).isEqualTo(SituacaoFatorPotencia.DADOS_INSUFICIENTES);
+        });
+    }
+
+    private MedicaoLinhaResponseDTO resposta(MvcResult result) throws Exception {
+        return objectMapper.readValue(result.getResponse().getContentAsString(), MedicaoLinhaResponseDTO.class);
+    }
+
+    private MedicaoLinhaResponseDTO consultarPrimeiro() throws Exception {
+        String json = mockMvc.perform(get(url(linhaId)).session(sessao)).andExpect(status().isOk())
+                .andReturn().getResponse().getContentAsString();
+        br.com.powergrid.controlcenter.dto.PageResponseDTO<MedicaoLinhaResponseDTO> pagina = objectMapper.readValue(json,
+                new tools.jackson.core.type.TypeReference<br.com.powergrid.controlcenter.dto.PageResponseDTO<MedicaoLinhaResponseDTO>>() {});
+        return pagina.content().getFirst();
+    }
+
     private void rejeitar(Map<String, Object> request) throws Exception {
         enviar(linhaId, request, 400);
         assertThat(repository.count()).isZero();

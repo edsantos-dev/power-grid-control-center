@@ -107,6 +107,9 @@ A V3 define as extremidades das linhas por subestacao_origem_id e subestacao_des
 
 ## Medições e indicadores
 
+A V6 adiciona frequenciaHz opcional em MedicaoLinha, com unidade Hz e NUMERIC(9,6). Valor informado deve ser estritamente positivo; ao menos uma entre as cinco grandezas ingeridas deve existir. Frequência nula preserva leituras anteriores. Fator de potência e sua situação são derivados no serviço a partir de P e Q da mesma leitura; não são atributos persistidos. O módulo do FP usa |P|/sqrt(P²+Q²), com resultado em seis casas HALF_EVEN. P ou Q ausente resulta em DADOS_INSUFICIENTES; ambos zero, em POTENCIA_APARENTE_NULA; nos demais casos, em CALCULADO. A direção permanece nos sinais das potências e no terminal de referência. O modelo didático considera regime senoidal sem harmônicos.
+
+
 A V5 estende MedicaoLinha com potenciaAtivaMw (MW) e potenciaReativaMvar (MVAr), ambas opcionais em NUMERIC(19,6), com sinal. Ao menos uma entre tensão, corrente, potência ativa e reativa deve existir. FonteMedicao passa a possuir subestacaoReferencia opcional (N:1, LAZY), preservando nulo para fontes antigas. A convenção positiva indica entrada na linha pelo terminal de referência; as potências possuem sinais independentes. A Camada Web exige referência válida para ingestão de potência. Não existe endpoint de edição ou reatribuição de fontes; se disponibilizado futuramente, deverá preservar o histórico após leituras. A FK simples garante existência da subestação, não sua condição de extremidade da linha.
 
 

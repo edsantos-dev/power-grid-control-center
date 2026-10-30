@@ -43,6 +43,7 @@ class MedicaoLinhaRepositoryTest {
         entityManager.clear();
         MedicaoLinha salvo = repository.findById(leitura.getId()).orElseThrow();
         assertThat(salvo.getId()).isPositive();
+        assertThat(salvo.getFrequenciaHz()).isNull();
         assertThat(Hibernate.isInitialized(salvo.getFonte())).isFalse();
         assertThat(salvo.getFonte().getId()).isEqualTo(fonteId);
         assertThat(salvo.getMedidoEm().toInstant()).isEqualTo(leitura.getMedidoEm().toInstant());
@@ -58,6 +59,9 @@ class MedicaoLinhaRepositoryTest {
         MedicaoLinha leitura = leitura();
         leitura.setTensaoKv(null);
         leitura.setCorrenteA(null);
+        leitura.setPotenciaAtivaMw(null);
+        leitura.setPotenciaReativaMvar(null);
+        leitura.setFrequenciaHz(null);
         violacao(leitura, "23513", "ck_medicao_grandeza");
     }
 
@@ -111,6 +115,7 @@ class MedicaoLinhaRepositoryTest {
         entityManager.clear();
         MedicaoLinha salvo = repository.findById(leitura.getId()).orElseThrow();
         assertThat(salvo.getTensaoKv()).isNull();
+        assertThat(salvo.getFrequenciaHz()).isNull();
         assertThat(salvo.getCorrenteA()).isNull();
         if (leitura.getPotenciaAtivaMw() == null) assertThat(salvo.getPotenciaAtivaMw()).isNull();
         else assertThat(salvo.getPotenciaAtivaMw()).isEqualByComparingTo(leitura.getPotenciaAtivaMw());
@@ -126,6 +131,39 @@ class MedicaoLinhaRepositoryTest {
         if (campo.equals("ativa")) leitura.setPotenciaAtivaMw(valor);
         else leitura.setPotenciaReativaMvar(valor);
         violacao(leitura, "22001", campo.equals("ativa") ? "potencia_ativa_mw" : "potencia_reativa_mvar");
+    }
+
+    @ParameterizedTest
+    @ValueSource(strings = {"60.000000", "58.000000", "62.000000", "0.000001", "999.999999"})
+    void devePersistirFrequenciaIsolada(String valor) {
+        MedicaoLinha leitura = leitura();
+        leitura.setTensaoKv(null);
+        leitura.setCorrenteA(null);
+        leitura.setFrequenciaHz(new BigDecimal(valor));
+        repository.saveAndFlush(leitura);
+        entityManager.clear();
+        MedicaoLinha salvo = repository.findById(leitura.getId()).orElseThrow();
+        assertThat(salvo.getFrequenciaHz()).isEqualByComparingTo(valor);
+        assertThat(salvo.getTensaoKv()).isNull();
+        assertThat(salvo.getCorrenteA()).isNull();
+        assertThat(salvo.getPotenciaAtivaMw()).isNull();
+        assertThat(salvo.getPotenciaReativaMvar()).isNull();
+        assertThat(salvo.getMedidoEm().toInstant()).isEqualTo(leitura.getMedidoEm().toInstant());
+    }
+
+    @ParameterizedTest
+    @ValueSource(strings = {"0", "-1", "-0.000001"})
+    void deveRejeitarFrequenciaNaoPositiva(String valor) {
+        MedicaoLinha leitura = leitura();
+        leitura.setFrequenciaHz(new BigDecimal(valor));
+        violacao(leitura, "23513", "ck_frequencia_positiva");
+    }
+
+    @Test
+    void deveRejeitarExcessoDeDigitosInteirosNaFrequencia() {
+        MedicaoLinha leitura = leitura();
+        leitura.setFrequenciaHz(new BigDecimal("1000"));
+        violacao(leitura, "22001", "frequencia_hz");
     }
 
     private MedicaoLinha leitura() {
