@@ -6,6 +6,7 @@ import br.com.powergrid.controlcenter.model.FonteMedicao;
 import br.com.powergrid.controlcenter.repository.FonteMedicaoRepository;
 import br.com.powergrid.controlcenter.repository.LinhaTransmissaoRepository;
 import org.springframework.http.HttpStatus;
+import br.com.powergrid.controlcenter.repository.SubestacaoRepository;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.server.ResponseStatusException;
@@ -15,9 +16,12 @@ public class FonteMedicaoService {
     private final FonteMedicaoRepository fontes;
     private final LinhaTransmissaoRepository linhas;
 
-    public FonteMedicaoService(FonteMedicaoRepository fontes, LinhaTransmissaoRepository linhas) {
+    private final SubestacaoRepository subestacoes;
+
+    public FonteMedicaoService(FonteMedicaoRepository fontes, LinhaTransmissaoRepository linhas, SubestacaoRepository subestacoes) {
         this.fontes = fontes;
         this.linhas = linhas;
+        this.subestacoes = subestacoes;
     }
 
     @Transactional
@@ -31,7 +35,17 @@ public class FonteMedicaoService {
         fonte.setIdentificador(request.identificador());
         fonte.setOrigem(request.origem());
         fonte.setLinha(linha);
+        if (request.subestacaoReferenciaId() != null) {
+            var referencia = subestacoes.findById(request.subestacaoReferenciaId()).orElseThrow(() ->
+                    new ResponseStatusException(HttpStatus.NOT_FOUND, "Subestação de referência não encontrada."));
+            if (!referencia.getId().equals(linha.getSubestacaoOrigem().getId())
+                    && !referencia.getId().equals(linha.getSubestacaoDestino().getId())) {
+                throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Referência deve ser uma extremidade da linha.");
+            }
+            fonte.setSubestacaoReferencia(referencia);
+        }
         fontes.saveAndFlush(fonte);
-        return new FonteMedicaoResponseDTO(fonte.getId(), fonte.getIdentificador(), linhaId, fonte.getOrigem());
+        return new FonteMedicaoResponseDTO(fonte.getId(), fonte.getIdentificador(), linhaId, fonte.getOrigem(),
+                fonte.getSubestacaoReferencia() == null ? null : fonte.getSubestacaoReferencia().getId());
     }
 }

@@ -171,6 +171,73 @@ class MedicaoLinhaControllerTest {
         assertThat(repository.count()).isZero();
     }
 
+    @ParameterizedTest
+    @ValueSource(strings = {"ativaNegativa", "reativaNegativa", "ambas", "zero", "limite"})
+    void deveIngerirEConsultarPotenciasComReferencia(String caso) throws Exception {
+        fonte.setSubestacaoReferencia(fonte.getLinha().getSubestacaoOrigem());
+        Long referenciaId = fonte.getSubestacaoReferencia().getId();
+        Map<String, Object> request = valido();
+        request.put("tensaoKv", null); request.put("correnteA", null);
+        BigDecimal ativa = caso.equals("reativaNegativa") ? null : new BigDecimal("-12.123456");
+        BigDecimal reativa = caso.equals("ativaNegativa") ? null : new BigDecimal("-3.654321");
+        if (caso.equals("zero")) { ativa = BigDecimal.ZERO; reativa = null; }
+        if (caso.equals("limite")) {
+            ativa = new BigDecimal("-9999999999999.999999");
+            reativa = new BigDecimal("9999999999999.999999");
+        }
+        request.put("potenciaAtivaMw", ativa); request.put("potenciaReativaMvar", reativa);
+        MedicaoLinhaResponseDTO dto = objectMapper.readValue(enviar(linhaId, request, 201)
+                .getResponse().getContentAsString(), MedicaoLinhaResponseDTO.class);
+        assertThat(dto.potenciaAtivaMw()).isEqualTo(ativa);
+        assertThat(dto.potenciaReativaMvar()).isEqualTo(reativa);
+        assertThat(dto.subestacaoReferenciaId()).isEqualTo(referenciaId);
+        entityManager.flush(); entityManager.clear();
+        MedicaoLinha salvo = repository.findById(dto.id()).orElseThrow();
+        if (ativa == null) assertThat(salvo.getPotenciaAtivaMw()).isNull();
+        else assertThat(salvo.getPotenciaAtivaMw()).isEqualByComparingTo(ativa);
+        if (reativa == null) assertThat(salvo.getPotenciaReativaMvar()).isNull();
+        else assertThat(salvo.getPotenciaReativaMvar()).isEqualByComparingTo(reativa);
+        mockMvc.perform(get(url(linhaId)).session(sessao)).andExpect(status().isOk())
+                .andExpect(jsonPath("$.content[0].id").value(dto.id()))
+                .andExpect(jsonPath("$.content[0].subestacaoReferenciaId").value(referenciaId))
+                .andExpect(jsonPath("$.content[0].tensaoKv").isEmpty())
+                .andExpect(jsonPath("$.content[0].correnteA").isEmpty());
+        String json = mockMvc.perform(get(url(linhaId)).session(sessao)).andReturn().getResponse().getContentAsString();
+        br.com.powergrid.controlcenter.dto.PageResponseDTO<MedicaoLinhaResponseDTO> pagina = objectMapper.readValue(json,
+                new tools.jackson.core.type.TypeReference<br.com.powergrid.controlcenter.dto.PageResponseDTO<MedicaoLinhaResponseDTO>>() {});
+        var item = pagina.content().getFirst();
+        if (ativa == null) assertThat(item.potenciaAtivaMw()).isNull();
+        else assertThat(item.potenciaAtivaMw()).isEqualByComparingTo(ativa);
+        if (reativa == null) assertThat(item.potenciaReativaMvar()).isNull();
+        else assertThat(item.potenciaReativaMvar()).isEqualByComparingTo(reativa);
+    }
+
+    @ParameterizedTest
+    @CsvSource({"potenciaAtivaMw,1.1234567", "potenciaReativaMvar,-1.1234567",
+            "potenciaAtivaMw,10000000000000", "potenciaReativaMvar,-10000000000000"})
+    void deveRejeitarPrecisaoExcedidaDaPotencia(String campo, String valor) throws Exception {
+        fonte.setSubestacaoReferencia(fonte.getLinha().getSubestacaoOrigem());
+        Map<String, Object> request = valido(); request.put(campo, new BigDecimal(valor));
+        rejeitar(request);
+    }
+
+    @Test
+    void deveRejeitarPotenciaSemReferenciaOuComReferenciaForaDaLinha() throws Exception {
+        Map<String, Object> request = valido(); request.put("potenciaAtivaMw", BigDecimal.ONE.negate());
+        rejeitar(request);
+        fonte.setSubestacaoReferencia(linha().getSubestacaoOrigem());
+        rejeitar(request);
+    }
+
+    @Test
+    void deveAceitarQuatroGrandezasComSinaisIndependentes() throws Exception {
+        fonte.setSubestacaoReferencia(fonte.getLinha().getSubestacaoDestino());
+        Map<String, Object> request = valido();
+        request.put("potenciaAtivaMw", new BigDecimal("5"));
+        request.put("potenciaReativaMvar", new BigDecimal("-2"));
+        enviar(linhaId, request, 201);
+    }
+
     private void rejeitar(Map<String, Object> request) throws Exception {
         enviar(linhaId, request, 400);
         assertThat(repository.count()).isZero();

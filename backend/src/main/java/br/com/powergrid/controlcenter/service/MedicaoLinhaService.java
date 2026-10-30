@@ -19,6 +19,7 @@ import br.com.powergrid.controlcenter.repository.MedicaoLinhaRepository;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
+import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.server.ResponseStatusException;
 
@@ -51,12 +52,21 @@ public class MedicaoLinhaService {
         if (!fonte.getLinha().getId().equals(linhaId)) {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "A fonte não pertence à linha informada.");
         }
-        if (request.tensaoKv() == null && request.correnteA() == null) {
+        if (request.tensaoKv() == null && request.correnteA() == null
+                && request.potenciaAtivaMw() == null && request.potenciaReativaMvar() == null) {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Informe ao menos uma grandeza.");
         }
         if ((request.tensaoKv() != null && request.tensaoKv().signum() < 0)
                 || (request.correnteA() != null && request.correnteA().signum() < 0)) {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "As grandezas não podem ser negativas.");
+        }
+        if (request.potenciaAtivaMw() != null || request.potenciaReativaMvar() != null) {
+            var referencia = fonte.getSubestacaoReferencia();
+            var linha = fonte.getLinha();
+            if (referencia == null || (!referencia.getId().equals(linha.getSubestacaoOrigem().getId())
+                    && !referencia.getId().equals(linha.getSubestacaoDestino().getId()))) {
+                throw invalido("Ingestão de potência exige fonte com terminal de referência válido.");
+            }
         }
         Instant agora = Instant.now(clock);
         if (request.medidoEm().toInstant().isAfter(agora.plusSeconds(toleranciaSegundos))) {
@@ -68,9 +78,17 @@ public class MedicaoLinhaService {
         medicao.setRecebidoEm(agora.atOffset(ZoneOffset.UTC));
         medicao.setTensaoKv(request.tensaoKv());
         medicao.setCorrenteA(request.correnteA());
-        repository.save(medicao);
+        medicao.setPotenciaAtivaMw(request.potenciaAtivaMw());
+        medicao.setPotenciaReativaMvar(request.potenciaReativaMvar());
+        try {
+            repository.saveAndFlush(medicao);
+        } catch (DataIntegrityViolationException ex) {
+            throw invalido("Medição incompatível com as restrições de integridade.");
+        }
         return new MedicaoLinhaResponseDTO(medicao.getId(), linhaId, fonte.getId(), fonte.getOrigem(),
-                medicao.getMedidoEm(), medicao.getRecebidoEm(), medicao.getTensaoKv(), medicao.getCorrenteA());
+                medicao.getMedidoEm(), medicao.getRecebidoEm(), medicao.getTensaoKv(), medicao.getCorrenteA(),
+                medicao.getPotenciaAtivaMw(), medicao.getPotenciaReativaMvar(),
+                fonte.getSubestacaoReferencia() == null ? null : fonte.getSubestacaoReferencia().getId());
     }
 
     @Transactional(readOnly = true)
@@ -91,7 +109,9 @@ public class MedicaoLinhaService {
         return PageResponseDTO.from(repository.buscarPorLinhaEPeriodo(linhaId, inicio, fim, pageable)
                 .map(m -> new MedicaoLinhaResponseDTO(m.getId(), linhaId, m.getFonte().getId(),
                         m.getFonte().getOrigem(), m.getMedidoEm().withOffsetSameInstant(ZoneOffset.UTC),
-                        m.getRecebidoEm().withOffsetSameInstant(ZoneOffset.UTC), m.getTensaoKv(), m.getCorrenteA())));
+                        m.getRecebidoEm().withOffsetSameInstant(ZoneOffset.UTC), m.getTensaoKv(), m.getCorrenteA(),
+                        m.getPotenciaAtivaMw(), m.getPotenciaReativaMvar(),
+                        m.getFonte().getSubestacaoReferencia() == null ? null : m.getFonte().getSubestacaoReferencia().getId())));
     }
 
     private String parametro(MultiValueMap<String, String> params, String nome) {
