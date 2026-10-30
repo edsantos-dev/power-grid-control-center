@@ -41,4 +41,7 @@ public class MedicaoLinha {
 
     @Column(name = "potencia_reativa_mvar", precision = 19, scale = 6)
     private BigDecimal potenciaReativaMvar;
+
+    @Column(name = "frequencia_hz", precision = 9, scale = 6)
+    private BigDecimal frequenciaHz;
 }
