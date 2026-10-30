@@ -1,61 +1,96 @@
-import { useState } from 'react'
-import { Search, MapPin, Gauge } from 'lucide-react'
+import { useEffect, useState } from 'react'
+import { Search, MapPin, Pencil, Plus } from 'lucide-react'
+import { extrairErroApi } from '../../services/api'
+import { listarSubestacoes } from '../../services/subestacoes'
+import type { EstadoOperacional, Subestacao } from '../../types'
+import SubestacaoForm from './SubestacaoForm'
 
-type StatusSubestacao = 'operacional' | 'atencao' | 'falha' | 'manutencao'
-
-interface Subestacao {
-  id: string
-  nome: string
-  regiao: string
-  tensaoPrimaria: number
-  tensaoSecundaria: number
-  cargaAtual: number
-  disponibilidade: number
-  status: StatusSubestacao
+const statusStyles: Record<EstadoOperacional, { dot: string; text: string; label: string }> = {
+  OPERACIONAL: { dot: 'bg-green-500', text: 'text-green-400', label: 'Operacional' },
+  FALHA: { dot: 'bg-red-500', text: 'text-red-400', label: 'Falha' },
+  MANUTENCAO: { dot: 'bg-slate-500', text: 'text-slate-400', label: 'Manutenção' },
 }
 
-const subestacoes: Subestacao[] = [
-  { id: 'SE-01', nome: 'Subestação Norte', regiao: 'Região Norte', tensaoPrimaria: 138, tensaoSecundaria: 13.8, cargaAtual: 72, disponibilidade: 99.8, status: 'operacional' },
-  { id: 'SE-02', nome: 'Subestação Central', regiao: 'Região Central', tensaoPrimaria: 138, tensaoSecundaria: 13.8, cargaAtual: 91, disponibilidade: 98.2, status: 'atencao' },
-  { id: 'SE-03', nome: 'Subestação Sul', regiao: 'Região Sul', tensaoPrimaria: 69, tensaoSecundaria: 13.8, cargaAtual: 58, disponibilidade: 99.9, status: 'operacional' },
-  { id: 'SE-04', nome: 'Subestação Leste', regiao: 'Região Leste', tensaoPrimaria: 69, tensaoSecundaria: 13.8, cargaAtual: 0, disponibilidade: 95.4, status: 'manutencao' },
-  { id: 'SE-05', nome: 'Subestação Oeste', regiao: 'Região Oeste', tensaoPrimaria: 138, tensaoSecundaria: 13.8, cargaAtual: 0, disponibilidade: 88.1, status: 'falha' },
-  { id: 'SE-06', nome: 'Subestação Vale Verde', regiao: 'Região Norte', tensaoPrimaria: 69, tensaoSecundaria: 13.8, cargaAtual: 64, disponibilidade: 99.6, status: 'operacional' },
-  { id: 'SE-07', nome: 'Subestação Porto Alto', regiao: 'Região Leste', tensaoPrimaria: 138, tensaoSecundaria: 13.8, cargaAtual: 88, disponibilidade: 97.5, status: 'atencao' },
-]
+function formatarNumero(valor: number) {
+  return valor.toLocaleString('pt-BR', { maximumFractionDigits: 6 })
+}
 
-const statusStyles: Record<StatusSubestacao, { dot: string; text: string; label: string }> = {
-  operacional: { dot: 'bg-green-500', text: 'text-green-400', label: 'Operacional' },
-  atencao: { dot: 'bg-yellow-500', text: 'text-yellow-400', label: 'Atenção' },
-  falha: { dot: 'bg-red-500', text: 'text-red-400', label: 'Falha' },
-  manutencao: { dot: 'bg-slate-500', text: 'text-slate-400', label: 'Manutenção' },
+// A data não tem fuso: converter com new Date pode exibir o dia anterior
+function formatarData(data: string) {
+  return data.split('-').reverse().join('/')
 }
 
 function Subestacoes() {
-  const [filtroStatus, setFiltroStatus] = useState<StatusSubestacao | 'todos'>('todos')
+  const [subestacoes, setSubestacoes] = useState<Subestacao[]>([])
+  const [carregando, setCarregando] = useState(true)
+  const [erro, setErro] = useState('')
+  const [filtroStatus, setFiltroStatus] = useState<EstadoOperacional | 'todos'>('todos')
   const [busca, setBusca] = useState('')
+  const [formularioAberto, setFormularioAberto] = useState(false)
+  const [emEdicao, setEmEdicao] = useState<Subestacao | null>(null)
 
-  const subestacoesFiltradas = subestacoes.filter((s) => {
-    const passaStatus = filtroStatus === 'todos' || s.status === filtroStatus
-    const passaBusca = s.nome.toLowerCase().includes(busca.toLowerCase()) || s.regiao.toLowerCase().includes(busca.toLowerCase())
-    return passaStatus && passaBusca
-  })
+  async function carregar() {
+    setCarregando(true)
+    setErro('')
 
-  const totalOperacionais = subestacoes.filter((s) => s.status === 'operacional').length
-  const totalAtencao = subestacoes.filter((s) => s.status === 'atencao').length
-  const totalFalha = subestacoes.filter((s) => s.status === 'falha').length
-  const disponibilidadeMedia = (subestacoes.reduce((acc, s) => acc + s.disponibilidade, 0) / subestacoes.length).toFixed(1)
+    try {
+      setSubestacoes(await listarSubestacoes())
+    } catch (error) {
+      setErro(extrairErroApi(error).mensagem)
+    } finally {
+      setCarregando(false)
+    }
+  }
+
+  useEffect(() => {
+    carregar()
+  }, [])
+
+  function abrirFormulario(subestacao: Subestacao | null) {
+    setEmEdicao(subestacao)
+    setFormularioAberto(true)
+  }
+
+  function handleSalvar(salva: Subestacao) {
+    setSubestacoes((atuais) => [...atuais.filter((s) => s.id !== salva.id), salva])
+    setFormularioAberto(false)
+  }
+
+  // A API não garante ordenação da listagem
+  const subestacoesFiltradas = subestacoes
+    .filter((s) => {
+      const passaStatus = filtroStatus === 'todos' || s.estadoOperacional === filtroStatus
+      const passaBusca = s.nome.toLowerCase().includes(busca.toLowerCase())
+      return passaStatus && passaBusca
+    })
+    .sort((a, b) => a.id - b.id)
+
+  const totalOperacionais = subestacoes.filter((s) => s.estadoOperacional === 'OPERACIONAL').length
+  const totalManutencao = subestacoes.filter((s) => s.estadoOperacional === 'MANUTENCAO').length
+  const totalFalha = subestacoes.filter((s) => s.estadoOperacional === 'FALHA').length
+  const capacidadeTotal = subestacoes.reduce((acc, s) => acc + s.capacidadeMva, 0)
 
   return (
     <div>
-      <div className="mb-8">
-        <h2 className="text-3xl font-bold text-white">
-          Subestações
-        </h2>
+      <div className="mb-8 flex flex-wrap items-start justify-between gap-4">
+        <div>
+          <h2 className="text-3xl font-bold text-white">
+            Subestações
+          </h2>
 
-        <p className="mt-2 text-slate-400">
-          Cadastro e monitoramento das subestações da rede elétrica.
-        </p>
+          <p className="mt-2 text-slate-400">
+            Cadastro das subestações da rede elétrica.
+          </p>
+        </div>
+
+        <button
+          type="button"
+          onClick={() => abrirFormulario(null)}
+          className="flex items-center gap-2 rounded-lg bg-blue-600 px-4 py-2 text-sm font-semibold text-white transition hover:bg-blue-500"
+        >
+          <Plus className="h-4 w-4" />
+          Nova subestação
+        </button>
       </div>
 
       <div className="grid gap-6 md:grid-cols-2 xl:grid-cols-4">
@@ -66,20 +101,18 @@ function Subestacoes() {
         </div>
 
         <div className="rounded-xl border border-slate-800 bg-slate-900 p-6 transition hover:border-slate-700">
-          <p className="text-sm text-slate-400">Em atenção</p>
-          <p className="mt-2 text-3xl font-bold text-yellow-400">{totalAtencao}</p>
-          <p className="mt-2 text-sm text-yellow-400">Carga elevada</p>
+          <p className="text-sm text-slate-400">Em manutenção</p>
+          <p className="mt-2 text-3xl font-bold text-slate-300">{totalManutencao}</p>
         </div>
 
         <div className="rounded-xl border border-slate-800 bg-slate-900 p-6 transition hover:border-slate-700">
           <p className="text-sm text-slate-400">Em falha</p>
           <p className="mt-2 text-3xl font-bold text-red-500">{totalFalha}</p>
-          <p className="mt-2 text-sm text-red-400">Ação necessária</p>
         </div>
 
         <div className="rounded-xl border border-slate-800 bg-slate-900 p-6 transition hover:border-slate-700">
-          <p className="text-sm text-slate-400">Disponibilidade Média</p>
-          <p className="mt-2 text-3xl font-bold text-white">{disponibilidadeMedia}%</p>
+          <p className="text-sm text-slate-400">Capacidade cadastrada</p>
+          <p className="mt-2 text-3xl font-bold text-white">{formatarNumero(capacidadeTotal)} MVA</p>
         </div>
       </div>
 
@@ -91,13 +124,13 @@ function Subestacoes() {
               type="text"
               value={busca}
               onChange={(e) => setBusca(e.target.value)}
-              placeholder="Buscar subestação ou região..."
+              placeholder="Buscar subestação..."
               className="w-full rounded-lg border border-slate-800 bg-slate-950 py-2 pl-9 pr-3 text-sm text-slate-200 placeholder:text-slate-500 focus:border-slate-600 focus:outline-none"
             />
           </div>
 
           <div className="flex flex-wrap gap-2">
-            {(['todos', 'operacional', 'atencao', 'falha', 'manutencao'] as const).map((status) => (
+            {(['todos', 'OPERACIONAL', 'FALHA', 'MANUTENCAO'] as const).map((status) => (
               <button
                 key={status}
                 onClick={() => setFiltroStatus(status)}
@@ -118,42 +151,48 @@ function Subestacoes() {
             <thead>
               <tr className="border-b border-slate-800 text-left text-slate-400">
                 <th className="pb-3 font-normal">Subestação</th>
-                <th className="pb-3 font-normal">Região</th>
+                <th className="pb-3 font-normal">Localização</th>
                 <th className="pb-3 font-normal">Tensão (kV)</th>
-                <th className="pb-3 font-normal">Carga</th>
-                <th className="pb-3 font-normal">Disponibilidade</th>
+                <th className="pb-3 font-normal">Capacidade (MVA)</th>
+                <th className="pb-3 font-normal">Instalação</th>
                 <th className="pb-3 font-normal">Status</th>
+                <th className="pb-3 font-normal">Ações</th>
               </tr>
             </thead>
             <tbody>
               {subestacoesFiltradas.map((s) => {
-                const status = statusStyles[s.status]
+                const status = statusStyles[s.estadoOperacional]
 
                 return (
                   <tr key={s.id} className="border-b border-slate-800/60 last:border-0">
                     <td className="py-3 pr-4">
                       <p className="text-slate-200">{s.nome}</p>
-                      <p className="mt-1 text-xs text-slate-500">{s.id}</p>
+                      <p className="mt-1 text-xs text-slate-500">#{s.id}</p>
                     </td>
-                    <td className="py-3 text-slate-400">
+                    <td className="py-3 pr-4 text-slate-400">
                       <span className="flex items-center gap-1.5">
                         <MapPin className="h-3.5 w-3.5 text-slate-500" />
-                        {s.regiao}
+                        {s.latitude}, {s.longitude}
                       </span>
                     </td>
-                    <td className="py-3 text-slate-300">{s.tensaoPrimaria} / {s.tensaoSecundaria}</td>
-                    <td className="py-3 text-slate-300">
-                      <span className="flex items-center gap-1.5">
-                        <Gauge className="h-3.5 w-3.5 text-blue-400" />
-                        {s.cargaAtual}%
-                      </span>
-                    </td>
-                    <td className="py-3 text-slate-300">{s.disponibilidade}%</td>
+                    <td className="py-3 text-slate-300">{formatarNumero(s.tensaoNominalKv)}</td>
+                    <td className="py-3 text-slate-300">{formatarNumero(s.capacidadeMva)}</td>
+                    <td className="py-3 text-slate-300">{formatarData(s.dataInstalacao)}</td>
                     <td className="py-3">
                       <span className={`flex items-center gap-1.5 text-xs font-medium ${status.text}`}>
                         <span className={`h-1.5 w-1.5 rounded-full ${status.dot}`} />
                         {status.label}
                       </span>
+                    </td>
+                    <td className="py-3">
+                      <button
+                        type="button"
+                        onClick={() => abrirFormulario(s)}
+                        aria-label={`Editar ${s.nome}`}
+                        className="rounded-lg p-1.5 text-slate-400 transition hover:bg-slate-800 hover:text-white"
+                      >
+                        <Pencil className="h-4 w-4" />
+                      </button>
                     </td>
                   </tr>
                 )
@@ -161,13 +200,38 @@ function Subestacoes() {
             </tbody>
           </table>
 
-          {subestacoesFiltradas.length === 0 && (
+          {carregando && (
+            <p className="py-10 text-center text-sm text-slate-500">Carregando subestações...</p>
+          )}
+
+          {!carregando && erro && (
+            <div className="flex flex-col items-center gap-3 py-10">
+              <p className="text-sm text-red-400">{erro}</p>
+              <button
+                type="button"
+                onClick={carregar}
+                className="rounded-lg border border-slate-700 px-3 py-1.5 text-sm text-slate-300 transition hover:bg-slate-800"
+              >
+                Tentar novamente
+              </button>
+            </div>
+          )}
+
+          {!carregando && !erro && subestacoesFiltradas.length === 0 && (
             <div className="flex flex-col items-center gap-2 py-10 text-slate-500">
               <p className="text-sm">Nenhuma subestação encontrada.</p>
             </div>
           )}
         </div>
       </div>
+
+      {formularioAberto && (
+        <SubestacaoForm
+          subestacao={emEdicao}
+          aoFechar={() => setFormularioAberto(false)}
+          aoSalvar={handleSalvar}
+        />
+      )}
     </div>
   )
 }
