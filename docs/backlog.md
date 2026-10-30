@@ -272,7 +272,7 @@ Como operador, quero visualizar em tempo real a tensão e a corrente das linhas 
 - **Perfil e prioridade:** Operador. Prioridade: Alta.
 - **Status:** Em andamento.
 - **Implementação existente:** Valores fixos no frontend. Persistência de FonteMedicao e MedicaoLinha, migration V4 e API de ingestão com testes em revisão.
-- **Trabalho pendente:** Cadastro/provisionamento de fontes, consulta HTTP, simulador e integração de monitoramento.
+- **Trabalho pendente:** Revisão do cadastro de fontes e consulta paginada; simulador, política de atraso e integração de monitoramento pendentes.
 - **Dependências:** PEN-06; US25; US02; fonte de medições ou simulador.
 - **Referências no frontend:** [Linhas/index.tsx](../frontend/src/pages/Linhas/index.tsx#L11) (linhas 11,17); [Monitoramento/index.tsx](../frontend/src/pages/Monitoramento/index.tsx#L13) (linhas 13,134).
 
@@ -291,7 +291,15 @@ Como operador, quero visualizar em tempo real a tensão e a corrente das linhas 
 
 **US08-T02 — persistência e ingestão em revisão:** A V4 cria fonte_medicao com identificador único de até 128 caracteres, origem REAL/SIMULADA e linha obrigatória. medicao_linha referencia a fonte e armazena medidoEm, recebidoEm, tensão em kV e corrente em A. Ao menos uma grandeza deve existir; zero é válido e valores negativos são rejeitados. Grandezas usam NUMERIC(19,6); timestamps possuem fuso. Índice por fonte e instante de medição. As associações são LAZY, sem cascata. FonteMedicaoRepositoryTest e MedicaoLinhaRepositoryTest cobrem integridade e recuperação.
 
-**Contrato para a Camada Web:** Leituras históricas e parciais são aceitas; recebidoEm é definido pelo servidor e medidoEm preserva o instante do sensor. Tolerância futura configurável de 60 segundos; precisão numérica estrita sem arredondamento. A fonte deve pertencer à linha informada e não pode ser reatribuída após possuir medições. A ingestão valida linha/fonte existentes, vínculo entre ambas, ao menos uma grandeza não negativa, precisão e tolerância temporal. Usa relógio UTC injetável e propriedade medicoes.tolerancia-futura-segundos (padrão 60). Respostas 201 incluem IDs, origem e ambos os instantes. Erros 400/404 seguem ApiError. Sessão e CSRF são obrigatórios. Cadastro/reatribuição de fontes, autenticação própria dos dispositivos, duplicidade e classificação de atraso permanecem pendentes. MedicaoLinhaControllerTest cobre ingestão, leituras parciais, limite temporal inclusivo e segurança.
+**Contrato para a Camada Web:** Leituras históricas e parciais são aceitas; recebidoEm é definido pelo servidor e medidoEm preserva o instante do sensor. Tolerância futura configurável de 60 segundos; precisão numérica estrita sem arredondamento. A fonte deve pertencer à linha informada e não pode ser reatribuída após possuir medições. A ingestão valida linha/fonte existentes, vínculo entre ambas, ao menos uma grandeza não negativa, precisão e tolerância temporal. Usa relógio UTC injetável e propriedade medicoes.tolerancia-futura-segundos (padrão 60). Respostas 201 incluem IDs, origem e ambos os instantes. Erros 400/404 seguem ApiError. Sessão e CSRF são obrigatórios. Reatribuição de fontes, autenticação própria dos dispositivos, duplicidade de leituras e classificação de atraso permanecem pendentes. MedicaoLinhaControllerTest cobre ingestão, leituras parciais, limite temporal inclusivo e segurança.
+
+**US08-T02 — fontes e consultas (Parte 2):**
+
+**Status:** Em revisão — backend. FonteMedicaoService valida linha e unicidade global do identificador, com trim e limite de 128 caracteres. POST /api/linhas-transmissao/{linhaId}/fontes retorna 201, 400, 404 ou 409. A constraint UNIQUE permanece como proteção contra duplicidade concorrente.
+
+GET /api/linhas-transmissao/{linhaId}/medicoes retorna PageResponseDTO com content, page, size, totalElements, totalPages, first e last. Padrões page=0 e size=20; máximo 100. Parâmetros inválidos, vazios ou repetidos e qualquer sort retornam 400. Ordem fixa medidoEm DESC, id DESC. Filtros opcionais dataInicio/dataFim usam instante da medição, início inclusivo e fim exclusivo, com comparação em UTC. FontesConsultasControllerTest cobre cadastro, duplicidade, paginação, isolamento, limites temporais e segurança.
+
+A entrega atende ao recorte de backend de US08-T02. Integração com a interface, cadência de atualização, classificação de atraso e aceite funcional de US08-CA01–CA03 continuam pendentes; a história não está concluída.
 
 ### US09 — Monitorar potência ativa e reativa
 
