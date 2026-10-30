@@ -13,5 +13,6 @@ public record MedicaoLinhaRequestDTO(
         @PositiveOrZero @Digits(integer = 13, fraction = 6) BigDecimal tensaoKv,
         @PositiveOrZero @Digits(integer = 13, fraction = 6) BigDecimal correnteA,
         @Digits(integer = 13, fraction = 6) BigDecimal potenciaAtivaMw,
-        @Digits(integer = 13, fraction = 6) BigDecimal potenciaReativaMvar) {
+        @Digits(integer = 13, fraction = 6) BigDecimal potenciaReativaMvar,
+        @Positive @Digits(integer = 3, fraction = 6) BigDecimal frequenciaHz) {
 }

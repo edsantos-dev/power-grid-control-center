@@ -1,6 +1,10 @@
 package br.com.powergrid.controlcenter.service;
 
 import java.time.Clock;
+import java.math.BigDecimal;
+import java.math.MathContext;
+import java.math.RoundingMode;
+import br.com.powergrid.controlcenter.model.SituacaoFatorPotencia;
 import java.time.OffsetDateTime;
 import java.time.format.DateTimeParseException;
 import br.com.powergrid.controlcenter.dto.PageResponseDTO;
@@ -53,7 +57,8 @@ public class MedicaoLinhaService {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "A fonte não pertence à linha informada.");
         }
         if (request.tensaoKv() == null && request.correnteA() == null
-                && request.potenciaAtivaMw() == null && request.potenciaReativaMvar() == null) {
+                && request.potenciaAtivaMw() == null && request.potenciaReativaMvar() == null
+                && request.frequenciaHz() == null) {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Informe ao menos uma grandeza.");
         }
         if ((request.tensaoKv() != null && request.tensaoKv().signum() < 0)
@@ -68,6 +73,9 @@ public class MedicaoLinhaService {
                 throw invalido("Ingestão de potência exige fonte com terminal de referência válido.");
             }
         }
+        if (request.frequenciaHz() != null && request.frequenciaHz().signum() <= 0) {
+            throw invalido("Frequência deve ser estritamente positiva.");
+        }
         Instant agora = Instant.now(clock);
         if (request.medidoEm().toInstant().isAfter(agora.plusSeconds(toleranciaSegundos))) {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Instante da medição excede a tolerância futura.");
@@ -80,15 +88,13 @@ public class MedicaoLinhaService {
         medicao.setCorrenteA(request.correnteA());
         medicao.setPotenciaAtivaMw(request.potenciaAtivaMw());
         medicao.setPotenciaReativaMvar(request.potenciaReativaMvar());
+        medicao.setFrequenciaHz(request.frequenciaHz());
         try {
             repository.saveAndFlush(medicao);
         } catch (DataIntegrityViolationException ex) {
             throw invalido("Medição incompatível com as restrições de integridade.");
         }
-        return new MedicaoLinhaResponseDTO(medicao.getId(), linhaId, fonte.getId(), fonte.getOrigem(),
-                medicao.getMedidoEm(), medicao.getRecebidoEm(), medicao.getTensaoKv(), medicao.getCorrenteA(),
-                medicao.getPotenciaAtivaMw(), medicao.getPotenciaReativaMvar(),
-                fonte.getSubestacaoReferencia() == null ? null : fonte.getSubestacaoReferencia().getId());
+        return toResponse(medicao);
     }
 
     @Transactional(readOnly = true)
@@ -107,11 +113,31 @@ public class MedicaoLinhaService {
         }
         var pageable = PageRequest.of(page, size, Sort.by(Sort.Direction.DESC, "medidoEm", "id"));
         return PageResponseDTO.from(repository.buscarPorLinhaEPeriodo(linhaId, inicio, fim, pageable)
-                .map(m -> new MedicaoLinhaResponseDTO(m.getId(), linhaId, m.getFonte().getId(),
-                        m.getFonte().getOrigem(), m.getMedidoEm().withOffsetSameInstant(ZoneOffset.UTC),
-                        m.getRecebidoEm().withOffsetSameInstant(ZoneOffset.UTC), m.getTensaoKv(), m.getCorrenteA(),
-                        m.getPotenciaAtivaMw(), m.getPotenciaReativaMvar(),
-                        m.getFonte().getSubestacaoReferencia() == null ? null : m.getFonte().getSubestacaoReferencia().getId())));
+                .map(this::toResponse));
+    }
+
+
+    private MedicaoLinhaResponseDTO toResponse(MedicaoLinha medicao) {
+        BigDecimal p = medicao.getPotenciaAtivaMw();
+        BigDecimal q = medicao.getPotenciaReativaMvar();
+        BigDecimal fp = null;
+        SituacaoFatorPotencia situacao = SituacaoFatorPotencia.DADOS_INSUFICIENTES;
+        if (p != null && q != null) {
+            BigDecimal quadradoAparente = p.multiply(p).add(q.multiply(q));
+            if (quadradoAparente.signum() == 0) {
+                situacao = SituacaoFatorPotencia.POTENCIA_APARENTE_NULA;
+            } else {
+                BigDecimal aparente = quadradoAparente.sqrt(MathContext.DECIMAL128);
+                fp = p.abs().divide(aparente, 6, RoundingMode.HALF_EVEN);
+                situacao = SituacaoFatorPotencia.CALCULADO;
+            }
+        }
+        FonteMedicao fonte = medicao.getFonte();
+        return new MedicaoLinhaResponseDTO(medicao.getId(), fonte.getLinha().getId(), fonte.getId(), fonte.getOrigem(),
+                medicao.getMedidoEm().withOffsetSameInstant(ZoneOffset.UTC),
+                medicao.getRecebidoEm().withOffsetSameInstant(ZoneOffset.UTC), medicao.getTensaoKv(), medicao.getCorrenteA(),
+                p, q, fonte.getSubestacaoReferencia() == null ? null : fonte.getSubestacaoReferencia().getId(),
+                medicao.getFrequenciaHz(), fp, situacao);
     }
 
     private String parametro(MultiValueMap<String, String> params, String nome) {

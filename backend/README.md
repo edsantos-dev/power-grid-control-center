@@ -221,11 +221,11 @@ O advice não intercepta respostas produzidas antes do DispatcherServlet pelos f
 
 ## Ingestão de medições de linhas
 
-POST /api/linhas-transmissao/{linhaId}/medicoes exige sessão e CSRF. O corpo contém fonteId positivo, medidoEm ISO 8601 com offset e ao menos uma grandeza: tensaoKv (kV), correnteA (A), potenciaAtivaMw (MW) ou potenciaReativaMvar (MVAr). Tensão e corrente são não negativas; as potências aceitam sinais. Todas admitem até 13 dígitos inteiros e seis decimais. Campos ausentes permanecem nulos; zero é válido.
+POST /api/linhas-transmissao/{linhaId}/medicoes exige sessão e CSRF. O corpo contém fonteId positivo, medidoEm ISO 8601 com offset e ao menos uma grandeza: tensaoKv (kV), correnteA (A), potenciaAtivaMw (MW) ou potenciaReativaMvar (MVAr) ou frequenciaHz (Hz). Tensão e corrente são não negativas; as potências aceitam sinais. Tensão, corrente e potências admitem até 13 dígitos inteiros e seis decimais; frequência admite três inteiros e seis decimais. Campos ausentes permanecem nulos; zero é válido.
 
 Linha ou fonte inexistente retorna 404; fonte de outra linha, conteúdo inválido ou instante além da tolerância futura retorna 400 no formato ApiError. A propriedade medicoes.tolerancia-futura-segundos configura a tolerância (padrão 60, inclusive). Leituras históricas são aceitas. O backend converte medidoEm para UTC e gera recebidoEm com seu relógio, sem aceitar atribuição pelo cliente. A origem REAL/SIMULADA vem da fonte cadastrada.
 
-Retorna 201 com Location e id, linhaId, fonteId, origem, medidoEm, recebidoEm, tensaoKv, correnteA, potenciaAtivaMw, potenciaReativaMvar e subestacaoReferenciaId. A URL individual indicada por Location ainda não possui GET neste incremento. Fontes podem ser cadastradas pela API e as medições possuem consulta paginada, conforme descrito abaixo. Não há deduplicação, alertas automáticos ou autenticação própria de dispositivos neste recorte.
+Retorna 201 com Location e id, linhaId, fonteId, origem, medidoEm, recebidoEm, tensaoKv, correnteA, potenciaAtivaMw, potenciaReativaMvar, subestacaoReferenciaId, frequenciaHz, fatorPotencia e situacaoFatorPotencia. A URL individual indicada por Location ainda não possui GET neste incremento. Fontes podem ser cadastradas pela API e as medições possuem consulta paginada, conforme descrito abaixo. Não há deduplicação, alertas automáticos ou autenticação própria de dispositivos neste recorte.
 
 ## Fontes e consulta de medições
 
@@ -244,3 +244,11 @@ Os DTOs de fontes aceitam e retornam subestacaoReferenciaId. O campo é opcional
 POST e GET /api/linhas-transmissao/{linhaId}/medicoes incluem potenciaAtivaMw (MW), potenciaReativaMvar (MVAr) e, nas respostas, subestacaoReferenciaId. As potências aceitam valores positivos, negativos e zero, com até 13 dígitos inteiros e seis decimais. Positivo representa entrada na linha pelo terminal de referência; os sinais de P e Q são independentes. Cada leitura exige ao menos uma das quatro grandezas; ausência continua nula. Tensão e corrente permanecem não negativas.
 
 Ingestão contendo P ou Q exige referência de fonte válida como extremidade da linha, retornando 400 caso não exista ou seja incompatível. Não é inferida referência para fontes antigas. A origem, referência e recebidoEm são obtidos pelo servidor; a requisição da medição não permite escolher o terminal. Mantêm-se tolerância temporal, sessão, CSRF, paginação e filtros da US08. Violações de integridade na gravação de medições retornam 400 com mensagem limpa. A V5 fornece persistência das potências e FK opcional da referência.
+
+## Frequência e fator de potência — US10
+
+Request de medição aceita frequenciaHz opcional (Hz), estritamente positiva e com até três inteiros e seis decimais. A leitura exige ao menos uma das cinco grandezas; frequência isolada é válida sem terminal de potência. Frequências positivas fora do nominal didático de 60 Hz são preservadas; não há classificação automática por faixa neste incremento. Mantêm-se as regras de timestamp, fonte, sessão, CSRF e consulta paginada.
+
+POST e GET acrescentam frequenciaHz, fatorPotencia e situacaoFatorPotencia. O FP é calculado no servidor a partir das potências da mesma leitura em regime senoidal sem harmônicos: |P|/sqrt(P²+Q²). Usa BigDecimal, raiz com DECIMAL128 e arredondamento final HALF_EVEN em seis casas, resultando em módulo entre 0 e 1. A direção do fluxo permanece nos sinais de P/Q e na referência da fonte.
+
+Se P ou Q for nulo, FP é nulo e a situação é DADOS_INSUFICIENTES. Se ambos forem zero, FP é nulo com POTENCIA_APARENTE_NULA. Nos demais casos, a situação é CALCULADO. P=0 e Q diferente de zero produz 0; Q=0 e P diferente de zero produz 1. Não há FP no Request, coluna persistida ou preenchimento com potências de leituras distintas.
