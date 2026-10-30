@@ -56,7 +56,7 @@ class FontesConsultasControllerTest {
         fonte = fonte();
         entityManager.persist(fonte);
         entityManager.flush();
-        linhaId = fonte.getLinha().getId();
+        linhaId = fonte.getAtivo().getId();
 		MvcResult inicial = mockMvc.perform(get("/api/auth/csrf")).andExpect(status().isOk()).andReturn();
 		sessao = (MockHttpSession) inicial.getRequest().getSession(false);
 		CsrfResponse token = objectMapper.readValue(inicial.getResponse().getContentAsString(), CsrfResponse.class);
@@ -189,8 +189,8 @@ class FontesConsultasControllerTest {
     @ParameterizedTest
     @ValueSource(strings = {"origem", "destino"})
     void deveCadastrarFonteComTerminalDeReferencia(String terminal) throws Exception {
-        Long referencia = terminal.equals("origem") ? fonte.getLinha().getSubestacaoOrigem().getId()
-                : fonte.getLinha().getSubestacaoDestino().getId();
+        Long referencia = terminal.equals("origem") ? ((LinhaTransmissao) org.hibernate.Hibernate.unproxy(fonte.getAtivo())).getSubestacaoOrigem().getId()
+                : ((LinhaTransmissao) org.hibernate.Hibernate.unproxy(fonte.getAtivo())).getSubestacaoDestino().getId();
         var request = Map.of("identificador", "COM-REFERENCIA", "origem", "REAL", "subestacaoReferenciaId", referencia);
         mockMvc.perform(post(fontesUrl(linhaId)).session(sessao).header(csrf.headerName(), csrf.token())
                 .contentType(MediaType.APPLICATION_JSON).content(objectMapper.writeValueAsString(request)))
@@ -246,7 +246,7 @@ class FontesConsultasControllerTest {
     private FonteMedicao fonte() {
         FonteMedicao fonte = new FonteMedicao();
         fonte.setIdentificador("SENSOR-01");
-        fonte.setLinha(linha());
+        fonte.setAtivo(linha());
         fonte.setOrigem(OrigemMedicao.REAL);
         return fonte;
     }

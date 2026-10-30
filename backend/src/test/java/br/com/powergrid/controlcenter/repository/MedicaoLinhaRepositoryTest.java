@@ -97,7 +97,7 @@ class MedicaoLinhaRepositoryTest {
     @ValueSource(strings = {"ativaNegativa", "reativaNegativa", "ativaPositiva", "reativaPositiva", "zero", "limite"})
     void devePersistirSomentePotenciaComSinal(String caso) {
         MedicaoLinha leitura = leitura();
-        leitura.getFonte().setSubestacaoReferencia(leitura.getFonte().getLinha().getSubestacaoOrigem());
+        leitura.getFonte().setSubestacaoReferencia(((LinhaTransmissao) org.hibernate.Hibernate.unproxy(leitura.getFonte().getAtivo())).getSubestacaoOrigem());
         leitura.setTensaoKv(null);
         leitura.setCorrenteA(null);
         switch (caso) {
@@ -212,7 +212,7 @@ class MedicaoLinhaRepositoryTest {
     private FonteMedicao fonte() {
         FonteMedicao fonte = new FonteMedicao();
         fonte.setIdentificador("SENSOR-01");
-        fonte.setLinha(linha());
+        fonte.setAtivo(linha());
         fonte.setOrigem(OrigemMedicao.REAL);
         return fonte;
     }

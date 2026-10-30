@@ -107,6 +107,11 @@ A V3 define as extremidades das linhas por subestacao_origem_id e subestacao_des
 
 ## Medições e indicadores
 
+A V7 generaliza FonteMedicao → AtivoRede (N:1 obrigatório, LAZY), migrando o antigo vínculo de linha sem mudar os IDs. APIs existentes de linhas preservam seus contratos. O serviço deve restringir o alvo ao tipo de ativo aceito pela rota; a FK simples comprova apenas sua existência. A referência de subestação permanece aplicável às fontes de linhas.
+
+MedicaoTransformador referencia uma fonte (N:1 obrigatório, LAZY), com medidoEm, recebidoEm, potenciaAparenteMva não negativa e capacidadeReferenciaMva estritamente positiva. A capacidade de referência é um snapshot independente do cadastro, capturado pelo servidor na ingestão; mudanças posteriores da capacidade não alteram esse valor. Carga percentual é derivada no serviço por S/capacidadeReferencia*100, sem coluna própria e sem limite artificial de 100%.
+
+
 A V6 adiciona frequenciaHz opcional em MedicaoLinha, com unidade Hz e NUMERIC(9,6). Valor informado deve ser estritamente positivo; ao menos uma entre as cinco grandezas ingeridas deve existir. Frequência nula preserva leituras anteriores. Fator de potência e sua situação são derivados no serviço a partir de P e Q da mesma leitura; não são atributos persistidos. O módulo do FP usa |P|/sqrt(P²+Q²), com resultado em seis casas HALF_EVEN. P ou Q ausente resulta em DADOS_INSUFICIENTES; ambos zero, em POTENCIA_APARENTE_NULA; nos demais casos, em CALCULADO. A direção permanece nos sinais das potências e no terminal de referência. O modelo didático considera regime senoidal sem harmônicos.
 
 
