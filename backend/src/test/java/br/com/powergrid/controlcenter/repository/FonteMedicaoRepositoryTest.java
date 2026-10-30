@@ -83,6 +83,33 @@ class FonteMedicaoRepositoryTest {
                 cause -> assertThat(cause.getSQLState()).isEqualTo("23513"));
     }
 
+    @Test
+    void devePersistirReferenciaDeSubestacaoLazy() {
+        FonteMedicao fonte = fonte();
+        fonte.setSubestacaoReferencia(fonte.getLinha().getSubestacaoOrigem());
+        Long referenciaId = fonte.getSubestacaoReferencia().getId();
+        repository.saveAndFlush(fonte);
+        entityManager.clear();
+        FonteMedicao salvo = repository.findById(fonte.getId()).orElseThrow();
+        assertThat(Hibernate.isInitialized(salvo.getSubestacaoReferencia())).isFalse();
+        assertThat(salvo.getSubestacaoReferencia().getId()).isEqualTo(referenciaId);
+        assertThat(salvo.getSubestacaoReferencia().getNome()).isEqualTo("Origem");
+    }
+
+    @Test
+    void devePreservarFonteSemReferencia() {
+        FonteMedicao fonte = repository.saveAndFlush(fonte());
+        entityManager.clear();
+        assertThat(repository.findById(fonte.getId()).orElseThrow().getSubestacaoReferencia()).isNull();
+    }
+
+    @Test
+    void deveRejeitarReferenciaInexistente() {
+        FonteMedicao fonte = fonte();
+        fonte.setSubestacaoReferencia(entityManager.getReference(Subestacao.class, Long.MAX_VALUE));
+        violacao(fonte, "23506");
+    }
+
     private void violacao(FonteMedicao fonte, String estado) {
         DataIntegrityViolationException ex = assertThrows(DataIntegrityViolationException.class,
                 () -> repository.saveAndFlush(fonte));

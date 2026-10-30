@@ -27,6 +27,10 @@ public class FonteMedicao {
     @JoinColumn(name = "linha_id", nullable = false)
     private LinhaTransmissao linha;
 
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "subestacao_referencia_id")
+    private Subestacao subestacaoReferencia;
+
     @Enumerated(EnumType.STRING)
     @JdbcTypeCode(SqlTypes.VARCHAR)
     @Column(nullable = false, length = 16)
