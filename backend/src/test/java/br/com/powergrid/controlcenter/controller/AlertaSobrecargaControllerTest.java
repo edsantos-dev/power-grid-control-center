@@ -147,6 +147,101 @@ class AlertaSobrecargaControllerTest {
         mockMvc.perform(get(base() + "/1")).andExpect(status().isUnauthorized());
     }
 
+    @Test
+    void deveReconhecerSemCorpoComUsuarioDaSessao() throws Exception {
+        var alerta = gerar("10.8", fonte);
+        Long usuarioId = entityManager.createQuery("select u.id from Usuario u where u.email = :email", Long.class)
+                .setParameter("email", "operador@powergrid.local").getSingleResult();
+        when(clock.instant()).thenReturn(AGORA.plusSeconds(30));
+        var result = mockMvc.perform(patch(reconhecimentoUrl(alerta.getId())).session(sessao)
+                .header(csrf.headerName(), csrf.token())).andExpect(status().isOk())
+                .andExpect(jsonPath("$.status").value("RECONHECIDO"))
+                .andExpect(jsonPath("$.reconhecidoPorUsuarioId").value(usuarioId)).andReturn();
+        var dto = objectMapper.readValue(result.getResponse().getContentAsString(),
+                br.com.powergrid.controlcenter.dto.AlertaSobrecargaResponseDTO.class);
+        assertThat(dto.reconhecidoEm().toInstant()).isEqualTo(AGORA.plusSeconds(30));
+        assertThat(dto.reconhecidoEm().getOffset()).isEqualTo(ZoneOffset.UTC);
+        entityManager.flush(); entityManager.clear();
+        var salvo = alertas.findById(alerta.getId()).orElseThrow();
+        assertThat(salvo.getStatus()).isEqualTo(StatusAlerta.RECONHECIDO);
+        assertThat(salvo.getReconhecidoPorUsuario().getId()).isEqualTo(usuarioId);
+        assertThat(salvo.getReconhecidoEm().toInstant()).isEqualTo(dto.reconhecidoEm().toInstant());
+        mockMvc.perform(get(base()).session(sessao).param("status", "ATIVO"))
+                .andExpect(status().isOk()).andExpect(jsonPath("$.content").isEmpty());
+        mockMvc.perform(get(base()).session(sessao).param("status", "RECONHECIDO"))
+                .andExpect(status().isOk()).andExpect(jsonPath("$.content[0].id").value(alerta.getId()));
+    }
+
+    @Test
+    void devePreservarPrimeiroAutorEHorarioEmRepeticoes() throws Exception {
+        var alerta = gerar("10.8", fonte);
+        when(clock.instant()).thenReturn(AGORA.plusNanos(123456789));
+        String primeira = mockMvc.perform(patch(reconhecimentoUrl(alerta.getId())).session(sessao)
+                .header(csrf.headerName(), csrf.token())).andExpect(status().isOk())
+                .andReturn().getResponse().getContentAsString();
+        when(clock.instant()).thenReturn(AGORA.plusSeconds(120));
+        mockMvc.perform(patch(reconhecimentoUrl(alerta.getId())).session(sessao).header(csrf.headerName(), csrf.token()))
+                .andExpect(status().isOk()).andExpect(content().json(primeira));
+        autenticarGerente();
+        mockMvc.perform(patch(reconhecimentoUrl(alerta.getId())).session(sessao).header(csrf.headerName(), csrf.token())
+                .contentType(MediaType.APPLICATION_JSON).content("{}"))
+                .andExpect(status().isOk()).andExpect(content().json(primeira));
+        entityManager.flush(); entityManager.clear();
+        mockMvc.perform(get(base() + "/" + alerta.getId()).session(sessao))
+                .andExpect(status().isOk()).andExpect(content().json(primeira));
+    }
+
+    @Test
+    void naoDeveAceitarAutoriaOuHorarioDoCorpo() throws Exception {
+        var alerta = gerar("10.8", fonte);
+        Long operador = entityManager.createQuery("select u.id from Usuario u where u.email = :email", Long.class)
+                .setParameter("email", "operador@powergrid.local").getSingleResult();
+        var payload = Map.of("reconhecidoPorUsuarioId", Long.MAX_VALUE, "reconhecidoEm", "2000-01-01T00:00:00Z");
+        var result = mockMvc.perform(patch(reconhecimentoUrl(alerta.getId())).session(sessao)
+                .header(csrf.headerName(), csrf.token()).contentType(MediaType.APPLICATION_JSON)
+                .content(objectMapper.writeValueAsString(payload)))
+                .andExpect(status().isOk()).andExpect(jsonPath("$.reconhecidoPorUsuarioId").value(operador)).andReturn();
+        var dto = objectMapper.readValue(result.getResponse().getContentAsString(),
+                br.com.powergrid.controlcenter.dto.AlertaSobrecargaResponseDTO.class);
+        assertThat(dto.reconhecidoEm().toInstant()).isEqualTo(AGORA);
+    }
+
+    @Test
+    void deveRetornar404AoReconhecerAlertaInexistente() throws Exception {
+        mockMvc.perform(patch(reconhecimentoUrl(Long.MAX_VALUE)).session(sessao).header(csrf.headerName(), csrf.token()))
+                .andExpect(status().isNotFound()).andExpect(jsonPath("$.status").value(404));
+    }
+
+    @Test
+    void deveExigirSessaoECsrfNoReconhecimento() throws Exception {
+        var alerta = gerar("10.8", fonte);
+        mockMvc.perform(patch(reconhecimentoUrl(alerta.getId())).session(sessao)).andExpect(status().isForbidden());
+        var inicial = mockMvc.perform(get("/api/auth/csrf")).andExpect(status().isOk()).andReturn();
+        var anonima = (MockHttpSession) inicial.getRequest().getSession(false);
+        var token = objectMapper.readValue(inicial.getResponse().getContentAsString(), CsrfResponse.class);
+        mockMvc.perform(patch(reconhecimentoUrl(alerta.getId())).session(anonima).header(token.headerName(), token.token()))
+                .andExpect(status().isUnauthorized());
+        entityManager.flush(); entityManager.clear();
+        var salvo = alertas.findById(alerta.getId()).orElseThrow();
+        assertThat(salvo.getStatus()).isEqualTo(StatusAlerta.ATIVO);
+        assertThat(salvo.getReconhecidoPorUsuario()).isNull(); assertThat(salvo.getReconhecidoEm()).isNull();
+    }
+
+    private String reconhecimentoUrl(Long id) { return base() + "/" + id + "/reconhecimento"; }
+
+    private void autenticarGerente() throws Exception {
+        String email = entityManager.createQuery("select u.email from Usuario u where u.perfil = :perfil", String.class)
+                .setParameter("perfil", PerfilAcesso.GERENTE_OPERACOES).getSingleResult();
+        var inicial = mockMvc.perform(get("/api/auth/csrf")).andExpect(status().isOk()).andReturn();
+        sessao = (MockHttpSession) inicial.getRequest().getSession(false);
+        var token = objectMapper.readValue(inicial.getResponse().getContentAsString(), CsrfResponse.class);
+        mockMvc.perform(post("/api/auth/login").session(sessao).header(token.headerName(), token.token())
+                .contentType(MediaType.APPLICATION_FORM_URLENCODED).param("email", email).param("password", "SenhaSegura123"))
+                .andExpect(status().isOk());
+        var renovado = mockMvc.perform(get("/api/auth/csrf").session(sessao)).andExpect(status().isOk()).andReturn();
+        csrf = objectMapper.readValue(renovado.getResponse().getContentAsString(), CsrfResponse.class);
+    }
+
     private String base() { return "/api/alertas-sobrecarga"; }
     private AlertaSobrecarga gerar(String potencia, FonteMedicao f) throws Exception {
         var req = Map.of("fonteId", f.getId(), "medidoEm", "2026-10-28T10:00:00-03:00", "potenciaAparenteMva", new BigDecimal(potencia));

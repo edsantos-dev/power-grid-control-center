@@ -630,7 +630,7 @@ Como operador, quero receber alertas automáticos de sobrecarga em transformador
 - **Perfil e prioridade:** Operador. Prioridade: Alta.
 - **Status:** Em andamento.
 - **Implementação existente:** Frontend com alertas estáticos. V8 e persistência de AlertaSobrecarga em revisão; ingestão ainda não gera o alerta automaticamente.
-- **Trabalho pendente:** Reconhecimento no Lote 3, revisão do backend e integração da interface.
+- **Trabalho pendente:** Revisão do backend, integração da interface e aceite funcional.
 - **Dependências:** US11; US20; medições e limites de detecção.
 - **Referências no frontend:** [Alertas/index.tsx](../frontend/src/pages/Alertas/index.tsx#L18) (linhas 18); [Transformadores/index.tsx](../frontend/src/pages/Transformadores/index.tsx#L20) (linhas 20).
 
@@ -649,9 +649,11 @@ Como operador, quero receber alertas automáticos de sobrecarga em transformador
 
 **US21-T02 — Lote 1 em revisão:** V8 cria alerta_sobrecarga com ativo_id obrigatório referenciando ativo_rede, medicao_id obrigatório/único referenciando medicao_transformador, carga_percentual NUMERIC(27,6), limiar_percentual NUMERIC(19,6) positivo e finito, status e gerado_em obrigatórios. Reconhecimento exige instante e usuário existentes; ATIVO exige ambos nulos. Status fora de ATIVO/RECONHECIDO é rejeitado. AlertaSobrecarga mapeia associações LAZY sem cascata, identidade própria e relação exclusiva com a medição. AlertaSobrecargaRepositoryTest cobre estados, unicidade, nulidade, limiar e FKs. A FK genérica garante existência do ativo; a correspondência com o transformador da medição será validada na geração pelo serviço.
 
-**US21-T02 — Lote 2 em revisão:** Limiar fixo 100.000000; comparação estrita do percentual calculado pela ingestão (seis casas HALF_EVEN), um alerta por medição excedente e persistência na mesma transação da ingestão. O alerta preserva carga e limiar aplicados; leituras atrasadas também serão avaliadas. Consultas paginadas terão filtros por transformador/status/período de geração. Reconhecimento idempotente preservará o primeiro autor e instante da sessão, em lote próprio. A tabela de alertas genéricos da US20 não receberá duplicatas destes registros. Geração e consultas já estão implementadas. Reconhecimento permanece sem endpoint neste lote.
+**US21-T02 — Lote 2 em revisão:** Limiar fixo 100.000000; comparação estrita do percentual calculado pela ingestão (seis casas HALF_EVEN), um alerta por medição excedente e persistência na mesma transação da ingestão. O alerta preserva carga e limiar aplicados; leituras atrasadas também serão avaliadas. Consultas paginadas terão filtros por transformador/status/período de geração. Reconhecimento idempotente preserva o primeiro autor e instante, obtendo a identidade da sessão. A tabela de alertas genéricos da US20 não receberá duplicatas destes registros. Geração e consultas já estão implementadas. O Lote 3 disponibiliza PATCH /api/alertas-sobrecarga/{id}/reconhecimento sem corpo obrigatório.
 
 **API de sobrecarga:** GET /api/alertas-sobrecarga retorna PageResponseDTO, padrões 0/20, máximo 100, ordem geradoEm DESC/id DESC e rejeição de sort. Filtros opcionais ativoId positivo, status ATIVO/RECONHECIDO e período de geração com início inclusivo/fim exclusivo. GET /{id} retorna detalhe ou 404. Ambas exigem sessão. AlertaSobrecargaService.avaliarEGerar usa propagação MANDATORY e recebe o percentual produzido pela ingestão; falha na gravação do alerta desfaz a medição. AlertaSobrecargaControllerTest cobre consultas e filtros; MedicaoTransformadorControllerTest cobre limiar e vínculos; AlertaSobrecargaTransacaoTest verifica rollback sem transação externa no teste.
+
+**US21-T02 — Lote 3 em revisão:** Reconhecimento transacional com bloqueio pessimista do alerta. ATIVO recebe usuário da sessão HTTP e instante UTC com precisão de microssegundos. RECONHECIDO retorna 200 preservando o primeiro autor e horário, inclusive após repetição por outro usuário. Alerta inexistente retorna 404. Sessão e CSRF são obrigatórios; IDs ou horários enviados no corpo não definem a autoria. AlertaSobrecargaControllerTest cobre persistência, repetição, sessão e CSRF; AlertaSobrecargaReconhecimentoConcorrenteTest verifica duas transações disputando o mesmo alerta. A interface e o aceite funcional da história continuam pendentes.
 
 ### US22 — Gerar alertas de tensão anormal
 

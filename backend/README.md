@@ -271,4 +271,10 @@ Medição e alerta são persistidos na mesma transação; falha na gravação do
 
 GET /api/alertas-sobrecarga exige sessão e retorna PageResponseDTO com padrões page=0/size=20 e máximo 100. A ordenação fixa é geradoEm DESC/id DESC, rejeitando sort. Filtros opcionais: ativoId positivo, status ATIVO ou RECONHECIDO e dataInicio/dataFim ISO 8601 com offset sobre geradoEm. Início inclusivo e fim exclusivo; início deve ser anterior ao fim. Parâmetros vazios, repetidos, malformados ou fora dos limites retornam 400. Filtro de ativo sem resultados retorna conteúdo vazio.
 
-GET /api/alertas-sobrecarga/{id} retorna 200 ou 404. Respostas incluem id, ativoId, medicaoId, cargaPercentual, limiarPercentual, status, geradoEm, reconhecidoEm e reconhecidoPorUsuarioId. Os alertas específicos não são duplicados na API genérica da US20. O reconhecimento por operador será entregue no Lote 3.
+GET /api/alertas-sobrecarga/{id} retorna 200 ou 404. Respostas incluem id, ativoId, medicaoId, cargaPercentual, limiarPercentual, status, geradoEm, reconhecidoEm e reconhecidoPorUsuarioId. Os alertas específicos não são duplicados na API genérica da US20. O reconhecimento por operador é disponibilizado pelo PATCH descrito abaixo.
+
+### Reconhecimento de sobrecarga
+
+PATCH /api/alertas-sobrecarga/{id}/reconhecimento exige sessão e CSRF, sem corpo obrigatório. Retorna 200 com AlertaSobrecargaResponseDTO ou 404 se o alerta não existir. A identidade é obtida do usuário autenticado da sessão; corpo e parâmetros não podem escolher o autor nem o horário.
+
+ATIVO passa para RECONHECIDO com reconhecidoPorUsuarioId e reconhecidoEm gerados pelo servidor. O relógio é UTC e o instante é truncado para microssegundos, conforme a precisão do banco. Repetições, inclusive por outro usuário autenticado, retornam 200 e preservam o primeiro autor e horário. A transação adquire bloqueio pessimista no alerta antes de verificar o status. Reconhecimento não representa recuperação elétrica nem encerra automaticamente os demais alertas.
