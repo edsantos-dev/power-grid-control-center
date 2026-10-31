@@ -662,7 +662,7 @@ Como operador, quero receber alertas de variação anormal de tensão, para evit
 - **Perfil e prioridade:** Operador. Prioridade: Alta.
 - **Status:** Em andamento.
 - **Implementação existente:** Frontend estático. V9 e persistência de AlertaTensao em revisão, sem detector ou rotas específicos neste lote.
-- **Trabalho pendente:** Detector transacional na ingestão de linhas, consultas e reconhecimento; integração da interface.
+- **Trabalho pendente:** Reconhecimento no Lote 3, revisão do backend e integração da interface.
 - **Dependências:** US08; US20; faixas de tensão e regras de geração.
 - **Referências no frontend:** [Alertas/index.tsx](../frontend/src/pages/Alertas/index.tsx#L19) (linhas 19); [Monitoramento/index.tsx](../frontend/src/pages/Monitoramento/index.tsx#L13) (linhas 13).
 
@@ -681,7 +681,9 @@ Como operador, quero receber alertas de variação anormal de tensão, para evit
 
 **US22-T02 — Lote 1 em revisão:** V9 cria alerta_tensao com ativo_id (FK ativo_rede), medicao_id (FK medicao_linha, único), tipo SUBTENSAO/SOBRETENSAO, snapshots de tensão medida e referência em NUMERIC(19,6), limites em NUMERIC(22,8), status e datas de auditoria. Referência e limites são positivos; medida é não negativa. Valores não finitos são rejeitados. O ciclo replica a US21: ATIVO com reconhecimento/usuário nulos; RECONHECIDO com ambos preenchidos. AlertaTensaoRepositoryTest cobre persistência, tipos, snapshots, ciclo, unicidade, campos obrigatórios, valores e FKs.
 
-**Contrato dos próximos lotes:** tensaoOperacaoKv é a referência nominal didática. Subtensão abaixo de 95% e sobretensão acima de 105%; fronteiras normais. O detector avaliará sem arredondamento intermediário, usando BigDecimal, somente leituras com tensão. Ausência de referência válida quando houver tensão deve retornar 400 antes de persistir. Cada leitura anormal gera uma ocorrência própria, inclusive histórica, na mesma transação da medição. Reconhecimento não representa recuperação e nova leitura normal não encerra alertas anteriores. Consultas, geração e reconhecimento ainda não são implementados neste lote. A correspondência entre ativo, linha da medição e faixa será validada pelo serviço, não pelas FKs simples.
+**Contrato dos próximos lotes:** tensaoOperacaoKv é a referência nominal didática. Subtensão em <=95% e sobretensão em >=105%, com fronteiras inclusivas conforme o contrato do Lote 2. O detector avaliará sem arredondamento intermediário, usando BigDecimal, somente leituras com tensão. Ausência de referência válida quando houver tensão deve retornar 400 antes de persistir. Cada leitura anormal gera uma ocorrência própria, inclusive histórica, na mesma transação da medição. Reconhecimento não representa recuperação e nova leitura normal não encerra alertas anteriores. Geração transacional e consultas estão implementadas no Lote 2; reconhecimento permanece pendente. A correspondência entre ativo, linha da medição e faixa será validada pelo serviço, não pelas FKs simples.
+
+**US22-T02 — Lote 2 em revisão:** MedicaoLinhaService carrega a referência cadastral antes de persistir e rejeita tensão informada com referência nula/não positiva (400). AlertaTensaoService participa obrigatoriamente da transação e calcula limites exatos com fatores 0.95/1.05. Uma leitura igual ao limite já gera alerta, sem arredondamento intermediário. Sem tensão, não há avaliação. GET /api/alertas-tensao usa paginação 0/20, máximo 100, geradoEm DESC/id DESC e filtros por ativoId, tipo, status e período de geração; sort e parâmetros inválidos são rejeitados. GET /{id} retorna detalhe ou 404. AlertaTensaoControllerTest cobre limites e filtros; AlertaTensaoTransacaoTest verifica rollback sem transação externa envolvendo a ingestão.
 
 ### US23 — Gerar alertas de perda de comunicação
 

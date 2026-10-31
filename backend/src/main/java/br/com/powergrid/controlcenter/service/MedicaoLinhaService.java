@@ -28,25 +28,26 @@ public class MedicaoLinhaService {
     private final MedicaoLinhaRepository repository;
     private final FonteMedicaoRepository fontes;
     private final LinhaTransmissaoRepository linhas;
+    private final AlertaTensaoService alertas;
     private final Clock clock;
     private final long toleranciaSegundos;
 
     public MedicaoLinhaService(MedicaoLinhaRepository repository, FonteMedicaoRepository fontes,
-            LinhaTransmissaoRepository linhas, Clock clock,
+            LinhaTransmissaoRepository linhas, Clock clock, AlertaTensaoService alertas,
             @Value("${medicoes.tolerancia-futura-segundos:60}") long toleranciaSegundos) {
         if (toleranciaSegundos < 0) throw new IllegalArgumentException("Tolerância temporal deve ser não negativa.");
         this.repository = repository;
         this.fontes = fontes;
         this.linhas = linhas;
         this.clock = clock;
+        this.alertas = alertas;
         this.toleranciaSegundos = toleranciaSegundos;
     }
 
     @Transactional
     public MedicaoLinhaResponseDTO ingerir(Long linhaId, MedicaoLinhaRequestDTO request) {
-        if (!linhas.existsById(linhaId)) {
-            throw new ResponseStatusException(HttpStatus.NOT_FOUND, "Linha de transmissão não encontrada.");
-        }
+        var linhaCadastro = linhas.findById(linhaId).orElseThrow(() ->
+                new ResponseStatusException(HttpStatus.NOT_FOUND, "Linha de transmissão não encontrada."));
         FonteMedicao fonte = fontes.findById(request.fonteId())
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Fonte de medição não encontrada."));
         if (!fonte.getAtivo().getId().equals(linhaId)) {
@@ -72,6 +73,10 @@ public class MedicaoLinhaService {
         if (request.frequenciaHz() != null && request.frequenciaHz().signum() <= 0) {
             throw invalido("Frequência deve ser estritamente positiva.");
         }
+        BigDecimal referenciaTensao = linhaCadastro.getTensaoOperacaoKv();
+        if (request.tensaoKv() != null && (referenciaTensao == null || referenciaTensao.signum() <= 0)) {
+            throw invalido("Linha sem tensão de referência válida.");
+        }
         Instant agora = Instant.now(clock);
         if (request.medidoEm().toInstant().isAfter(agora.plusSeconds(toleranciaSegundos))) {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Instante da medição excede a tolerância futura.");
@@ -90,6 +95,7 @@ public class MedicaoLinhaService {
         } catch (DataIntegrityViolationException ex) {
             throw invalido("Medição incompatível com as restrições de integridade.");
         }
+        alertas.avaliarEGerar(medicao, referenciaTensao);
         return toResponse(medicao);
     }
 
