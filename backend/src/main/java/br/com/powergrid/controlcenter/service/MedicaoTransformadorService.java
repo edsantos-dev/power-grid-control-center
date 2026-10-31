@@ -26,14 +26,16 @@ public class MedicaoTransformadorService {
     private final MedicaoTransformadorRepository repository;
     private final FonteMedicaoRepository fontes;
     private final TransformadorRepository transformadores;
+    private final AlertaSobrecargaService alertas;
     private final Clock clock;
     private final long toleranciaSegundos;
 
     public MedicaoTransformadorService(MedicaoTransformadorRepository repository, FonteMedicaoRepository fontes,
-            TransformadorRepository transformadores, Clock clock,
+            TransformadorRepository transformadores, Clock clock, AlertaSobrecargaService alertas,
             @Value("${medicoes.tolerancia-futura-segundos:60}") long toleranciaSegundos) {
         if (toleranciaSegundos < 0) throw new IllegalArgumentException("Tolerância deve ser não negativa.");
         this.repository = repository; this.fontes = fontes; this.transformadores = transformadores;
+        this.alertas = alertas;
         this.clock = clock; this.toleranciaSegundos = toleranciaSegundos;
     }
 
@@ -62,7 +64,9 @@ public class MedicaoTransformadorService {
         } catch (DataIntegrityViolationException ex) {
             throw invalido("Medição incompatível com as restrições de integridade.");
         }
-        return toResponse(medicao);
+        var response = toResponse(medicao);
+        alertas.avaliarEGerar(medicao, response.cargaPercentual());
+        return response;
     }
 
     @Transactional(readOnly = true)

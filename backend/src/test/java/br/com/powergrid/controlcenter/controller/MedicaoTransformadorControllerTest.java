@@ -41,6 +41,7 @@ class MedicaoTransformadorControllerTest {
     @Autowired private ObjectMapper objectMapper;
     @Autowired private EntityManager entityManager;
     @Autowired private MedicaoTransformadorRepository repository;
+    @Autowired private br.com.powergrid.controlcenter.repository.AlertaSobrecargaRepository alertas;
     @MockitoBean private Clock clock;
     private static final Instant AGORA = Instant.parse("2026-10-29T12:00:00Z");
     private MockHttpSession sessao;
@@ -217,6 +218,23 @@ class MedicaoTransformadorControllerTest {
         mockMvc.perform(post(fontesUrl(transformadorId)).session(sessao).contentType(MediaType.APPLICATION_JSON)
                 .content(objectMapper.writeValueAsString(Map.of("identificador", "NOVA", "origem", "SIMULADA"))))
                 .andExpect(status().isForbidden());
+    }
+
+    @ParameterizedTest
+    @CsvSource({"8.5,0", "10,0", "10.8,1"})
+    void deveGerarAlertaSomenteAcimaDeCem(String potencia, long total) throws Exception {
+        var request = valido(); request.put("potenciaAparenteMva", new BigDecimal(potencia));
+        var medicao = resposta(enviar(transformadorId, request, 201));
+        assertThat(alertas.count()).isEqualTo(total);
+        if (total == 1) {
+            var alerta = alertas.findAll().getFirst();
+            assertThat(alerta.getMedicao().getId()).isEqualTo(medicao.id());
+            assertThat(alerta.getAtivo().getId()).isEqualTo(transformadorId);
+            assertThat(alerta.getCargaPercentual()).isEqualByComparingTo("108");
+            assertThat(alerta.getLimiarPercentual()).isEqualByComparingTo("100");
+            assertThat(alerta.getStatus()).isEqualTo(StatusAlerta.ATIVO);
+            assertThat(alerta.getGeradoEm().toInstant()).isEqualTo(AGORA);
+        }
     }
 
     private String url(Long id) { return "/api/transformadores/" + id + "/medicoes"; }

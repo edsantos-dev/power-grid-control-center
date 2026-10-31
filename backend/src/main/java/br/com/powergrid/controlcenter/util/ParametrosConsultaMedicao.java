@@ -12,6 +12,10 @@ import org.springframework.web.server.ResponseStatusException;
 
 public record ParametrosConsultaMedicao(Pageable pageable, OffsetDateTime inicio, OffsetDateTime fim) {
     public static ParametrosConsultaMedicao from(MultiValueMap<String, String> params) {
+        return from(params, "medidoEm");
+    }
+
+    public static ParametrosConsultaMedicao from(MultiValueMap<String, String> params, String campoInstante) {
         if (params.containsKey("sort")) throw invalido("Ordenação personalizada não é permitida.");
         int page = inteiro(params, "page", 0);
         int size = inteiro(params, "size", 20);
@@ -22,9 +26,9 @@ public record ParametrosConsultaMedicao(Pageable pageable, OffsetDateTime inicio
             throw invalido("dataInicio deve ser anterior a dataFim.");
         }
         return new ParametrosConsultaMedicao(PageRequest.of(page, size,
-                Sort.by(Sort.Direction.DESC, "medidoEm", "id")), inicio, fim);
+                Sort.by(Sort.Direction.DESC, campoInstante, "id")), inicio, fim);
     }
-    private static String parametro(MultiValueMap<String, String> params, String nome) {
+    public static String parametro(MultiValueMap<String, String> params, String nome) {
         if (!params.containsKey(nome)) return null;
         var values = params.get(nome);
         if (values == null || values.size() != 1 || values.getFirst() == null || values.getFirst().isBlank()) {
