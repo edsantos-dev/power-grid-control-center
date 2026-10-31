@@ -311,3 +311,10 @@ GET /api/alertas-comunicacao exige sessão e retorna PageResponseDTO, page=0/siz
 As ingestões de linhas e transformadores adquirem o bloqueio da fonte antes de capturar recebidoEm. FonteMedicaoService.registrarComunicacaoValida exige a transação da ingestão e usa o mesmo instante UTC, com precisão de microssegundos, para ultimaComunicacaoEm e restabelecidoEm. Um episódio ATIVO passa para RESTABELECIDO; episódios anteriores mantêm seus snapshots e instante de restabelecimento. Leituras históricas válidas comprovam contato pelo recebimento atual.
 
 Medição, contato, recuperação e geração de alertas elétricos são atômicos. Falhas posteriores ou leituras rejeitadas não confirmam contato nem restabelecimento. Job e ingestões usam a mesma ordem de bloqueio da fonte; uma nova ausência após a tolerância pode gerar outro episódio. Comunicação restabelecida não implica normalidade elétrica. O recorte atual atende fontes de linhas e transformadores; comunicação de medidores e integração com o frontend permanecem pendentes.
+
+
+## Projeção unificada de alertas — US24
+
+A V11 adiciona criticidade obrigatória aos alertas automáticos e cria vw_alertas_dashboard com UNION ALL dos alertas genéricos, sobrecarga, tensão e comunicação. O backfill atribui ALTA a sobrecarga/tensão e MEDIA à comunicação; a geração mantém a política como snapshot persistido. São aceitos BAIXA, MEDIA, ALTA e CRITICA. A classificação dos alertas genéricos é preservada.
+
+AlertaDashboardView é uma entidade imutável com identidade composta idOrigem/tipoAlerta, sem colisão entre IDs de tabelas diferentes. O repositório oferece somente leitura e paginação. A view preserva os estados originais, auditoria disponível e snapshots técnicos; não duplica registros em tabela auxiliar. Campos inexistentes na origem permanecem nulos. Este lote não disponibiliza o endpoint unificado; consultas Web e filtros pertencem ao próximo lote.

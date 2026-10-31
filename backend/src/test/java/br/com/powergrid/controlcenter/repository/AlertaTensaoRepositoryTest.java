@@ -36,6 +36,7 @@ class AlertaTensaoRepositoryTest {
         Long ativoId = alerta.getAtivo().getId(); Long medicaoId = alerta.getMedicao().getId(); entityManager.clear();
         AlertaTensao salvo = repository.findById(alerta.getId()).orElseThrow();
         assertThat(salvo.getStatus()).isEqualTo(StatusAlerta.ATIVO);
+        assertThat(salvo.getCriticidade()).isEqualTo(Criticidade.ALTA);
         assertThat(salvo.getReconhecidoEm()).isNull(); assertThat(salvo.getReconhecidoPorUsuario()).isNull();
         assertThat(salvo.getTensaoMedidaKv()).isEqualByComparingTo("90");
         assertThat(salvo.getTensaoReferenciaKv()).isEqualByComparingTo("100");

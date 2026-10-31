@@ -726,9 +726,9 @@ Como operador, quero receber alertas de perda de comunicação com dispositivos,
 Como gerente, quero visualizar o histórico de alertas gerados por criticidade, para avaliar a recorrência de problemas na rede.
 
 - **Perfil e prioridade:** Gerente de Operações. Prioridade: Baixa.
-- **Status:** A fazer.
-- **Implementação existente:** Filtro por nível em array local de ativos e resolvidos.
-- **Trabalho pendente:** Sem histórico persistente ou ações rastreadas.
+- **Status:** Em andamento.
+- **Implementação existente:** Frontend com filtro por nível em array local. V11, criticidades persistidas e projeção unificada somente de leitura em revisão.
+- **Trabalho pendente:** Consulta Web paginada e filtros (Lote 2), verificação integrada (Lote 3), integração da interface e aceite funcional.
 - **Dependências:** US20; persistência e histórico de alertas.
 - **Referências no frontend:** [Alertas/index.tsx](../frontend/src/pages/Alertas/index.tsx#L17) (linhas 17,39).
 
@@ -744,6 +744,12 @@ Como gerente, quero visualizar o histórico de alertas gerados por criticidade, 
 - [ ] **US24-T02:** Implementar o recorte de backend com testes pertinentes e documentação.
 - [ ] **US24-T03:** Integrar a interface com testes pertinentes e documentação.
 - [ ] **US24-T04:** Verificar integração/aceite e apresentar resultados e limitações.
+
+**US24-T02 — Lote 1 em revisão:** V11 adiciona criticidade obrigatória nas tabelas automáticas, com domínio BAIXA/MEDIA/ALTA/CRITICA. O backfill atribui ALTA a sobrecarga/tensão e MEDIA à comunicação; a geração grava a mesma política como snapshot. Defaults no banco e nas entidades preservam a política nas gravações existentes; valores explicitamente nulos ou inválidos são rejeitados. A criticidade do alerta genérico é preservada.
+
+**Projeção unificada:** vw_alertas_dashboard usa UNION ALL das quatro origens, sem tabela auxiliar nem sincronização de cópias. AlertaDashboardView é imutável, sem setters, com chave composta idOrigem/tipoAlerta; AlertaDashboardViewRepository expõe apenas leitura e paginação. A view preserva escopo, vínculos, estados originais, auditoria disponível e snapshots técnicos. Reconhecimento não é convertido em resolução; ausências legadas permanecem nulas. A consulta Web e a descrição de apresentação serão implementadas no Lote 2.
+
+**Verificação da persistência:** AlertaDashboardViewRepositoryTest cobre as quatro origens com o mesmo ID, estados, auditoria, snapshots, paginação, alterações na origem, campos nulos legados e constraints de criticidade. AlertasV11MigrationTest verifica classificação e preservação dos registros existentes ao migrar da V10.
 
 ### US25 — Autenticar e restringir acesso por perfil
 

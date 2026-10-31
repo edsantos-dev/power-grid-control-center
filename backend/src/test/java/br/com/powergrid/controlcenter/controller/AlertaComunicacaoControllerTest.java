@@ -75,6 +75,7 @@ class AlertaComunicacaoControllerTest {
         assertThat(alerta.getUltimaComunicacaoEm()).isEqualTo(fonte.getUltimaComunicacaoEm());
         assertThat(alerta.getDetectadoEm().toInstant()).isEqualTo(AGORA);
         assertThat(alerta.getStatus()).isEqualTo(StatusComunicacao.ATIVO);
+        assertThat(alerta.getCriticidade()).isEqualTo(Criticidade.MEDIA);
         when(clock.instant()).thenReturn(AGORA.plusSeconds(60));
         var repetido = avaliar();
         assertThat(repetido.alertasCriados()).isZero();

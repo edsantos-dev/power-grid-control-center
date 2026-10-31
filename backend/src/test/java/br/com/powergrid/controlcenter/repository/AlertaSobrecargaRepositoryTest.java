@@ -35,6 +35,7 @@ class AlertaSobrecargaRepositoryTest {
         Long ativoId = alerta.getAtivo().getId(); Long medicaoId = alerta.getMedicao().getId(); entityManager.clear();
         AlertaSobrecarga salvo = repository.findById(alerta.getId()).orElseThrow();
         assertThat(salvo.getStatus()).isEqualTo(StatusAlerta.ATIVO);
+        assertThat(salvo.getCriticidade()).isEqualTo(Criticidade.ALTA);
         assertThat(salvo.getReconhecidoEm()).isNull(); assertThat(salvo.getReconhecidoPorUsuario()).isNull();
         assertThat(salvo.getCargaPercentual()).isEqualByComparingTo("108");
         assertThat(salvo.getLimiarPercentual()).isEqualByComparingTo("100");

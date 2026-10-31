@@ -22,6 +22,11 @@ public class AlertaTensao {
     @EqualsAndHashCode.Include
     private Long id;
 
+    @Enumerated(EnumType.STRING)
+    @JdbcTypeCode(SqlTypes.VARCHAR)
+    @Column(nullable = false, length = 20)
+    private Criticidade criticidade = Criticidade.ALTA;
+
     @ManyToOne(fetch = FetchType.LAZY, optional = false)
     @JoinColumn(name = "ativo_id", nullable = false)
     private AtivoRede ativo;

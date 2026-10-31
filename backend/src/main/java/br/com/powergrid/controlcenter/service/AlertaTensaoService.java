@@ -44,6 +44,7 @@ public class AlertaTensaoService {
         else if (tensao.compareTo(superior) >= 0) tipo = TipoAlertaTensao.SOBRETENSAO;
         else return;
         AlertaTensao alerta = new AlertaTensao();
+        alerta.setCriticidade(Criticidade.ALTA);
         alerta.setMedicao(medicao); alerta.setAtivo(medicao.getFonte().getAtivo()); alerta.setTipo(tipo);
         alerta.setTensaoMedidaKv(tensao); alerta.setTensaoReferenciaKv(referencia);
         alerta.setLimiteInferiorKv(inferior); alerta.setLimiteSuperiorKv(superior);

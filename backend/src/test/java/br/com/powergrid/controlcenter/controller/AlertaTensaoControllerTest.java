@@ -76,6 +76,7 @@ class AlertaTensaoControllerTest {
         var medicao = ingerir(medida, 201);
         var alerta = unico();
         assertThat(alerta.getTipo()).isEqualTo(TipoAlertaTensao.valueOf(tipo));
+        assertThat(alerta.getCriticidade()).isEqualTo(Criticidade.ALTA);
         assertThat(alerta.getMedicao().getId()).isEqualTo(medicao.id());
         assertThat(alerta.getAtivo().getId()).isEqualTo(linhaId);
         assertThat(alerta.getTensaoMedidaKv()).isEqualByComparingTo(medida);
