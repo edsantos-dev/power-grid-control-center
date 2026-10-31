@@ -692,15 +692,15 @@ Como operador, quero receber alertas de variação anormal de tensão, para evit
 Como operador, quero receber alertas de perda de comunicação com dispositivos, para identificar falhas de monitoramento rapidamente.
 
 - **Perfil e prioridade:** Operador. Prioridade: Média.
-- **Status:** A fazer.
-- **Implementação existente:** Medidor offline e alerta definidos como literais.
-- **Trabalho pendente:** Sem instante real de última comunicação, relógio de avaliação ou detector.
+- **Status:** Em andamento.
+- **Implementação existente:** Frontend com indicação offline estática. V10 e persistência de comunicação por fonte em revisão; o recorte inicial atende fontes de linhas e transformadores.
+- **Trabalho pendente:** Motor manual de avaliação e consultas (Lote 2); atualização transacional do contato e restabelecimento nas ingestões (Lote 3). Comunicação de medidores inteligentes, integração da interface e aceite funcional permanecem pendentes.
 - **Dependências:** US06; US20; registro da última comunicação e política de tolerância.
 - **Referências no frontend:** [SmartMeters/index.tsx](../frontend/src/pages/SmartMeters/index.tsx#L19) (linhas 19); [Alertas/index.tsx](../frontend/src/pages/Alertas/index.tsx#L20) (linhas 20).
 
 **Critérios de aceitação:**
 
-- [ ] **US23-CA01:** Registrar última comunicação e detectar ausência segundo tolerância definida. **A detalhar.**
+- [ ] **US23-CA01:** Registrar última comunicação e detectar ausência segundo tolerância definida. **Contrato:** tolerância global inicial de 300 segundos; perda estritamente após a tolerância, usando último recebimento válido ou início do monitoramento.
 - [ ] **US23-CA02:** Gerar alerta do dispositivo correto, sem equivaler comunicação perdida a falta de energia. **A detalhar.**
 - [ ] **US23-CA03:** Demonstrar ausência inicial, atraso e recuperação com relógio controlado e regras explícitas. **A detalhar.**
 
@@ -710,6 +710,8 @@ Como operador, quero receber alertas de perda de comunicação com dispositivos,
 - [ ] **US23-T02:** Implementar o recorte de backend com testes pertinentes e documentação.
 - [ ] **US23-T03:** Integrar a interface com testes pertinentes e documentação.
 - [ ] **US23-T04:** Verificar integração/aceite e apresentar resultados e limitações.
+
+**US23-T02 — Lote 1 em revisão:** V10 adiciona monitorada_desde obrigatório e ultima_comunicacao_em opcional à fonte. O início é preenchido no instante da migração; o último contato histórico é o maior recebido_em entre medições de linhas e transformadores. Novas fontes recebem início UTC na persistência, sem inventar último contato. AlertaComunicacao preserva fonte, ativo, instantes de referência, tolerância positiva e detecção. StatusComunicacao distingue ATIVO e RESTABELECIDO; o CHECK exige restabelecido_em somente no segundo estado. A unicidade do episódio ativo será implementada no serviço com bloqueio da fonte no Lote 2, sem índice parcial específico de PostgreSQL. AlertaComunicacaoRepositoryTest cobre persistência e constraints; FontesV10MigrationTest verifica preservação de fontes e leituras e recuperação do último recebimento.
 
 ### US24 — Consultar histórico de alertas por criticidade
 

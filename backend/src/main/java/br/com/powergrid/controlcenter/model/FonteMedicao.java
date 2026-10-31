@@ -1,5 +1,8 @@
 package br.com.powergrid.controlcenter.model;
 
+import java.time.OffsetDateTime;
+import java.time.ZoneOffset;
+import java.time.temporal.ChronoUnit;
 import jakarta.persistence.*;
 import lombok.EqualsAndHashCode;
 import lombok.Getter;
@@ -35,4 +38,17 @@ public class FonteMedicao {
     @JdbcTypeCode(SqlTypes.VARCHAR)
     @Column(nullable = false, length = 16)
     private OrigemMedicao origem;
+
+    @Column(name = "monitorada_desde", nullable = false)
+    private OffsetDateTime monitoradaDesde;
+
+    @Column(name = "ultima_comunicacao_em")
+    private OffsetDateTime ultimaComunicacaoEm;
+
+    @PrePersist
+    private void iniciarMonitoramento() {
+        if (monitoradaDesde == null) {
+            monitoradaDesde = OffsetDateTime.now(ZoneOffset.UTC).truncatedTo(ChronoUnit.MICROS);
+        }
+    }
 }

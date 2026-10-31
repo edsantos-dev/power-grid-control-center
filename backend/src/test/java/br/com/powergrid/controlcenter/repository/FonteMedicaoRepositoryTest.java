@@ -110,6 +110,29 @@ class FonteMedicaoRepositoryTest {
         violacao(fonte, "23506");
     }
 
+    @Test
+    void deveIniciarMonitoramentoSemInventarUltimaComunicacao() {
+        var fonte = repository.saveAndFlush(fonte());
+        assertThat(fonte.getMonitoradaDesde()).isNotNull();
+        assertThat(fonte.getMonitoradaDesde().getOffset()).isEqualTo(java.time.ZoneOffset.UTC);
+        entityManager.clear();
+        var salvo = repository.findById(fonte.getId()).orElseThrow();
+        assertThat(salvo.getMonitoradaDesde().toInstant()).isEqualTo(fonte.getMonitoradaDesde().toInstant());
+        assertThat(salvo.getUltimaComunicacaoEm()).isNull();
+    }
+
+    @Test
+    void devePreservarInstantesDeMonitoramentoInformadosPeloServidor() {
+        var fonte = fonte();
+        var inicio = OffsetDateTime.parse("2026-01-01T10:00:00.123456Z");
+        var contato = inicio.plusMinutes(1);
+        fonte.setMonitoradaDesde(inicio); fonte.setUltimaComunicacaoEm(contato);
+        repository.saveAndFlush(fonte); entityManager.clear();
+        var salvo = repository.findById(fonte.getId()).orElseThrow();
+        assertThat(salvo.getMonitoradaDesde().toInstant()).isEqualTo(inicio.toInstant());
+        assertThat(salvo.getUltimaComunicacaoEm().toInstant()).isEqualTo(contato.toInstant());
+    }
+
     private void violacao(FonteMedicao fonte, String estado) {
         DataIntegrityViolationException ex = assertThrows(DataIntegrityViolationException.class,
                 () -> repository.saveAndFlush(fonte));
