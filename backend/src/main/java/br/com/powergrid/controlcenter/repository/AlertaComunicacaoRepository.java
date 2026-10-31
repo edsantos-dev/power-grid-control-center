@@ -3,6 +3,7 @@ package br.com.powergrid.controlcenter.repository;
 import java.time.OffsetDateTime;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Optional;
 import br.com.powergrid.controlcenter.model.AlertaComunicacao;
 import br.com.powergrid.controlcenter.model.StatusComunicacao;
 import jakarta.persistence.criteria.Predicate;
@@ -15,6 +16,7 @@ import org.springframework.data.jpa.repository.JpaSpecificationExecutor;
 
 public interface AlertaComunicacaoRepository extends JpaRepository<AlertaComunicacao, Long>, JpaSpecificationExecutor<AlertaComunicacao> {
     boolean existsByFonteIdAndStatus(Long fonteId, StatusComunicacao status);
+    Optional<AlertaComunicacao> findByFonteIdAndStatus(Long fonteId, StatusComunicacao status);
 
     default Page<AlertaComunicacao> buscarFiltrados(Long fonteId, Long ativoId, StatusComunicacao status, OffsetDateTime inicio,
             OffsetDateTime fim, Pageable pageable) {

@@ -294,7 +294,7 @@ GET /api/alertas-tensao retorna PageResponseDTO com page=0/size=20, máximo 100,
 
 A V10 adiciona monitorada_desde e ultima_comunicacao_em às fontes. Fontes existentes recebem o início do monitoramento no instante da migração e o maior recebido_em das medições de linhas e transformadores como último contato; fontes sem leituras mantêm o contato nulo. A migração preserva fontes e leituras existentes. Novas fontes recebem início UTC na persistência.
 
-alerta_comunicacao armazena fonte, ativo, snapshots temporais, tolerância positiva e detecção. ATIVO exige restabelecimento nulo; RESTABELECIDO exige instante preenchido. Fonte e ativo são associações LAZY sem cascata. O motor de avaliação garante um único episódio ativo por fonte com bloqueio pessimista. Atualização do contato e recuperação automática nas ingestões permanecem pendentes do Lote 3.
+alerta_comunicacao armazena fonte, ativo, snapshots temporais, tolerância positiva e detecção. ATIVO exige restabelecimento nulo; RESTABELECIDO exige instante preenchido. Fonte e ativo são associações LAZY sem cascata. O motor de avaliação garante um único episódio ativo por fonte com bloqueio pessimista. As ingestões de linhas e transformadores atualizam o contato e restabelecem automaticamente episódios ativos na mesma transação da medição.
 
 
 ### Avaliação manual e consultas de comunicação
@@ -304,3 +304,10 @@ POST /api/jobs/avaliar-comunicacao não exige corpo e requer sessão, CSRF e per
 A avaliação usa um único instante UTC, percorre IDs em lotes de 100 até o maior ID observado no início e confirma uma transação por fonte, mantendo o bloqueio durante a consulta/criação do episódio. Fontes cadastradas durante a execução podem ficar para a próxima avaliação. Perda exige agora > base + timeout; igualdade ainda está dentro da tolerância. A base é ultimaComunicacaoEm ou monitoradaDesde. A resposta contém avaliadoEm, toleranciaSegundos, fontesAvaliadas, alertasCriados e alertasAtivosExistentes. Repetições não duplicam episódios ativos nem alteram seus snapshots. Uma falha interrompe a execução, mas não reverte fontes já confirmadas.
 
 GET /api/alertas-comunicacao exige sessão e retorna PageResponseDTO, page=0/size=20, máximo 100, ordem detectadoEm DESC/id DESC; sort é rejeitado. Filtros opcionais fonteId/ativoId positivos, status ATIVO/RESTABELECIDO e dataInicio inclusiva/dataFim exclusiva em ISO 8601 com offset, sobre detectadoEm. Parâmetros inválidos, vazios ou repetidos retornam 400. GET /api/alertas-comunicacao/{id} retorna detalhe ou 404. Todos os instantes do DTO são normalizados para UTC. Nenhum scheduler é executado automaticamente.
+
+
+### Restabelecimento automático de comunicação
+
+As ingestões de linhas e transformadores adquirem o bloqueio da fonte antes de capturar recebidoEm. FonteMedicaoService.registrarComunicacaoValida exige a transação da ingestão e usa o mesmo instante UTC, com precisão de microssegundos, para ultimaComunicacaoEm e restabelecidoEm. Um episódio ATIVO passa para RESTABELECIDO; episódios anteriores mantêm seus snapshots e instante de restabelecimento. Leituras históricas válidas comprovam contato pelo recebimento atual.
+
+Medição, contato, recuperação e geração de alertas elétricos são atômicos. Falhas posteriores ou leituras rejeitadas não confirmam contato nem restabelecimento. Job e ingestões usam a mesma ordem de bloqueio da fonte; uma nova ausência após a tolerância pode gerar outro episódio. Comunicação restabelecida não implica normalidade elétrica. O recorte atual atende fontes de linhas e transformadores; comunicação de medidores e integração com o frontend permanecem pendentes.

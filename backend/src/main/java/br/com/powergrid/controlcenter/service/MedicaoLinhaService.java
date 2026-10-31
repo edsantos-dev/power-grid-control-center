@@ -8,6 +8,7 @@ import br.com.powergrid.controlcenter.model.SituacaoFatorPotencia;
 import br.com.powergrid.controlcenter.dto.PageResponseDTO;
 import org.springframework.util.MultiValueMap;
 import java.time.Instant;
+import java.time.temporal.ChronoUnit;
 import java.time.ZoneOffset;
 import br.com.powergrid.controlcenter.dto.MedicaoLinhaRequestDTO;
 import br.com.powergrid.controlcenter.dto.MedicaoLinhaResponseDTO;
@@ -30,10 +31,11 @@ public class MedicaoLinhaService {
     private final LinhaTransmissaoRepository linhas;
     private final AlertaTensaoService alertas;
     private final Clock clock;
+    private final FonteMedicaoService comunicacao;
     private final long toleranciaSegundos;
 
     public MedicaoLinhaService(MedicaoLinhaRepository repository, FonteMedicaoRepository fontes,
-            LinhaTransmissaoRepository linhas, Clock clock, AlertaTensaoService alertas,
+            LinhaTransmissaoRepository linhas, Clock clock, AlertaTensaoService alertas, FonteMedicaoService comunicacao,
             @Value("${medicoes.tolerancia-futura-segundos:60}") long toleranciaSegundos) {
         if (toleranciaSegundos < 0) throw new IllegalArgumentException("Tolerância temporal deve ser não negativa.");
         this.repository = repository;
@@ -41,6 +43,7 @@ public class MedicaoLinhaService {
         this.linhas = linhas;
         this.clock = clock;
         this.alertas = alertas;
+        this.comunicacao = comunicacao;
         this.toleranciaSegundos = toleranciaSegundos;
     }
 
@@ -48,7 +51,7 @@ public class MedicaoLinhaService {
     public MedicaoLinhaResponseDTO ingerir(Long linhaId, MedicaoLinhaRequestDTO request) {
         var linhaCadastro = linhas.findById(linhaId).orElseThrow(() ->
                 new ResponseStatusException(HttpStatus.NOT_FOUND, "Linha de transmissão não encontrada."));
-        FonteMedicao fonte = fontes.findById(request.fonteId())
+        FonteMedicao fonte = fontes.buscarPorIdComBloqueio(request.fonteId())
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Fonte de medição não encontrada."));
         if (!fonte.getAtivo().getId().equals(linhaId)) {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "A fonte não pertence à linha informada.");
@@ -77,7 +80,7 @@ public class MedicaoLinhaService {
         if (request.tensaoKv() != null && (referenciaTensao == null || referenciaTensao.signum() <= 0)) {
             throw invalido("Linha sem tensão de referência válida.");
         }
-        Instant agora = Instant.now(clock);
+        Instant agora = Instant.now(clock).truncatedTo(ChronoUnit.MICROS);
         if (request.medidoEm().toInstant().isAfter(agora.plusSeconds(toleranciaSegundos))) {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Instante da medição excede a tolerância futura.");
         }
@@ -95,6 +98,7 @@ public class MedicaoLinhaService {
         } catch (DataIntegrityViolationException ex) {
             throw invalido("Medição incompatível com as restrições de integridade.");
         }
+        comunicacao.registrarComunicacaoValida(fonte.getId(), medicao.getRecebidoEm());
         alertas.avaliarEGerar(medicao, referenciaTensao);
         return toResponse(medicao);
     }
