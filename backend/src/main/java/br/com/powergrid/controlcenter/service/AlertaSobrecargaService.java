@@ -2,6 +2,7 @@ package br.com.powergrid.controlcenter.service;
 
 import java.math.BigDecimal;
 import java.time.Clock;
+import br.com.powergrid.controlcenter.model.Criticidade;
 import java.time.OffsetDateTime;
 import java.time.ZoneOffset;
 import java.time.temporal.ChronoUnit;
@@ -35,6 +36,7 @@ public class AlertaSobrecargaService {
     public void avaliarEGerar(MedicaoTransformador medicao, BigDecimal cargaPercentual) {
         if (cargaPercentual.compareTo(LIMIAR) <= 0) return;
         AlertaSobrecarga alerta = new AlertaSobrecarga();
+        alerta.setCriticidade(Criticidade.ALTA);
         alerta.setMedicao(medicao); alerta.setAtivo(medicao.getFonte().getAtivo());
         alerta.setCargaPercentual(cargaPercentual); alerta.setLimiarPercentual(LIMIAR);
         alerta.setStatus(StatusAlerta.ATIVO);

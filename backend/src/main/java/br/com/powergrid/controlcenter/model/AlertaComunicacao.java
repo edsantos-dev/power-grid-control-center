@@ -21,6 +21,11 @@ public class AlertaComunicacao {
     @EqualsAndHashCode.Include
     private Long id;
 
+    @Enumerated(EnumType.STRING)
+    @JdbcTypeCode(SqlTypes.VARCHAR)
+    @Column(nullable = false, length = 20)
+    private Criticidade criticidade = Criticidade.MEDIA;
+
     @ManyToOne(fetch = FetchType.LAZY, optional = false)
     @JoinColumn(name = "fonte_id", nullable = false)
     private FonteMedicao fonte;

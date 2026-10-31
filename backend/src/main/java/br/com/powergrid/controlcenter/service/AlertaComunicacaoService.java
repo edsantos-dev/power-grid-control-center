@@ -1,6 +1,7 @@
 package br.com.powergrid.controlcenter.service;
 
 import java.time.Clock;
+import br.com.powergrid.controlcenter.model.Criticidade;
 import java.time.OffsetDateTime;
 import java.time.ZoneOffset;
 import java.time.temporal.ChronoUnit;
@@ -72,6 +73,7 @@ public class AlertaComunicacaoService {
         var base = fonte.getUltimaComunicacaoEm() == null ? fonte.getMonitoradaDesde() : fonte.getUltimaComunicacaoEm();
         if (!agora.isAfter(base.plusSeconds(toleranciaSegundos))) return ResultadoFonte.NORMAL;
         var alerta = new AlertaComunicacao();
+        alerta.setCriticidade(Criticidade.MEDIA);
         alerta.setFonte(fonte);
         alerta.setAtivo(fonte.getAtivo());
         alerta.setMonitoradaDesde(fonte.getMonitoradaDesde());

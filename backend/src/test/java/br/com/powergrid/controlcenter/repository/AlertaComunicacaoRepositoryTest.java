@@ -36,6 +36,7 @@ class AlertaComunicacaoRepositoryTest {
         entityManager.clear();
         var salvo = repository.findById(alerta.getId()).orElseThrow();
         assertThat(salvo.getStatus()).isEqualTo(StatusComunicacao.ATIVO);
+        assertThat(salvo.getCriticidade()).isEqualTo(Criticidade.MEDIA);
         assertThat(salvo.getRestabelecidoEm()).isNull();
         assertThat(salvo.getToleranciaSegundos()).isEqualTo(300);
         assertThat(salvo.getMonitoradaDesde().toInstant()).isEqualTo(alerta.getMonitoradaDesde().toInstant());
