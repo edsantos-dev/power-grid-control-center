@@ -1,5 +1,10 @@
 package br.com.powergrid.controlcenter.service;
 
+import java.time.OffsetDateTime;
+import java.time.ZoneOffset;
+import br.com.powergrid.controlcenter.model.StatusComunicacao;
+import br.com.powergrid.controlcenter.repository.AlertaComunicacaoRepository;
+import org.springframework.transaction.annotation.Propagation;
 import br.com.powergrid.controlcenter.dto.FonteMedicaoRequestDTO;
 import br.com.powergrid.controlcenter.dto.FonteMedicaoResponseDTO;
 import br.com.powergrid.controlcenter.model.FonteMedicao;
@@ -16,17 +21,33 @@ import org.springframework.web.server.ResponseStatusException;
 @Service
 public class FonteMedicaoService {
     private final FonteMedicaoRepository fontes;
+    private final AlertaComunicacaoRepository alertasComunicacao;
     private final LinhaTransmissaoRepository linhas;
 
     private final SubestacaoRepository subestacoes;
 
     private final TransformadorRepository transformadores;
 
-    public FonteMedicaoService(FonteMedicaoRepository fontes, LinhaTransmissaoRepository linhas, SubestacaoRepository subestacoes, TransformadorRepository transformadores) {
+    public FonteMedicaoService(FonteMedicaoRepository fontes, LinhaTransmissaoRepository linhas, SubestacaoRepository subestacoes, TransformadorRepository transformadores,
+            AlertaComunicacaoRepository alertasComunicacao) {
         this.fontes = fontes;
+        this.alertasComunicacao = alertasComunicacao;
         this.linhas = linhas;
         this.subestacoes = subestacoes;
         this.transformadores = transformadores;
+    }
+
+    @Transactional(propagation = Propagation.MANDATORY)
+    public void registrarComunicacaoValida(Long fonteId, OffsetDateTime recebidoEm) {
+        var fonte = fontes.buscarPorIdComBloqueio(fonteId).orElseThrow(() ->
+                new ResponseStatusException(HttpStatus.NOT_FOUND, "Fonte de medição não encontrada."));
+        var instante = recebidoEm.withOffsetSameInstant(ZoneOffset.UTC);
+        fonte.setUltimaComunicacaoEm(instante);
+        alertasComunicacao.findByFonteIdAndStatus(fonteId, StatusComunicacao.ATIVO).ifPresent(alerta -> {
+            alerta.setStatus(StatusComunicacao.RESTABELECIDO);
+            alerta.setRestabelecidoEm(instante);
+        });
+        fontes.flush();
     }
 
     @Transactional

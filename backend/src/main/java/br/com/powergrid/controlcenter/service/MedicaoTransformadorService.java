@@ -4,6 +4,7 @@ import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.time.Clock;
 import java.time.Instant;
+import java.time.temporal.ChronoUnit;
 import java.time.ZoneOffset;
 import br.com.powergrid.controlcenter.dto.MedicaoTransformadorRequestDTO;
 import br.com.powergrid.controlcenter.dto.MedicaoTransformadorResponseDTO;
@@ -28,14 +29,16 @@ public class MedicaoTransformadorService {
     private final TransformadorRepository transformadores;
     private final AlertaSobrecargaService alertas;
     private final Clock clock;
+    private final FonteMedicaoService comunicacao;
     private final long toleranciaSegundos;
 
     public MedicaoTransformadorService(MedicaoTransformadorRepository repository, FonteMedicaoRepository fontes,
-            TransformadorRepository transformadores, Clock clock, AlertaSobrecargaService alertas,
+            TransformadorRepository transformadores, Clock clock, AlertaSobrecargaService alertas, FonteMedicaoService comunicacao,
             @Value("${medicoes.tolerancia-futura-segundos:60}") long toleranciaSegundos) {
         if (toleranciaSegundos < 0) throw new IllegalArgumentException("Tolerância deve ser não negativa.");
         this.repository = repository; this.fontes = fontes; this.transformadores = transformadores;
         this.alertas = alertas;
+        this.comunicacao = comunicacao;
         this.clock = clock; this.toleranciaSegundos = toleranciaSegundos;
     }
 
@@ -43,13 +46,13 @@ public class MedicaoTransformadorService {
     public MedicaoTransformadorResponseDTO ingerir(Long id, MedicaoTransformadorRequestDTO request) {
         var transformador = transformadores.findById(id).orElseThrow(() ->
                 new ResponseStatusException(HttpStatus.NOT_FOUND, "Transformador não encontrado."));
-        var fonte = fontes.findById(request.fonteId()).orElseThrow(() ->
+        var fonte = fontes.buscarPorIdComBloqueio(request.fonteId()).orElseThrow(() ->
                 new ResponseStatusException(HttpStatus.NOT_FOUND, "Fonte de medição não encontrada."));
         if (!fonte.getAtivo().getId().equals(id)) throw invalido("A fonte não pertence ao transformador informado.");
         if (request.potenciaAparenteMva() == null || request.potenciaAparenteMva().signum() < 0) {
             throw invalido("Potência aparente deve ser informada e não negativa.");
         }
-        Instant agora = Instant.now(clock);
+        Instant agora = Instant.now(clock).truncatedTo(ChronoUnit.MICROS);
         if (request.medidoEm().toInstant().isAfter(agora.plusSeconds(toleranciaSegundos))) {
             throw invalido("Instante da medição excede a tolerância futura.");
         }
@@ -64,6 +67,7 @@ public class MedicaoTransformadorService {
         } catch (DataIntegrityViolationException ex) {
             throw invalido("Medição incompatível com as restrições de integridade.");
         }
+        comunicacao.registrarComunicacaoValida(fonte.getId(), medicao.getRecebidoEm());
         var response = toResponse(medicao);
         alertas.avaliarEGerar(medicao, response.cargaPercentual());
         return response;
