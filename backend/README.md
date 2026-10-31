@@ -262,3 +262,19 @@ POST /api/transformadores/{id}/medicoes exige fonteId positivo, medidoEm ISO 860
 A resposta 201 inclui Location, id, transformadorId, fonteId, origem, medidoEm, recebidoEm, potenciaAparenteMva, capacidadeReferenciaMva e cargaPercentual. Carga = S*100/capacidadeReferencia, com BigDecimal e seis casas HALF_EVEN. Zero é válido e sobrecargas não são limitadas a 100%. Edições posteriores da capacidade cadastral não modificam leituras antigas. A URL individual indicada em Location ainda não possui GET.
 
 GET /api/transformadores/{id}/medicoes usa o envelope PageResponseDTO, page=0, size=20 e máximo 100. Ordenação fixa medidoEm DESC, id DESC; qualquer sort é rejeitado. Filtros dataInicio/dataFim usam início inclusivo e fim exclusivo, ISO 8601 com offset. Parâmetros inválidos, vazios ou repetidos retornam 400. Linha e transformador compartilham a validação dos parâmetros. Transformador existente sem leituras retorna conteúdo vazio; inexistente retorna 404. Rotas exigem sessão e escritas exigem CSRF. Não inclui alerta automático, endpoint de edição de fontes nem classificação de atraso.
+
+## Alertas automáticos de sobrecarga — US21
+
+A ingestão de medições de transformadores avalia a cargaPercentual calculada (seis casas HALF_EVEN) contra o limiar fixo 100.000000. Acima do limiar, grava um alerta ATIVO com ativo e medição, carga e limiar em snapshot e geradoEm do relógio UTC do servidor. Exatamente 100% não gera alerta. Arredondamento ocorre antes da comparação, conforme o contrato deste incremento.
+
+Medição e alerta são persistidos na mesma transação; falha na gravação do alerta desfaz a medição. Há no máximo um alerta por medição, garantido por UNIQUE. Reenviar uma leitura criando nova medição pode gerar outro alerta; não há deduplicação da ingestão. Leituras históricas também são avaliadas. ATIVO representa pendência de reconhecimento, sem afirmar que a condição elétrica ainda persiste. Não há recuperação automática.
+
+GET /api/alertas-sobrecarga exige sessão e retorna PageResponseDTO com padrões page=0/size=20 e máximo 100. A ordenação fixa é geradoEm DESC/id DESC, rejeitando sort. Filtros opcionais: ativoId positivo, status ATIVO ou RECONHECIDO e dataInicio/dataFim ISO 8601 com offset sobre geradoEm. Início inclusivo e fim exclusivo; início deve ser anterior ao fim. Parâmetros vazios, repetidos, malformados ou fora dos limites retornam 400. Filtro de ativo sem resultados retorna conteúdo vazio.
+
+GET /api/alertas-sobrecarga/{id} retorna 200 ou 404. Respostas incluem id, ativoId, medicaoId, cargaPercentual, limiarPercentual, status, geradoEm, reconhecidoEm e reconhecidoPorUsuarioId. Os alertas específicos não são duplicados na API genérica da US20. O reconhecimento por operador é disponibilizado pelo PATCH descrito abaixo.
+
+### Reconhecimento de sobrecarga
+
+PATCH /api/alertas-sobrecarga/{id}/reconhecimento exige sessão e CSRF, sem corpo obrigatório. Retorna 200 com AlertaSobrecargaResponseDTO ou 404 se o alerta não existir. A identidade é obtida do usuário autenticado da sessão; corpo e parâmetros não podem escolher o autor nem o horário.
+
+ATIVO passa para RECONHECIDO com reconhecidoPorUsuarioId e reconhecidoEm gerados pelo servidor. O relógio é UTC e o instante é truncado para microssegundos, conforme a precisão do banco. Repetições, inclusive por outro usuário autenticado, retornam 200 e preservam o primeiro autor e horário. A transação adquire bloqueio pessimista no alerta antes de verificar o status. Reconhecimento não representa recuperação elétrica nem encerra automaticamente os demais alertas.

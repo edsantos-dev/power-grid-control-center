@@ -6,7 +6,7 @@ O backlog reúne as histórias, os critérios de aceitação, as tarefas e as pe
 
 O frontend possui páginas com dados simulados, filtros e navegação local. O backend possui configuração PostgreSQL/JPA/Flyway, schema SQL inicial, persistência de usuários e autenticação HTTP por sessão, com CORS e CSRF. A V2 provisiona os três perfis e a segurança por método está habilitada. O backend também possui cadastros de subestações, alimentadores e transformadores, APIs de eventos e alertas e persistência de consumidores. A integração com o frontend permanece pendente.
 
-US01 está **Em andamento**, com persistência, criação, consulta e edição de subestações em revisão; US02 está **Em andamento**, com backend de Alimentador em revisão; US03 está **Em andamento**, com persistência e API de Transformador em revisão; US16 está **Em andamento**, com persistência e API de eventos em revisão; US20 está **Em andamento**, com persistência e API de alertas em revisão; US07 está **Em andamento**, com persistência e API de consumidores em revisão; US06 está **Em andamento**, com persistência e API de medidores em revisão; US04–US05, US08–US15, US17–US19 e US21–US24 permanecem **A fazer** para o trabalho restante. O recorte de backend de US25 está **Em revisão**, com persistência, autenticação HTTP, contas iniciais e segurança por método. A presença de uma tela não representa a conclusão da história. O mapa geográfico ainda não está implementado.
+US01 está **Em andamento**, com persistência, criação, consulta e edição de subestações em revisão; US02 está **Em andamento**, com backend de Alimentador em revisão; US03 está **Em andamento**, com persistência e API de Transformador em revisão; US16 está **Em andamento**, com persistência e API de eventos em revisão; US20 está **Em andamento**, com persistência e API de alertas em revisão; US07 está **Em andamento**, com persistência e API de consumidores em revisão; US06 está **Em andamento**, com persistência e API de medidores em revisão; US04–US05, US08–US15, US17–US19 e US22–US24 permanecem **A fazer** para o trabalho restante. O recorte de backend de US25 está **Em revisão**, com persistência, autenticação HTTP, contas iniciais e segurança por método. A presença de uma tela não representa a conclusão da história. O mapa geográfico ainda não está implementado.
 
 O frontend consome a autenticação e os cadastros de subestações, alimentadores e linhas de transmissão pela API, com endereço definido em VITE_API_URL; as demais telas continuam com dados simulados. Os testes existentes cobrem contexto, persistência, credenciais, autenticação HTTP, sessão, CORS e CSRF. A política de gestão de acesso restringe as futuras operações ao Gerente de Operações; esses endpoints ainda não existem.
 
@@ -628,9 +628,9 @@ Como operador, quero visualizar os alertas ativos classificados por criticidade,
 Como operador, quero receber alertas automáticos de sobrecarga em transformadores, para agir antes que ocorra uma falha maior.
 
 - **Perfil e prioridade:** Operador. Prioridade: Alta.
-- **Status:** A fazer.
-- **Implementação existente:** Alerta estático; coincidência com carga de 108% não é regra executada.
-- **Trabalho pendente:** Sem detector, parâmetros definidos ou geração persistida.
+- **Status:** Em andamento.
+- **Implementação existente:** Frontend com alertas estáticos. V8 e persistência de AlertaSobrecarga em revisão; ingestão ainda não gera o alerta automaticamente.
+- **Trabalho pendente:** Revisão do backend, integração da interface e aceite funcional.
 - **Dependências:** US11; US20; medições e limites de detecção.
 - **Referências no frontend:** [Alertas/index.tsx](../frontend/src/pages/Alertas/index.tsx#L18) (linhas 18); [Transformadores/index.tsx](../frontend/src/pages/Transformadores/index.tsx#L20) (linhas 20).
 
@@ -646,6 +646,14 @@ Como operador, quero receber alertas automáticos de sobrecarga em transformador
 - [ ] **US21-T02:** Implementar o recorte de backend com testes pertinentes e documentação.
 - [ ] **US21-T03:** Integrar a interface com testes pertinentes e documentação.
 - [ ] **US21-T04:** Verificar integração/aceite e apresentar resultados e limitações.
+
+**US21-T02 — Lote 1 em revisão:** V8 cria alerta_sobrecarga com ativo_id obrigatório referenciando ativo_rede, medicao_id obrigatório/único referenciando medicao_transformador, carga_percentual NUMERIC(27,6), limiar_percentual NUMERIC(19,6) positivo e finito, status e gerado_em obrigatórios. Reconhecimento exige instante e usuário existentes; ATIVO exige ambos nulos. Status fora de ATIVO/RECONHECIDO é rejeitado. AlertaSobrecarga mapeia associações LAZY sem cascata, identidade própria e relação exclusiva com a medição. AlertaSobrecargaRepositoryTest cobre estados, unicidade, nulidade, limiar e FKs. A FK genérica garante existência do ativo; a correspondência com o transformador da medição será validada na geração pelo serviço.
+
+**US21-T02 — Lote 2 em revisão:** Limiar fixo 100.000000; comparação estrita do percentual calculado pela ingestão (seis casas HALF_EVEN), um alerta por medição excedente e persistência na mesma transação da ingestão. O alerta preserva carga e limiar aplicados; leituras atrasadas também serão avaliadas. Consultas paginadas terão filtros por transformador/status/período de geração. Reconhecimento idempotente preserva o primeiro autor e instante, obtendo a identidade da sessão. A tabela de alertas genéricos da US20 não receberá duplicatas destes registros. Geração e consultas já estão implementadas. O Lote 3 disponibiliza PATCH /api/alertas-sobrecarga/{id}/reconhecimento sem corpo obrigatório.
+
+**API de sobrecarga:** GET /api/alertas-sobrecarga retorna PageResponseDTO, padrões 0/20, máximo 100, ordem geradoEm DESC/id DESC e rejeição de sort. Filtros opcionais ativoId positivo, status ATIVO/RECONHECIDO e período de geração com início inclusivo/fim exclusivo. GET /{id} retorna detalhe ou 404. Ambas exigem sessão. AlertaSobrecargaService.avaliarEGerar usa propagação MANDATORY e recebe o percentual produzido pela ingestão; falha na gravação do alerta desfaz a medição. AlertaSobrecargaControllerTest cobre consultas e filtros; MedicaoTransformadorControllerTest cobre limiar e vínculos; AlertaSobrecargaTransacaoTest verifica rollback sem transação externa no teste.
+
+**US21-T02 — Lote 3 em revisão:** Reconhecimento transacional com bloqueio pessimista do alerta. ATIVO recebe usuário da sessão HTTP e instante UTC com precisão de microssegundos. RECONHECIDO retorna 200 preservando o primeiro autor e horário, inclusive após repetição por outro usuário. Alerta inexistente retorna 404. Sessão e CSRF são obrigatórios; IDs ou horários enviados no corpo não definem a autoria. AlertaSobrecargaControllerTest cobre persistência, repetição, sessão e CSRF; AlertaSobrecargaReconhecimentoConcorrenteTest verifica duas transações disputando o mesmo alerta. A interface e o aceite funcional da história continuam pendentes.
 
 ### US22 — Gerar alertas de tensão anormal
 
