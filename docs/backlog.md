@@ -727,16 +727,16 @@ Como gerente, quero visualizar o histórico de alertas gerados por criticidade, 
 
 - **Perfil e prioridade:** Gerente de Operações. Prioridade: Baixa.
 - **Status:** Em andamento.
-- **Implementação existente:** Frontend com filtro por nível em array local. V11, criticidades persistidas e projeção unificada somente de leitura em revisão.
-- **Trabalho pendente:** Consulta Web paginada e filtros (Lote 2), verificação integrada (Lote 3), integração da interface e aceite funcional.
+- **Implementação existente:** Frontend com filtro por nível em array local. V11, criticidades persistidas, projeção unificada e consulta Web paginada em revisão.
+- **Trabalho pendente:** Revisão do backend, integração da interface e aceite funcional.
 - **Dependências:** US20; persistência e histórico de alertas.
 - **Referências no frontend:** [Alertas/index.tsx](../frontend/src/pages/Alertas/index.tsx#L17) (linhas 17,39).
 
 **Critérios de aceitação:**
 
-- [ ] **US24-CA01:** Consultar alertas persistidos por criticidade e período/escopo definidos, incluindo resolvidos. **A detalhar.**
-- [ ] **US24-CA02:** Preservar ações/instantes e distinguir consulta histórica da lista de ativos de US20. **A detalhar.**
-- [ ] **US24-CA03:** Conferir resultado com conjunto histórico conhecido e tratar ausência de resultados. **A detalhar.**
+- [ ] **US24-CA01:** Consultar as quatro origens persistidas por criticidade, período e escopo, incluindo resolvidos e restabelecidos, com paginação global e ordenação fixa. Backend em revisão; integração da interface pendente.
+- [ ] **US24-CA02:** Preservar estados e instantes disponíveis na origem, sem converter reconhecimento em resolução nem reconstruir auditoria ausente. O histórico inclui todos os estados e permanece distinto da lista de ativos da US20. Backend em revisão.
+- [ ] **US24-CA03:** Conferir contagem, paginação e filtros com conjunto histórico conhecido, preservando identidade composta e valores ausentes; retornar página vazia quando não houver correspondência. Backend em revisão; aceite integrado pendente.
 
 **Tarefas:**
 
@@ -747,9 +747,15 @@ Como gerente, quero visualizar o histórico de alertas gerados por criticidade, 
 
 **US24-T02 — Lote 1 em revisão:** V11 adiciona criticidade obrigatória nas tabelas automáticas, com domínio BAIXA/MEDIA/ALTA/CRITICA. O backfill atribui ALTA a sobrecarga/tensão e MEDIA à comunicação; a geração grava a mesma política como snapshot. Defaults no banco e nas entidades preservam a política nas gravações existentes; valores explicitamente nulos ou inválidos são rejeitados. A criticidade do alerta genérico é preservada.
 
-**Projeção unificada:** vw_alertas_dashboard usa UNION ALL das quatro origens, sem tabela auxiliar nem sincronização de cópias. AlertaDashboardView é imutável, sem setters, com chave composta idOrigem/tipoAlerta; AlertaDashboardViewRepository expõe apenas leitura e paginação. A view preserva escopo, vínculos, estados originais, auditoria disponível e snapshots técnicos. Reconhecimento não é convertido em resolução; ausências legadas permanecem nulas. A consulta Web e a descrição de apresentação serão implementadas no Lote 2.
+**Projeção unificada:** vw_alertas_dashboard usa UNION ALL das quatro origens, sem tabela auxiliar nem sincronização de cópias. AlertaDashboardView é imutável, sem setters, com chave composta idOrigem/tipoAlerta; AlertaDashboardViewRepository expõe apenas leitura e paginação. A view preserva escopo, vínculos, estados originais, auditoria disponível e snapshots técnicos. Reconhecimento não é convertido em resolução; ausências legadas permanecem nulas. A consulta Web e a descrição de apresentação estão implementadas nos Lotes 2/3.
 
 **Verificação da persistência:** AlertaDashboardViewRepositoryTest cobre as quatro origens com o mesmo ID, estados, auditoria, snapshots, paginação, alterações na origem, campos nulos legados e constraints de criticidade. AlertasV11MigrationTest verifica classificação e preservação dos registros existentes ao migrar da V10.
+
+**US24-T02 — Lotes 2/3 em revisão:** GET /api/alertas-dashboard exige sessão e aceita todos os perfis existentes. A paginação é global no banco, com padrões page=0/size=20 e máximo 100. A ordenação é fixa: ocorridoEm DESC NULLS LAST, tipoAlerta ASC, idOrigem DESC; sort é rejeitado. Filtros opcionais tipoAlerta, criticidade, escopo, ativoId, fonteId, statusOrigem e período da ocorrência (dataInicio inclusiva/dataFim exclusiva). A contagem usa os mesmos filtros da consulta de conteúdo. IDs devem ser positivos; enums e estados são estritos; parâmetros inválidos, vazios ou repetidos retornam 400. Combinações válidas sem correspondência retornam página vazia.
+
+**Contrato de apresentação:** AlertaDashboardResponseDTO preserva os campos estruturados da view e acrescenta descricao. Números na descrição usam pt-BR, mínimo de duas e máximo de oito casas decimais, preservando as casas relevantes dos snapshots; os campos técnicos continuam BigDecimal. Mensagem genérica ausente permanece nula. Reconhecimento não é convertido em resolução; datas ausentes permanecem nulas e ficam ao final na listagem sem filtro temporal. Todos os instantes enviados no DTO são UTC.
+
+**Verificação integrada:** AlertaDashboardControllerTest gera alertas pelas regras e serviços de origem, verifica paginação com tipos misturados, desempates, datas nulas, filtros isolados/combinados, limites temporais, descrições, precisão, reconhecimento, restabelecimento e acesso por perfil. Não foram criadas ações de alteração pela projeção. A integração do frontend e o aceite da história permanecem pendentes.
 
 ### US25 — Autenticar e restringir acesso por perfil
 

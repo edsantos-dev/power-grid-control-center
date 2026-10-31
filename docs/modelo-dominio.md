@@ -107,6 +107,8 @@ A V3 define as extremidades das linhas por subestacao_origem_id e subestacao_des
 
 ## Medições e indicadores
 
+A consulta unificada usa a identidade (tipoAlerta, idOrigem) e preserva os estados da origem. AlertaDashboardResponseDTO mantém vínculos, auditoria e snapshots técnicos, acrescentando uma descrição de apresentação. O histórico inclui todos os estados por padrão; reconhecimento e restabelecimento não são tratados como equivalentes. Datas ausentes são preservadas e ordenadas ao final; filtros temporais não incluem registros sem ocorridoEm.
+
 A V11 acrescenta criticidade obrigatória aos alertas automáticos, reutilizando Criticidade (BAIXA, MEDIA, ALTA, CRITICA). A política inicial gravada na geração é ALTA para sobrecarga/tensão e MEDIA para comunicação. O backfill aplica essa política aos registros anteriores; não reconstrói uma classificação histórica originalmente inexistente. A classificação persistida é um snapshot e não depende de uma regra recalculada pela consulta.
 
 AlertaDashboardView projeta vw_alertas_dashboard, uma view comum com UNION ALL dos alertas genéricos e das três tabelas automáticas. A identidade composta é (idOrigem, tipoAlerta), com tipos GENERICO/SOBRECARGA/TENSAO/COMUNICACAO. A entidade é imutável e o repositório expõe somente consultas. A projeção inclui criticidade, escopo, ativo/fonte/medição, ocorridoEm, statusOrigem, subtipo, mensagem genérica, campos de reconhecimento/restabelecimento e snapshots técnicos. ocorridoEm usa geradoEm nas três primeiras origens e detectadoEm em comunicação. Dados não disponíveis permanecem nulos, inclusive campos legados do alerta genérico. Os ciclos de vida das origens não são convertidos em um estado único.

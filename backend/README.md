@@ -317,4 +317,13 @@ Medição, contato, recuperação e geração de alertas elétricos são atômic
 
 A V11 adiciona criticidade obrigatória aos alertas automáticos e cria vw_alertas_dashboard com UNION ALL dos alertas genéricos, sobrecarga, tensão e comunicação. O backfill atribui ALTA a sobrecarga/tensão e MEDIA à comunicação; a geração mantém a política como snapshot persistido. São aceitos BAIXA, MEDIA, ALTA e CRITICA. A classificação dos alertas genéricos é preservada.
 
-AlertaDashboardView é uma entidade imutável com identidade composta idOrigem/tipoAlerta, sem colisão entre IDs de tabelas diferentes. O repositório oferece somente leitura e paginação. A view preserva os estados originais, auditoria disponível e snapshots técnicos; não duplica registros em tabela auxiliar. Campos inexistentes na origem permanecem nulos. Este lote não disponibiliza o endpoint unificado; consultas Web e filtros pertencem ao próximo lote.
+AlertaDashboardView é uma entidade imutável com identidade composta idOrigem/tipoAlerta, sem colisão entre IDs de tabelas diferentes. O repositório oferece somente leitura e paginação. A view preserva os estados originais, auditoria disponível e snapshots técnicos; não duplica registros em tabela auxiliar. Campos inexistentes na origem permanecem nulos. O endpoint unificado disponibiliza consultas paginadas e filtros, preservando as APIs especializadas.
+
+
+### Consulta do histórico unificado
+
+GET /api/alertas-dashboard requer sessão autenticada e permite todos os perfis existentes. Retorna PageResponseDTO com page=0/size=20, máximo 100. A consulta e a contagem são executadas na view com os mesmos filtros; o conteúdo é limitado no banco. A ordem é ocorridoEm DESC NULLS LAST, tipoAlerta ASC, idOrigem DESC. O parâmetro sort é rejeitado.
+
+Filtros opcionais: tipoAlerta (GENERICO/SOBRECARGA/TENSAO/COMUNICACAO), criticidade (BAIXA/MEDIA/ALTA/CRITICA), escopo (ATIVO/REDE_MONITORADA), ativoId/fonteId positivos, statusOrigem (ABERTO/ATIVO/RECONHECIDO/RESOLVIDO/RESTABELECIDO), dataInicio inclusiva e dataFim exclusiva sobre ocorridoEm. Datas devem usar ISO 8601 com offset, com início anterior ao fim. Valores inválidos, vazios ou repetidos retornam 400; combinações válidas sem correspondência retornam página vazia. Exemplo: /api/alertas-dashboard?size=50&criticidade=ALTA.
+
+O DTO expõe idOrigem e tipoAlerta para identificar a origem sem colisões, além de campos estruturados e descricao em português. A descrição usa separador decimal pt-BR, pelo menos duas casas e até oito casas relevantes; não altera os valores técnicos numéricos. Todos os instantes são normalizados para UTC. Campos legados ausentes permanecem nulos; registros sem data ficam ao final e são excluídos por filtros temporais. O histórico inclui todos os estados por padrão, sem converter reconhecimento em resolução.
