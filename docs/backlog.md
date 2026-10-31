@@ -8,7 +8,7 @@ O frontend possui páginas com dados simulados, filtros e navegação local. O b
 
 US01 está **Em andamento**, com persistência, criação, consulta e edição de subestações em revisão; US02 está **Em andamento**, com backend de Alimentador em revisão; US03 está **Em andamento**, com persistência e API de Transformador em revisão; US16 está **Em andamento**, com persistência e API de eventos em revisão; US20 está **Em andamento**, com persistência e API de alertas em revisão; US07 está **Em andamento**, com persistência e API de consumidores em revisão; US06 está **Em andamento**, com persistência e API de medidores em revisão; US04–US05, US08–US15, US17–US19 e US22–US24 permanecem **A fazer** para o trabalho restante. O recorte de backend de US25 está **Em revisão**, com persistência, autenticação HTTP, contas iniciais e segurança por método. A presença de uma tela não representa a conclusão da história. O mapa geográfico ainda não está implementado.
 
-O frontend consome a autenticação pela API, com endereço definido em VITE_API_URL; as demais telas continuam com dados simulados. Os testes existentes cobrem contexto, persistência, credenciais, autenticação HTTP, sessão, CORS e CSRF. A política de gestão de acesso restringe as futuras operações ao Gerente de Operações; esses endpoints ainda não existem.
+O frontend consome a autenticação e os cadastros de subestações, alimentadores e linhas de transmissão pela API, com endereço definido em VITE_API_URL; as demais telas continuam com dados simulados. Os testes existentes cobrem contexto, persistência, credenciais, autenticação HTTP, sessão, CORS e CSRF. A política de gestão de acesso restringe as futuras operações ao Gerente de Operações; esses endpoints ainda não existem.
 
 ## Stack tecnológica
 
@@ -70,8 +70,8 @@ Como operador, quero cadastrar subestações com informações técnicas e local
 
 - **Perfil e prioridade:** Operador. Prioridade: Alta.
 - **Status:** Em andamento.
-- **Implementação existente:** Interface com dados simulados. Backend com AtivoRede e Subestacao em herança JOINED, repositório e endpoints de criação, listagem, consulta por ID e edição, com validações, sessão e CSRF.
-- **Trabalho pendente:** Revisão do backend, formulário e integração. O tipo da tela ainda não contempla todos os campos.
+- **Implementação existente:** Interface com listagem, cadastro e edição pela API. Backend com AtivoRede e Subestacao em herança JOINED, repositório e endpoints de criação, listagem, consulta por ID e edição, com validações, sessão e CSRF.
+- **Trabalho pendente:** Revisão do backend e da integração; aceite de US01.
 - **Dependências:** PEN-06; autenticação do backend em US25.
 - **Referências no frontend:** [Subestacoes/index.tsx](../frontend/src/pages/Subestacoes/index.tsx#L6) (linhas 6,17,38).
 
@@ -91,7 +91,9 @@ Como operador, quero cadastrar subestações com informações técnicas e local
 
 **Contrato de criação:** Nome, latitude, longitude, tensão nominal, capacidade e data de instalação obrigatórios. Nome sem espaços nas extremidades, não vazio, até 255 caracteres e sem unicidade. Latitude entre -90 e 90; longitude entre -180 e 180; até sete casas decimais. Tensão e capacidade positivas, com até 13 dígitos inteiros e seis decimais. Excesso de precisão deve ser rejeitado, sem arredondamento. Data válida em YYYY-MM-DD, admitindo datas futuras. Estado opcional: OPERACIONAL quando omitido ou nulo; rejeitar valor fora de OPERACIONAL/FALHA/MANUTENCAO. ID gerado pelo sistema.
 
-**US01-T02 — backend em revisão:** Mapeamento JOINED, repositório, DTOs validados e serviço transacional disponíveis. POST retorna 201 e Location; GET da coleção e por ID retornam 200; PUT substitui os dados e retorna 200 mantendo o ID. GET por ID e PUT retornam 404 se o registro não existir. PUT usa as mesmas validações e estado padrão do POST; entradas inválidas retornam 400 sem alterar dados. Consultas exigem autenticação, e escritas exigem também CSRF. A V1 permanece inalterada. A integração com a interface e o aceite de US01-CA03 permanecem pendentes.
+**US01-T02 — backend em revisão:** Mapeamento JOINED, repositório, DTOs validados e serviço transacional disponíveis. POST retorna 201 e Location; GET da coleção e por ID retornam 200; PUT substitui os dados e retorna 200 mantendo o ID. GET por ID e PUT retornam 404 se o registro não existir. PUT usa as mesmas validações e estado padrão do POST; entradas inválidas retornam 400 sem alterar dados. Consultas exigem autenticação, e escritas exigem também CSRF. A V1 permanece inalterada. 
+
+**US01-T03 — interface em revisão:** A tela lista, cadastra e edita subestações pela API, com busca e filtro por status. O formulário aplica localmente obrigatoriedade, limites geográficos e precisão, e exibe os erros de campo devolvidos pelo backend. Decimais são enviados como texto, sem arredondamento no cliente. Região, tensão secundária, carga e disponibilidade simuladas foram removidas por não integrarem o contrato; a disponibilidade será tratada em US14. Subestacoes.test.tsx cobre US01-CA02, CA03 e CA04 na interface.
 
 ### US02 — Cadastrar linhas e alimentadores
 
@@ -99,8 +101,8 @@ Como operador, quero cadastrar linhas de transmissão e alimentadores, para ter 
 
 - **Perfil e prioridade:** Operador. Prioridade: Alta.
 - **Status:** Em andamento.
-- **Implementação existente:** Frontend com duas listagens locais. Backend com Alimentador em herança JOINED, repositório, vínculo obrigatório LAZY com Subestacao e API de criação, listagem, consulta e edição. LinhaTransmissao possui entidade JOINED, repositório, conexões obrigatórias com subestações pela V3 e API de criação, listagem, consulta e edição.
-- **Trabalho pendente:** Revisão do backend de LinhaTransmissao e integração das interfaces.
+- **Implementação existente:** Frontend com listagem, cadastro e edição de linhas e alimentadores pela API. Backend com Alimentador em herança JOINED, repositório, vínculo obrigatório LAZY com Subestacao e API de criação, listagem, consulta e edição. LinhaTransmissao possui entidade JOINED, repositório, conexões obrigatórias com subestações pela V3 e API de criação, listagem, consulta e edição.
+- **Trabalho pendente:** Revisão do backend de LinhaTransmissao e da integração das interfaces; aceite de US02.
 - **Dependências:** PEN-01; PEN-06; US25; US01; definição de vínculos e extremidades.
 - **Referências no frontend:** [Linhas/index.tsx](../frontend/src/pages/Linhas/index.tsx#L6) (linhas 6,17,38); [Alimentadores/index.tsx](../frontend/src/pages/Alimentadores/index.tsx#L6) (linhas 6,17,38).
 
@@ -124,7 +126,9 @@ Como operador, quero cadastrar linhas de transmissão e alimentadores, para ter 
 **US02-T03 — persistência e API em revisão:** A V3 adiciona subestacao_origem_id e subestacao_destino_id obrigatórios, com FKs para subestacao.id e CHECK exigindo extremidades distintas. LinhaTransmissao mantém extensaoKm e tensaoOperacaoKv em NUMERIC(19,6), herança JOINED e associações LAZY sem cascata. LinhaTransmissaoRepositoryTest cobre conexões válidas, extremidades iguais, nulas ou inexistentes, limite numérico e excesso de dígitos inteiros. A API rejeita casas decimais excedentes sem arredondamento. A V1 permanece inalterada.
 
 
-**Contrato de LinhaTransmissao:** POST /api/linhas-transmissao retorna 201 com Location; GET geral, GET /{id} e PUT /{id} retornam 200. Nome obrigatório com trim e até 255 caracteres; extensaoKm e tensaoOperacaoKv obrigatórios, positivos e limitados a 13 dígitos inteiros e seis decimais. Data de instalação obrigatória, permitindo datas futuras. Coordenadas opcionais em conjunto, com sete decimais e limites geográficos. Origem e destino são IDs positivos de subestações existentes e distintas. Entradas inválidas retornam 400; linha ou subestação inexistente retorna 404. Estado ausente ou nulo assume OPERACIONAL no POST e PUT. Respostas expõem IDs das extremidades; consultas sem paginação. Todas as rotas exigem autenticação e as escritas exigem CSRF. LinhaTransmissaoControllerTest cobre criação, consulta, edição, validações, segurança e preservação de dados após rejeição. Integração com frontend permanece pendente.
+**Contrato de LinhaTransmissao:** POST /api/linhas-transmissao retorna 201 com Location; GET geral, GET /{id} e PUT /{id} retornam 200. Nome obrigatório com trim e até 255 caracteres; extensaoKm e tensaoOperacaoKv obrigatórios, positivos e limitados a 13 dígitos inteiros e seis decimais. Data de instalação obrigatória, permitindo datas futuras. Coordenadas opcionais em conjunto, com sete decimais e limites geográficos. Origem e destino são IDs positivos de subestações existentes e distintas. Entradas inválidas retornam 400; linha ou subestação inexistente retorna 404. Estado ausente ou nulo assume OPERACIONAL no POST e PUT. Respostas expõem IDs das extremidades; consultas sem paginação. Todas as rotas exigem autenticação e as escritas exigem CSRF. LinhaTransmissaoControllerTest cobre criação, consulta, edição, validações, segurança e preservação de dados após rejeição.
+
+**US02-T04 — interfaces em revisão:** As telas de alimentadores e linhas listam, cadastram e editam pela API, com seleção das subestações existentes, busca também pelo nome da subestação e filtro por status. O formulário de linhas exige origem e destino distintos e coordenadas opcionais informadas em conjunto; coordenada ausente é exibida como "Não informada". Potência, perdas, consumidores atendidos e corrente simulados foram removidos: pertencem a incrementos de monitoramento e às histórias US08 e US12. Usinas não são aceitas como extremidade, pois o contrato da linha referencia apenas subestações. Alimentadores.test.tsx e Linhas.test.tsx cobrem US02-CA01–CA03 na interface.
 
 ### US03 — Cadastrar transformadores
 

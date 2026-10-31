@@ -1,5 +1,5 @@
 import axios, { type AxiosError, type InternalAxiosRequestConfig } from 'axios'
-import type { CsrfResponse, Usuario } from '../types'
+import type { ApiError, CsrfResponse, Usuario } from '../types'
 
 type RequestConfig = InternalAxiosRequestConfig & { csrfRenovado?: boolean }
 
@@ -61,6 +61,21 @@ api.interceptors.response.use(undefined, async (error: AxiosError) => {
 
   return Promise.reject(error)
 })
+
+export function extrairErroApi(error: unknown) {
+  if (!axios.isAxiosError<ApiError>(error) || !error.response) {
+    return { mensagem: 'Não foi possível conectar ao servidor. Tente novamente.', campos: {} }
+  }
+
+  const { data } = error.response
+  const campos: Record<string, string> = {}
+
+  data?.fieldErrors?.forEach(({ field, message }) => {
+    campos[field] = message
+  })
+
+  return { mensagem: data?.message || 'Não foi possível concluir a operação.', campos }
+}
 
 export async function login(email: string, senha: string) {
   const dados = new URLSearchParams({ email: email.trim(), password: senha })
