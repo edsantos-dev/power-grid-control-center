@@ -4,10 +4,12 @@ import java.math.BigDecimal;
 import java.time.Clock;
 import java.time.OffsetDateTime;
 import java.time.ZoneOffset;
+import java.time.temporal.ChronoUnit;
 import br.com.powergrid.controlcenter.dto.AlertaTensaoResponseDTO;
 import br.com.powergrid.controlcenter.dto.PageResponseDTO;
 import br.com.powergrid.controlcenter.model.*;
 import br.com.powergrid.controlcenter.repository.AlertaTensaoRepository;
+import br.com.powergrid.controlcenter.repository.UsuarioRepository;
 import br.com.powergrid.controlcenter.util.ParametrosConsultaMedicao;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
@@ -22,9 +24,10 @@ public class AlertaTensaoService {
     private static final BigDecimal FATOR_SUPERIOR = new BigDecimal("1.05");
     private final AlertaTensaoRepository repository;
     private final Clock clock;
+    private final UsuarioRepository usuarios;
 
-    public AlertaTensaoService(AlertaTensaoRepository repository, Clock clock) {
-        this.repository = repository; this.clock = clock;
+    public AlertaTensaoService(AlertaTensaoRepository repository, Clock clock, UsuarioRepository usuarios) {
+        this.repository = repository; this.clock = clock; this.usuarios = usuarios;
     }
 
     @Transactional(propagation = Propagation.MANDATORY)
@@ -82,6 +85,20 @@ public class AlertaTensaoService {
     public AlertaTensaoResponseDTO buscarPorId(Long id) {
         return toResponse(repository.findById(id).orElseThrow(() ->
                 new ResponseStatusException(HttpStatus.NOT_FOUND, "Alerta de tensão não encontrado.")));
+    }
+
+    @Transactional
+    public AlertaTensaoResponseDTO reconhecer(Long id, Long usuarioId) {
+        var alerta = repository.buscarPorIdParaReconhecimento(id).orElseThrow(() ->
+                new ResponseStatusException(HttpStatus.NOT_FOUND, "Alerta de tensão não encontrado."));
+        if (alerta.getStatus() == StatusAlerta.RECONHECIDO) return toResponse(alerta);
+        var usuario = usuarios.findById(usuarioId).orElseThrow(() ->
+                new ResponseStatusException(HttpStatus.UNAUTHORIZED, "Usuário autenticado não disponível."));
+        alerta.setStatus(StatusAlerta.RECONHECIDO);
+        alerta.setReconhecidoPorUsuario(usuario);
+        alerta.setReconhecidoEm(OffsetDateTime.now(clock).withOffsetSameInstant(ZoneOffset.UTC).truncatedTo(ChronoUnit.MICROS));
+        repository.flush();
+        return toResponse(alerta);
     }
 
     private AlertaTensaoResponseDTO toResponse(AlertaTensao a) {

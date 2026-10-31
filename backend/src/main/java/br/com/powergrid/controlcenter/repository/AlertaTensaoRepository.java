@@ -1,25 +1,29 @@
 package br.com.powergrid.controlcenter.repository;
 
 import java.time.OffsetDateTime;
-
-
-
-
-
 import java.util.ArrayList;
 import java.util.List;
-import org.springframework.data.domain.PageImpl;
-import org.springframework.data.jpa.domain.Specification;
+import java.util.Optional;
 import br.com.powergrid.controlcenter.model.AlertaTensao;
 import br.com.powergrid.controlcenter.model.StatusAlerta;
 import br.com.powergrid.controlcenter.model.TipoAlertaTensao;
+import jakarta.persistence.LockModeType;
 import jakarta.persistence.criteria.Predicate;
 import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageImpl;
 import org.springframework.data.domain.Pageable;
+import org.springframework.data.jpa.domain.Specification;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.JpaSpecificationExecutor;
+import org.springframework.data.jpa.repository.Lock;
+import org.springframework.data.jpa.repository.Query;
+import org.springframework.data.repository.query.Param;
 
 public interface AlertaTensaoRepository extends JpaRepository<AlertaTensao, Long>, JpaSpecificationExecutor<AlertaTensao> {
+    @Lock(LockModeType.PESSIMISTIC_WRITE)
+    @Query("select a from AlertaTensao a where a.id = :id")
+    Optional<AlertaTensao> buscarPorIdParaReconhecimento(@Param("id") Long id);
+
     default Page<AlertaTensao> buscarFiltrados(Long ativoId, TipoAlertaTensao tipo, StatusAlerta status, OffsetDateTime inicio,
             OffsetDateTime fim, Pageable pageable) {
         Specification<AlertaTensao> filtro = (root, query, builder) -> {
