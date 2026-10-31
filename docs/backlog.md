@@ -6,7 +6,7 @@ O backlog reúne as histórias, os critérios de aceitação, as tarefas e as pe
 
 O frontend possui páginas com dados simulados, filtros e navegação local. O backend possui configuração PostgreSQL/JPA/Flyway, schema SQL inicial, persistência de usuários e autenticação HTTP por sessão, com CORS e CSRF. A V2 provisiona os três perfis e a segurança por método está habilitada. O backend também possui cadastros de subestações, alimentadores e transformadores, APIs de eventos e alertas e persistência de consumidores. A integração com o frontend permanece pendente.
 
-US01 está **Em andamento**, com persistência, criação, consulta e edição de subestações em revisão; US02 está **Em andamento**, com backend de Alimentador em revisão; US03 está **Em andamento**, com persistência e API de Transformador em revisão; US16 está **Em andamento**, com persistência e API de eventos em revisão; US20 está **Em andamento**, com persistência e API de alertas em revisão; US07 está **Em andamento**, com persistência e API de consumidores em revisão; US06 está **Em andamento**, com persistência e API de medidores em revisão; US04–US05, US08–US15, US17–US19 e US22–US24 permanecem **A fazer** para o trabalho restante. O recorte de backend de US25 está **Em revisão**, com persistência, autenticação HTTP, contas iniciais e segurança por método. A presença de uma tela não representa a conclusão da história. O mapa geográfico ainda não está implementado.
+US01 está **Em andamento**, com persistência, criação, consulta e edição de subestações em revisão; US02 está **Em andamento**, com backend de Alimentador em revisão; US03 está **Em andamento**, com persistência e API de Transformador em revisão; US16 está **Em andamento**, com persistência e API de eventos em revisão; US20 está **Em andamento**, com persistência e API de alertas em revisão; US07 está **Em andamento**, com persistência e API de consumidores em revisão; US06 está **Em andamento**, com persistência e API de medidores em revisão; US04–US05, US08–US15, US17–US19 e US23–US24 permanecem **A fazer** para o trabalho restante. O recorte de backend de US25 está **Em revisão**, com persistência, autenticação HTTP, contas iniciais e segurança por método. A presença de uma tela não representa a conclusão da história. O mapa geográfico ainda não está implementado.
 
 O frontend consome a autenticação e os cadastros de subestações, alimentadores e linhas de transmissão pela API, com endereço definido em VITE_API_URL; as demais telas continuam com dados simulados. Os testes existentes cobrem contexto, persistência, credenciais, autenticação HTTP, sessão, CORS e CSRF. A política de gestão de acesso restringe as futuras operações ao Gerente de Operações; esses endpoints ainda não existem.
 
@@ -660,9 +660,9 @@ Como operador, quero receber alertas automáticos de sobrecarga em transformador
 Como operador, quero receber alertas de variação anormal de tensão, para evitar danos aos equipamentos conectados à rede.
 
 - **Perfil e prioridade:** Operador. Prioridade: Alta.
-- **Status:** A fazer.
-- **Implementação existente:** Alerta estático e gráfico sem mecanismo de detecção.
-- **Trabalho pendente:** Sem faixas, classificação e avaliação automática.
+- **Status:** Em andamento.
+- **Implementação existente:** Frontend estático. V9 e persistência de AlertaTensao em revisão, sem detector ou rotas específicos neste lote.
+- **Trabalho pendente:** Detector transacional na ingestão de linhas, consultas e reconhecimento; integração da interface.
 - **Dependências:** US08; US20; faixas de tensão e regras de geração.
 - **Referências no frontend:** [Alertas/index.tsx](../frontend/src/pages/Alertas/index.tsx#L19) (linhas 19); [Monitoramento/index.tsx](../frontend/src/pages/Monitoramento/index.tsx#L13) (linhas 13).
 
@@ -678,6 +678,10 @@ Como operador, quero receber alertas de variação anormal de tensão, para evit
 - [ ] **US22-T02:** Implementar o recorte de backend com testes pertinentes e documentação.
 - [ ] **US22-T03:** Integrar a interface com testes pertinentes e documentação.
 - [ ] **US22-T04:** Verificar integração/aceite e apresentar resultados e limitações.
+
+**US22-T02 — Lote 1 em revisão:** V9 cria alerta_tensao com ativo_id (FK ativo_rede), medicao_id (FK medicao_linha, único), tipo SUBTENSAO/SOBRETENSAO, snapshots de tensão medida e referência em NUMERIC(19,6), limites em NUMERIC(22,8), status e datas de auditoria. Referência e limites são positivos; medida é não negativa. Valores não finitos são rejeitados. O ciclo replica a US21: ATIVO com reconhecimento/usuário nulos; RECONHECIDO com ambos preenchidos. AlertaTensaoRepositoryTest cobre persistência, tipos, snapshots, ciclo, unicidade, campos obrigatórios, valores e FKs.
+
+**Contrato dos próximos lotes:** tensaoOperacaoKv é a referência nominal didática. Subtensão abaixo de 95% e sobretensão acima de 105%; fronteiras normais. O detector avaliará sem arredondamento intermediário, usando BigDecimal, somente leituras com tensão. Ausência de referência válida quando houver tensão deve retornar 400 antes de persistir. Cada leitura anormal gera uma ocorrência própria, inclusive histórica, na mesma transação da medição. Reconhecimento não representa recuperação e nova leitura normal não encerra alertas anteriores. Consultas, geração e reconhecimento ainda não são implementados neste lote. A correspondência entre ativo, linha da medição e faixa será validada pelo serviço, não pelas FKs simples.
 
 ### US23 — Gerar alertas de perda de comunicação
 
