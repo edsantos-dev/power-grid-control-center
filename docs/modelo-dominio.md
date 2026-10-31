@@ -107,6 +107,9 @@ A V3 define as extremidades das linhas por subestacao_origem_id e subestacao_des
 
 ## Medições e indicadores
 
+A V8 introduz AlertaSobrecarga com identidade própria, ativo obrigatório (FK para AtivoRede), medição de transformador obrigatória e exclusiva, snapshot da carga percentual e do limiar, status e instante de geração. Um ativo pode possuir vários alertas e uma medição pode originar zero ou um alerta. ATIVO exige reconhecimento e usuário nulos; RECONHECIDO exige ambos preenchidos. O usuário de reconhecimento é opcional no vínculo, obrigatório condicionalmente pelo CHECK. A entidade não se confunde com o alerta genérico da US20. O serviço de geração deverá garantir que o ativo é o transformador da medição e compartilhar a transação de ingestão; esta etapa entrega apenas persistência.
+
+
 A V7 generaliza FonteMedicao → AtivoRede (N:1 obrigatório, LAZY), migrando o antigo vínculo de linha sem mudar os IDs. APIs existentes de linhas preservam seus contratos. O serviço deve restringir o alvo ao tipo de ativo aceito pela rota; a FK simples comprova apenas sua existência. A referência de subestação permanece aplicável às fontes de linhas.
 
 MedicaoTransformador referencia uma fonte (N:1 obrigatório, LAZY), com medidoEm, recebidoEm, potenciaAparenteMva não negativa e capacidadeReferenciaMva estritamente positiva. A capacidade de referência é um snapshot independente do cadastro, capturado pelo servidor na ingestão; mudanças posteriores da capacidade não alteram esse valor. Carga percentual é derivada no serviço por S/capacidadeReferencia*100, sem coluna própria e sem limite artificial de 100%.
