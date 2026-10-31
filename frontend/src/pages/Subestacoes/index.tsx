@@ -3,22 +3,9 @@ import { Search, MapPin, Pencil, Plus } from 'lucide-react'
 import { extrairErroApi } from '../../services/api'
 import { listarSubestacoes } from '../../services/subestacoes'
 import type { EstadoOperacional, Subestacao } from '../../types'
+import { ESTADO_STYLES } from '../../utils/constants'
+import { formatarData, formatarNumero } from '../../utils/formatacao'
 import SubestacaoForm from './SubestacaoForm'
-
-const statusStyles: Record<EstadoOperacional, { dot: string; text: string; label: string }> = {
-  OPERACIONAL: { dot: 'bg-green-500', text: 'text-green-400', label: 'Operacional' },
-  FALHA: { dot: 'bg-red-500', text: 'text-red-400', label: 'Falha' },
-  MANUTENCAO: { dot: 'bg-slate-500', text: 'text-slate-400', label: 'Manutenção' },
-}
-
-function formatarNumero(valor: number) {
-  return valor.toLocaleString('pt-BR', { maximumFractionDigits: 6 })
-}
-
-// A data não tem fuso: converter com new Date pode exibir o dia anterior
-function formatarData(data: string) {
-  return data.split('-').reverse().join('/')
-}
 
 function Subestacoes() {
   const [subestacoes, setSubestacoes] = useState<Subestacao[]>([])
@@ -140,7 +127,7 @@ function Subestacoes() {
                     : 'border-slate-800 text-slate-400 hover:border-slate-700'
                 }`}
               >
-                {status === 'todos' ? 'Todos' : statusStyles[status].label}
+                {status === 'todos' ? 'Todos' : ESTADO_STYLES[status].label}
               </button>
             ))}
           </div>
@@ -161,7 +148,7 @@ function Subestacoes() {
             </thead>
             <tbody>
               {subestacoesFiltradas.map((s) => {
-                const status = statusStyles[s.estadoOperacional]
+                const status = ESTADO_STYLES[s.estadoOperacional]
 
                 return (
                   <tr key={s.id} className="border-b border-slate-800/60 last:border-0">
