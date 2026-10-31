@@ -294,4 +294,13 @@ GET /api/alertas-tensao retorna PageResponseDTO com page=0/size=20, máximo 100,
 
 A V10 adiciona monitorada_desde e ultima_comunicacao_em às fontes. Fontes existentes recebem o início do monitoramento no instante da migração e o maior recebido_em das medições de linhas e transformadores como último contato; fontes sem leituras mantêm o contato nulo. A migração preserva fontes e leituras existentes. Novas fontes recebem início UTC na persistência.
 
-alerta_comunicacao armazena fonte, ativo, snapshots temporais, tolerância positiva e detecção. ATIVO exige restabelecimento nulo; RESTABELECIDO exige instante preenchido. Fonte e ativo são associações LAZY sem cascata. A garantia de um único episódio ativo por fonte ficará no serviço com bloqueio da fonte. Este lote não disponibiliza avaliação, consultas ou recuperação automática; essas operações pertencem aos próximos lotes.
+alerta_comunicacao armazena fonte, ativo, snapshots temporais, tolerância positiva e detecção. ATIVO exige restabelecimento nulo; RESTABELECIDO exige instante preenchido. Fonte e ativo são associações LAZY sem cascata. O motor de avaliação garante um único episódio ativo por fonte com bloqueio pessimista. Atualização do contato e recuperação automática nas ingestões permanecem pendentes do Lote 3.
+
+
+### Avaliação manual e consultas de comunicação
+
+POST /api/jobs/avaliar-comunicacao não exige corpo e requer sessão, CSRF e perfil OPERADOR ou GERENTE_OPERACOES. O timeout é configurado em monitoramento.comunicacao.timeout-segundos, com padrão 300 e variável de ambiente COMUNICACAO_TIMEOUT_SEGUNDOS; valores não positivos impedem a inicialização.
+
+A avaliação usa um único instante UTC, percorre IDs em lotes de 100 até o maior ID observado no início e confirma uma transação por fonte, mantendo o bloqueio durante a consulta/criação do episódio. Fontes cadastradas durante a execução podem ficar para a próxima avaliação. Perda exige agora > base + timeout; igualdade ainda está dentro da tolerância. A base é ultimaComunicacaoEm ou monitoradaDesde. A resposta contém avaliadoEm, toleranciaSegundos, fontesAvaliadas, alertasCriados e alertasAtivosExistentes. Repetições não duplicam episódios ativos nem alteram seus snapshots. Uma falha interrompe a execução, mas não reverte fontes já confirmadas.
+
+GET /api/alertas-comunicacao exige sessão e retorna PageResponseDTO, page=0/size=20, máximo 100, ordem detectadoEm DESC/id DESC; sort é rejeitado. Filtros opcionais fonteId/ativoId positivos, status ATIVO/RESTABELECIDO e dataInicio inclusiva/dataFim exclusiva em ISO 8601 com offset, sobre detectadoEm. Parâmetros inválidos, vazios ou repetidos retornam 400. GET /api/alertas-comunicacao/{id} retorna detalhe ou 404. Todos os instantes do DTO são normalizados para UTC. Nenhum scheduler é executado automaticamente.

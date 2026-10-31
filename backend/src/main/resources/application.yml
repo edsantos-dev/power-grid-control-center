@@ -21,3 +21,7 @@ spring:
   sql:
     init:
       mode: never
+
+monitoramento:
+  comunicacao:
+    timeout-segundos: ${COMUNICACAO_TIMEOUT_SEGUNDOS:300}
