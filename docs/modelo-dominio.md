@@ -309,7 +309,7 @@ ManutencaoHistoricoResponseDTO reúne EventoOperacionalResponseDTO e a última H
 
 ### Cadastro manual de manutenção
 
-MANUTENCAO utiliza o POST de eventos operacionais, a mesma identidade e os mesmos campos de planejamento. O ativo precisa existir; sua condição OPERACIONAL, FALHA ou MANUTENCAO não impede o cadastro e não é modificada pela criação do evento. Descrição, responsável e início previsto são obrigatórios; término previsto e criticidade são opcionais conforme o contrato de eventos. A situação inicial é ABERTO e datas efetivas ficam nulas até as transições. Categoria identifica a intervenção, sem inferir executor ou relatório técnico estruturado. As categorias INTERRUPCAO_FORNECIMENTO, SOBRECARGA e FALHA_EQUIPAMENTO não são aceitas por este cadastro manual.
+MANUTENCAO utiliza o POST de eventos operacionais, a mesma identidade e os mesmos campos de planejamento. O ativo precisa existir; sua condição OPERACIONAL, FALHA ou MANUTENCAO não impede o cadastro e não é modificada pela criação do evento. Descrição, responsável e início previsto são obrigatórios; término previsto e criticidade são opcionais conforme o contrato de eventos. A situação inicial é ABERTO e datas efetivas ficam nulas até as transições. Categoria identifica a intervenção, sem inferir executor ou relatório técnico estruturado. As categorias INTERRUPCAO_FORNECIMENTO, SOBRECARGA e FALHA_EQUIPAMENTO não são aceitas pelo POST genérico de eventos; interrupções possuem cadastro específico.
 
 
 ## Cadastro estrutural de usinas — US05
@@ -324,3 +324,10 @@ A V13 adiciona o vínculo e suas restrições. Legados inconsistentes sem refer�
 O cadastro exige nome, coordenadas geográficas, tipo de geração, capacidade máxima positiva em MW e subestação existente. Nome recebe trim e possui limite de 255 caracteres. Coordenadas aceitam até sete casas, dentro dos limites geográficos; capacidade aceita até 13 dígitos inteiros e seis casas. Precisão excedida é rejeitada sem arredondamento. Data de instalação é opcional e pode ser futura. Estado operacional omitido ou nulo assume OPERACIONAL, inclusive no PUT; os demais estados são FALHA e MANUTENCAO. O PUT substitui o cadastro e permite trocar a subestação, preservando a identidade.
 
 POST e PUT são exclusivos de GERENTE_OPERACOES e exigem sessão e CSRF. Consultas individuais e paginadas permitem os três perfis autenticados. Os filtros são nome, tipoGeracao, estadoOperacional e subestacaoId, com ordenação fixa id ASC. O cadastro não representa geração instantânea nem fornece exclusão ou inativação.
+
+
+## Ocorrência física de interrupção — US17
+
+A interrupção reutiliza EventoOperacional, com categoria fixa INTERRUPCAO_FORNECIMENTO. Seu POST específico registra inicioEfetivo informado pelo operador, obrigatório e não futuro segundo o relógio UTC do servidor. A situação inicial é ABERTO: o início físico pode anteceder o atendimento. Registrador é o usuário da sessão e responsável deve ser um usuário existente. O ativo deve existir, sem exigência de FALHA e sem mudança automática do estado operacional. Previsões e término efetivo ficam nulos na criação. O início é normalizado para UTC e microssegundos.
+
+O histórico de transições mantém o tempo operacional de atendimento separado do instante físico informado. O cadastro não cria histórico retroativo. A extensão para informar restabelecimento físico na conclusão será tratada separadamente, mantendo os estados ABERTO, EM_ANDAMENTO e CONCLUIDO. Causa provável, consumidores afetados e fases afetadas não são campos estruturados neste MVP; se incorporados, poderão usar composição 1:1 sem sobrecarregar o evento genérico.

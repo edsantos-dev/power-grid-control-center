@@ -11,6 +11,7 @@ import br.com.powergrid.controlcenter.model.SituacaoEventoOperacional;
 import br.com.powergrid.controlcenter.repository.HistoricoEventoOperacionalRepository;
 import org.springframework.security.access.AccessDeniedException;
 import br.com.powergrid.controlcenter.dto.EventoOperacionalRequestDTO;
+import br.com.powergrid.controlcenter.dto.InterrupcaoRequestDTO;
 import br.com.powergrid.controlcenter.dto.EventoOperacionalResponseDTO;
 import br.com.powergrid.controlcenter.model.AtivoRede;
 import br.com.powergrid.controlcenter.model.EventoOperacional;
@@ -62,6 +63,28 @@ public class EventoOperacionalService {
         evento.setInicioPrevisto(request.inicioPrevisto());
         evento.setTerminoPrevisto(request.terminoPrevisto());
         evento.setSituacao("ABERTO");
+        return toResponse(repository.save(evento));
+    }
+
+    @Transactional
+    public EventoOperacionalResponseDTO criarInterrupcao(InterrupcaoRequestDTO request) {
+        Usuario registrador = usuarioAutenticado();
+        if (request.inicioEfetivo() == null || request.inicioEfetivo().toInstant().isAfter(clock.instant())) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Informe o início efetivo, que não pode estar no futuro.");
+        }
+        AtivoRede ativo = entityManager.find(AtivoRede.class, request.ativoId());
+        if (ativo == null) throw new ResponseStatusException(HttpStatus.NOT_FOUND, "Ativo não encontrado.");
+        Usuario responsavel = usuarioRepository.findById(request.responsavelUsuarioId())
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Responsável não encontrado."));
+        var evento = new EventoOperacional();
+        evento.setAtivo(ativo);
+        evento.setCategoria(EventoOperacional.Categoria.INTERRUPCAO_FORNECIMENTO);
+        evento.setDescricao(request.descricao());
+        evento.setCriticidade(request.criticidade());
+        evento.setRegistradorUsuario(registrador);
+        evento.setResponsavelUsuario(responsavel);
+        evento.setSituacao(SituacaoEventoOperacional.ABERTO.name());
+        evento.setInicioEfetivo(request.inicioEfetivo().withOffsetSameInstant(ZoneOffset.UTC).truncatedTo(ChronoUnit.MICROS));
         return toResponse(repository.save(evento));
     }
 

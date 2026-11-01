@@ -6,7 +6,7 @@ O backlog reúne as histórias, os critérios de aceitação, as tarefas e as pe
 
 O frontend possui páginas com dados simulados, filtros e navegação local. O backend possui configuração PostgreSQL/JPA/Flyway, schema SQL inicial, persistência de usuários e autenticação HTTP por sessão, com CORS e CSRF. A V2 provisiona os três perfis e a segurança por método está habilitada. O backend também possui cadastros de subestações, alimentadores e transformadores, APIs de eventos e alertas e persistência de consumidores. A integração com o frontend permanece pendente.
 
-US01 está **Em andamento**, com persistência, criação, consulta e edição de subestações em revisão; US02 está **Em andamento**, com backend de Alimentador em revisão; US03 está **Em andamento**, com persistência e API de Transformador em revisão; US16 está **Em andamento**, com persistência e API de eventos em revisão; US20 está **Em andamento**, com persistência e API de alertas em revisão; US07 está **Em andamento**, com persistência e API de consumidores em revisão; US06 está **Em andamento**, com persistência e API de medidores em revisão; US04 está **Em andamento**, com backend de equipes, integrantes e disponibilidade implementado e integração com o frontend pendente; US08–US15, US17–US19 e US23–US24 permanecem **A fazer** para o trabalho restante. O recorte de backend de US25 está **Em revisão**, com persistência, autenticação HTTP, contas iniciais e segurança por método. US05 está **Em andamento**, com persistência e API de usinas implementadas e integração com o frontend pendente. A presença de uma tela não representa a conclusão da história. O mapa geográfico ainda não está implementado.
+US01 está **Em andamento**, com persistência, criação, consulta e edição de subestações em revisão; US02 está **Em andamento**, com backend de Alimentador em revisão; US03 está **Em andamento**, com persistência e API de Transformador em revisão; US16 está **Em andamento**, com persistência e API de eventos em revisão; US20 está **Em andamento**, com persistência e API de alertas em revisão; US07 está **Em andamento**, com persistência e API de consumidores em revisão; US06 está **Em andamento**, com persistência e API de medidores em revisão; US04 está **Em andamento**, com backend de equipes, integrantes e disponibilidade implementado e integração com o frontend pendente; US08–US15, US18–US19 e US23–US24 permanecem **A fazer** para o trabalho restante. O recorte de backend de US25 está **Em revisão**, com persistência, autenticação HTTP, contas iniciais e segurança por método. US05 está **Em andamento**, com persistência e API de usinas implementadas e integração com o frontend pendente. US17 está **Em andamento**, com cadastro específico de interrupções e extensão da conclusão/consultas pendentes. A presença de uma tela não representa a conclusão da história. O mapa geográfico ainda não está implementado.
 
 O frontend consome a autenticação e os cadastros de subestações, alimentadores e linhas de transmissão pela API, com endereço definido em VITE_API_URL; as demais telas continuam com dados simulados. Os testes existentes cobrem contexto, persistência, credenciais, autenticação HTTP, sessão, CORS e CSRF. A política de gestão de acesso restringe as futuras operações ao Gerente de Operações; esses endpoints ainda não existem.
 
@@ -525,22 +525,22 @@ Como operador, quero registrar eventos operacionais como manobras e desligamento
 Como operador, quero registrar interrupções de fornecimento com data, horário e ativo envolvido, para documentar a ocorrência e permitir análises posteriores.
 
 - **Perfil e prioridade:** Operador. Prioridade: Alta.
-- **Status:** A fazer.
-- **Implementação existente:** Uma interrupção simulada aparece na lista e pode ser filtrada.
-- **Trabalho pendente:** Sem operação de registro e relação persistente com ativo.
+- **Status:** Em andamento.
+- **Implementação existente:** POST /api/interrupcoes com autoria pela sessão, ativo/responsável persistentes e início físico obrigatório, não futuro. Categoria fixa INTERRUPCAO_FORNECIMENTO e situação ABERTO. Consulta individual disponível pelo recurso de evento existente; frontend ainda simulado.
+- **Trabalho pendente:** Extensão da conclusão para término físico informado; consultas específicas paginadas; integração com o frontend e aceite do fluxo completo.
 - **Dependências:** Infraestrutura de eventos de US16; US25.
 - **Referências no frontend:** [Eventos/index.tsx](../frontend/src/pages/Eventos/index.tsx#L23) (linhas 23,55).
 
 **Critérios de aceitação:**
 
 - [ ] **US17-CA01:** Usar INTERRUPCAO_FORNECIMENTO para perda efetiva de fornecimento, distinta da ação programada.
-- [ ] **US17-CA02:** Persistir interrupção com ativo identificado, instante efetivo e campos comuns definidos. **A detalhar.**
-- [ ] **US17-CA03:** Consultar ocorrência salva e demonstrar validações temporais e de referências. **A detalhar.**
+- [ ] **US17-CA02:** Persistir interrupção com ativo identificado, descrição, responsável, início físico não futuro e registrador da sessão. Cadastro implementado; fluxo completo e integração pendentes.
+- [ ] **US17-CA03:** Consultar ocorrência salva e demonstrar validações temporais e de referências. Consulta pelo evento e validações de criação implementadas; consultas específicas e integração pendentes.
 
 **Tarefas:**
 
-- [ ] **US17-T01:** Detalhar contrato e critérios propostos, resolver as decisões pertinentes e definir cenários de teste.
-- [ ] **US17-T02:** Implementar o recorte de backend com testes pertinentes e documentação.
+- [x] **US17-T01:** Detalhar contrato e critérios propostos, resolver as decisões pertinentes e definir cenários de teste.
+- [ ] **US17-T02:** Implementar o recorte de backend com testes pertinentes e documentação. Cadastro específico implementado; extensão da conclusão e consultas específicas pendentes.
 - [ ] **US17-T03:** Integrar a interface com testes pertinentes e documentação.
 - [ ] **US17-T04:** Verificar integração/aceite e apresentar resultados e limitações.
 

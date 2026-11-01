@@ -413,3 +413,12 @@ POST /api/usinas retorna 201, Location e UsinaResponseDTO. PUT /api/usinas/{id} 
 GET /api/usinas/{id} permite todos os perfis autenticados e retorna o cadastro ou 404. O DTO expõe id, nome, coordenadas, tipoGeracao, capacidadeMaximaMw, subestacaoId, dataInstalacao e estadoOperacional. GET /api/usinas usa PageResponseDTO, page=0/size=20 por padrão e máximo 100, ordenado por id ASC. Filtros opcionais: nome (trecho sem diferenciar maiúsculas/minúsculas, caracteres de LIKE tratados literalmente), tipoGeracao, estadoOperacional e subestacaoId positivo. Sem correspondência, retorna 200 com página vazia. Sort, parâmetros desconhecidos, vazios, repetidos ou inválidos retornam 400.
 
 O vínculo cadastral pode mudar no PUT, sem alterar a identidade da usina. Geração instantânea, unidades geradoras, inativação e exclusão não integram esta API. A integração da tela de usinas permanece pendente.
+
+
+## Cadastro específico de interrupções — US17
+
+POST /api/interrupcoes exige sessão autenticada e CSRF, com o mesmo acesso do cadastro de eventos operacionais para os três perfis. Recebe ativoId e responsavelUsuarioId positivos e obrigatórios, descricao não branca (com trim), inicioEfetivo obrigatório com fuso e criticidade opcional de até 32 caracteres. O início informado não pode superar o relógio UTC do servidor; não há tolerância de sensor. Datas passadas e o instante atual são aceitos. Ativo ou responsável inexistente retorna 404; contrato ou data inválida retorna 400.
+
+O serviço cria EventoOperacional de categoria INTERRUPCAO_FORNECIMENTO e situação ABERTO. O registrador é obtido da sessão. O instante físico informado é preservado em UTC com precisão de microssegundos, sem substituição pelo horário do cadastro. Previsões e término efetivo permanecem nulos; campos extras de categoria, situação ou autoria não controlam esses valores. O estado do ativo não é modificado. Sucesso retorna 201, EventoOperacionalResponseDTO e Location para /api/eventos-operacionais/{id}, recurso já consultável.
+
+O POST genérico de eventos mantém a interrupção bloqueada para evitar contornar o contrato específico. Não há nova tabela nem migration. A extensão da conclusão para receber o término físico do fornecimento e as consultas específicas de interrupções permanecem pendentes; as regras de transição da US18 não foram alteradas neste incremento.
