@@ -395,3 +395,12 @@ PUT /api/equipes/{id}/integrantes/{usuarioId} não exige corpo. Retorna 201 ao a
 PATCH /api/equipes/{id}/situacao recebe situacao obrigatória: DISPONIVEL, EM_ATENDIMENTO ou FORA_DE_SERVICO, retornando a equipe com 200. DISPONIVEL e EM_ATENDIMENTO exigem ao menos um vínculo aberto; sem integrante ativo, retorna 409. Remover o último integrante nesses estados também retorna 409, exigindo colocar a equipe FORA_DE_SERVICO antes. A disponibilidade é declarada manualmente; não reserva capacidade individual nem é derivada de eventos.
 
 PUT de integrantes, DELETE e PATCH de situação exigem sessão, CSRF e perfil GERENTE_OPERACOES ou TECNICO_MANUTENCAO. As três operações usam transação e bloqueio pessimista na equipe pai. A edição textual também usa esse bloqueio, evitando sobrescrita concorrente da situação. A prevenção de vínculos ativos duplicados ocorre no serviço sob o mesmo bloqueio, sem nova constraint no schema legado. A origem local do frontend aceita DELETE no CORS. Designação de equipe em eventos, registro de executores e integração da interface permanecem fora deste recorte.
+
+
+## Persistência de usinas geradoras — US05
+
+UsinaGeradora herda AtivoRede pela estratégia JOINED, compartilhando a identidade entre ativo_rede e usina_geradora. O cadastro representa um nó único de geração, sem unidades geradoras individuais. TipoGeracao admite HIDRELETRICA, SOLAR, EOLICA e TERMICA. Capacidade máxima é armazenada em MW como NUMERIC(19,6), obrigatória e estritamente positiva; não representa geração instantânea. Cada usina referencia uma subestação obrigatória por associação LAZY, sem cascata de persistência ou exclusão para a subestação. O repositório permite consultas paginadas por tipo de geração e subestação, isolados ou combinados.
+
+A V13 acrescenta subestacao_id, sua FK, obrigatoriedade de tipo e capacidade e os CHECKs correspondentes. Como a V1 não registra a subestação da usina, não há backfill automático confiável. A migration remove cadastros inconsistentes somente quando não possuem referências externas, excluindo a usina e seu registro pai. Eventos e seu histórico, alertas, fontes com suas medições e outros subtipos de ativo são preservados. Cadastros já regularizados explicitamente são mantidos. Se restarem usinas referenciadas incompatíveis com as novas restrições, a migração falha, exigindo regularização manual. Não são criadas associações fictícias.
+
+Service, DTOs e endpoints de usinas permanecem pendentes. A API não disponibiliza exclusão ou inativação cadastral de usinas nesta etapa.

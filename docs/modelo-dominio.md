@@ -310,3 +310,10 @@ ManutencaoHistoricoResponseDTO reúne EventoOperacionalResponseDTO e a última H
 ### Cadastro manual de manutenção
 
 MANUTENCAO utiliza o POST de eventos operacionais, a mesma identidade e os mesmos campos de planejamento. O ativo precisa existir; sua condição OPERACIONAL, FALHA ou MANUTENCAO não impede o cadastro e não é modificada pela criação do evento. Descrição, responsável e início previsto são obrigatórios; término previsto e criticidade são opcionais conforme o contrato de eventos. A situação inicial é ABERTO e datas efetivas ficam nulas até as transições. Categoria identifica a intervenção, sem inferir executor ou relatório técnico estruturado. As categorias INTERRUPCAO_FORNECIMENTO, SOBRECARGA e FALHA_EQUIPAMENTO não são aceitas por este cadastro manual.
+
+
+## Cadastro estrutural de usinas — US05
+
+UsinaGeradora é uma especialização de AtivoRede com herança JOINED. Seus atributos específicos são tipoGeracao (HIDRELETRICA, SOLAR, EOLICA ou TERMICA) e capacidadeMaximaMw obrigatória e maior que zero, com precisão 19 e escala 6. Cada usina pertence cadastralmente a uma subestação (N:1 obrigatório); uma subestação pode possuir zero ou várias usinas. O vínculo não representa a topologia elétrica completa. A usina é um nó único no MVP, sem unidades geradoras. Capacidade máxima é informação de cadastro, distinta de geração observada.
+
+A V13 adiciona o vínculo e suas restrições. Legados inconsistentes sem referências externas podem ser removidos com seu ativo pai; legados referenciados impedem a migração até regularização explícita. Registros regularizados são preservados, sem preenchimento automático de subestação, tipo ou capacidade. A associação JPA com subestação é LAZY e não possui cascata. Exclusão/inativação de usinas, geração instantânea e integração com o frontend permanecem fora deste incremento de persistência.
