@@ -298,3 +298,8 @@ O histórico é consultado por evento, com paginação e ordenação alteradoEm 
 Manutenção é EventoOperacional de categoria MANUTENCAO e mantém a identidade, situação e transições do evento. A consulta por ativo não cria nova entidade ou histórico duplicado. O período usa inicioEfetivo, com início inclusivo e fim exclusivo; valores nulos ficam fora quando houver filtro temporal. Sem período, eventos sem início permanecem na lista, ordenados ao final. Responsável e situação são filtros opcionais.
 
 A página é selecionada no banco em ordem inicioEfetivo DESC NULLS LAST/id DESC. As últimas transições são obtidas em lote pelos IDs selecionados, com desempate alteradoEm DESC/id DESC, sem materializar o histórico inteiro. Eventos sem transições permanecem elegíveis na página. O responsável e o autor da transição não representam necessariamente executores da manutenção; executor granular e relatório técnico estruturado continuam pendentes de evolução específica.
+
+
+### Resposta composta da manutenção
+
+ManutencaoHistoricoResponseDTO reúne EventoOperacionalResponseDTO e a última HistoricoEventoResponseDTO, quando existente. ManutencaoService valida a identidade do ativo na tabela pai e faz o mapeamento em uma transação de leitura. A consulta não cria auditoria para registros sem histórico e não trata responsável ou autor como executor. Todos os instantes retornam em UTC. O histórico completo continua disponível pela API paginada da US18.

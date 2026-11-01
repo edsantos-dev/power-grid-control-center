@@ -592,8 +592,8 @@ Como técnico de manutenção, quero consultar o histórico de manutenções de 
 
 - **Perfil e prioridade:** Técnico de Manutenção. Prioridade: Média.
 - **Status:** Em andamento.
-- **Implementação existente:** Eventos MANUTENCAO e transições da US18 persistidos; consultas otimizadas por ativo em revisão. O frontend mantém dados simulados.
-- **Trabalho pendente:** Service, DTO e endpoint da consulta por ativo (Lote 2); integração da interface e aceite funcional. Tipo específico de manutenção, relatório técnico estruturado e executores granulares permanecem fora do recorte inicial.
+- **Implementação existente:** Eventos MANUTENCAO e transições da US18 persistidos; consulta Web composta por ativo em revisão. O frontend mantém dados simulados.
+- **Trabalho pendente:** Revisão do backend, contrato/operação de cadastro HTTP de manutenção, integração da interface e aceite funcional. Tipo específico de manutenção, relatório técnico estruturado e executores granulares permanecem fora do recorte inicial.
 - **Dependências:** US16; US18; US25; registro de manutenção.
 - **Referências no frontend:** [Eventos/index.tsx](../frontend/src/pages/Eventos/index.tsx#L26) (linhas 26,55); [Relatorios/index.tsx](../frontend/src/pages/Relatorios/index.tsx#L22) (linhas 22).
 
@@ -614,7 +614,17 @@ Como técnico de manutenção, quero consultar o histórico de manutenções de 
 
 **Última transição em lote:** HistoricoEventoOperacionalRepository.buscarUltimasTransicoes recebe os IDs da página e usa IN com NOT EXISTS correlacionado para selecionar somente o maior alteradoEm/id de cada evento. Eventos sem histórico não geram registro; lista vazia retorna sem SQL. Não são carregadas todas as transições nem feitas buscas individuais por evento. O índice de histórico introduzido na V12 permanece disponível.
 
-**Verificação:** ManutencaoRepositoryTest cobre isolamento por ativo/categoria, subtipos de ativo, nulos ao final, desempates, paginação, filtros isolados/combinados, limites temporais com fuso e busca em lote. A contagem de statements verifica três consultas para contagem, página e últimas transições de múltiplos eventos. Validação de existência do ativo e contratos Web pertencem ao Lote 2.
+**Verificação:** ManutencaoRepositoryTest cobre isolamento por ativo/categoria, subtipos de ativo, nulos ao final, desempates, paginação, filtros isolados/combinados, limites temporais com fuso e busca em lote. A contagem de statements verifica três consultas para contagem, página e últimas transições de múltiplos eventos. Validação de existência do ativo e contratos Web estão implementados no Lote 2.
+
+**US19-T02 — Lote 2 em revisão:** GET /api/ativos-rede/{ativoId}/manutencoes exige sessão e permite os três perfis existentes. ManutencaoService valida o ativo por AtivoRedeRepository (404 quando inexistente), carrega a página de MANUTENCAO e consulta em lote somente as últimas transições dos IDs selecionados. ManutencaoHistoricoResponseDTO contém evento (EventoOperacionalResponseDTO) e ultimaTransicao (HistoricoEventoResponseDTO opcional), com instantes UTC. Ativo existente sem correspondência retorna página vazia. Não há inferência de executor nem geração retroativa de histórico.
+
+**Contrato HTTP:** page=0/size=20 por padrão, máximo 100; filtros opcionais situacao, responsavelUsuarioId, dataInicio inclusiva e dataFim exclusiva sobre inicioEfetivo. Situações são estritas; responsável deve ser ID positivo. Sort, parâmetros não suportados, valores inválidos, vazios ou repetidos retornam 400. Sem filtro temporal, inclui todos os estados e coloca início nulo ao final; com período, exclui eventos sem início efetivo. A ordem é fixa inicioEfetivo DESC NULLS LAST/id DESC.
+
+**Verificação Web:** ManutencaoAtivoControllerTest cobre eventos persistidos em fixtures e transições pela API da US18, resposta composta, legado sem histórico, subtipos de ativo, filtros combinados, paginação, isolamento, 400/401/404 e leitura por perfil. A quantidade de SQL do endpoint é constante: quatro consultas para página preenchida (existência do ativo, contagem, conteúdo e últimas transições em lote); página vazia requer apenas existência e contagem. Integração da interface e aceite funcional permanecem pendentes.
+
+**Cadastro de manutenção — pendência relacionada:**
+
+O POST da US16 aceita MANOBRA e DESLIGAMENTO_PROGRAMADO. A US19 consulta eventos MANUTENCAO persistidos, mas não amplia esse cadastro HTTP. Uma operação de cadastro de manutenção depende de contrato e implementação próprios. Nos testes da US19, as manutenções são inseridas como fixtures e evoluídas pela API de transições da US18.
 
 ### US20 — Consultar alertas ativos por criticidade
 
