@@ -268,3 +268,12 @@ Os diagramas anteriores precisam ser sincronizados com este modelo e com o schem
 - [Diagrama de classes](diagramas/DiagramaDeClasses.png).
 - [Diagrama de banco de dados](diagramas/DiagramaBancoDeDados.pdf).
 - [Backlog](backlog.md): prioridades, critérios e tarefas.
+
+
+## Histórico de transições de eventos operacionais — US18
+
+A V12 introduz HistoricoEventoOperacional com identidade própria, associações obrigatórias N:1 para EventoOperacional e Usuario, situações anterior/nova, alteradoEm e comentario de até 1.000 caracteres. As associações são LAZY, sem cascata de persistência ou exclusão. A atualização do histórico é imutável no Hibernate; o repositório não expõe exclusão. A FK preserva os vínculos de auditoria. Não há coleção bidirecional no evento.
+
+SituacaoEventoOperacional define ABERTO, EM_ANDAMENTO e CONCLUIDO. O CHECK do histórico permite somente ABERTO → EM_ANDAMENTO e EM_ANDAMENTO → CONCLUIDO. O estado do evento pai e as datas efetivas continuam com os mapeamentos existentes; a atualização conjunta com o histórico será responsabilidade do serviço transacional. Este histórico é independente dos alertas e da view da US24.
+
+A migração normaliza a grafia de situações conhecidas sem alterar datas nem inventar usuário ou instante de ações passadas. Estados desconhecidos/nulos são preservados para tratamento explícito no fluxo de negócio, e nenhum histórico retroativo é criado. Não há novas restrições de ciclo sobre o evento pai neste lote; as comparações temporais já presentes na V1 permanecem válidas.

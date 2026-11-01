@@ -327,3 +327,10 @@ GET /api/alertas-dashboard requer sessão autenticada e permite todos os perfis 
 Filtros opcionais: tipoAlerta (GENERICO/SOBRECARGA/TENSAO/COMUNICACAO), criticidade (BAIXA/MEDIA/ALTA/CRITICA), escopo (ATIVO/REDE_MONITORADA), ativoId/fonteId positivos, statusOrigem (ABERTO/ATIVO/RECONHECIDO/RESOLVIDO/RESTABELECIDO), dataInicio inclusiva e dataFim exclusiva sobre ocorridoEm. Datas devem usar ISO 8601 com offset, com início anterior ao fim. Valores inválidos, vazios ou repetidos retornam 400; combinações válidas sem correspondência retornam página vazia. Exemplo: /api/alertas-dashboard?size=50&criticidade=ALTA.
 
 O DTO expõe idOrigem e tipoAlerta para identificar a origem sem colisões, além de campos estruturados e descricao em português. A descrição usa separador decimal pt-BR, pelo menos duas casas e até oito casas relevantes; não altera os valores técnicos numéricos. Todos os instantes são normalizados para UTC. Campos legados ausentes permanecem nulos; registros sem data ficam ao final e são excluídos por filtros temporais. O histórico inclui todos os estados por padrão, sem converter reconhecimento em resolução.
+
+
+## Persistência de transições de eventos — US18
+
+A V12 cria historico_evento_operacional, com evento e usuário obrigatórios, estados anterior/novo, alterado_em e comentario obrigatório de até 1.000 caracteres. O CHECK aceita apenas ABERTO → EM_ANDAMENTO e EM_ANDAMENTO → CONCLUIDO. A entidade é imutável para atualizações pelo Hibernate e o repositório expõe somente inserção e consultas. A leitura por evento é paginada.
+
+A migração normaliza espaços e maiúsculas de situações conhecidas. Datas, situações desconhecidas/nulas e vínculos existentes são preservados, sem histórico retroativo. As datas efetivas já estão mapeadas em EventoOperacional. O serviço de transições, suas permissões e os endpoints pertencem ao próximo lote; nenhum fluxo de alteração de situação é disponibilizado nesta etapa.
