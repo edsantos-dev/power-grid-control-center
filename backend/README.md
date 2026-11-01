@@ -352,3 +352,26 @@ POST /api/eventos-operacionais/{id}/transicoes exige sessão e CSRF. O corpo con
 GET /api/eventos-operacionais/{id}/transicoes exige sessão e retorna PageResponseDTO com padrões page=0/size=20 e máximo 100. A ordem é fixa alteradoEm DESC/id DESC; sort, parâmetros não suportados e paginação inválida retornam 400. Evento existente sem transições retorna página vazia; evento inexistente retorna 404. A consulta é limitada e contada no banco por evento.
 
 GET /api/eventos-operacionais/{id}/transicoes/{transicaoId} exige sessão e retorna o detalhe. Transição inexistente ou pertencente a outro evento retorna 404. As leituras seguem as permissões das consultas existentes de eventos; o POST aplica a restrição de responsável ou gerente. Transições são novas operações de auditoria: repetir uma solicitação com situação esperada ultrapassada retorna 409.
+
+
+## Consultas de manutenção por ativo — US19
+
+EventoOperacionalRepository.buscarManutencoesPorAtivo seleciona somente eventos MANUTENCAO do ativo informado. Suporta situação, responsável e período opcional sobre inicioEfetivo (início inclusivo/fim exclusivo). A paginação ocorre no banco, com ordem fixa inicioEfetivo DESC NULLS LAST/id DESC. Eventos sem início efetivo ficam ao final e não atendem filtros temporais.
+
+HistoricoEventoOperacionalRepository.buscarUltimasTransicoes consulta em lote os IDs da página e retorna apenas a última transição por alteradoEm/id. Lista vazia não executa SQL e eventos sem histórico não geram linha. A consulta completa usa contagem, página e histórico em lote, evitando buscas individuais por evento. ManutencaoService orquestra as consultas e o endpoint retorna a página com o evento e sua última transição.
+
+
+### Endpoint de manutenção por ativo
+
+GET /api/ativos-rede/{ativoId}/manutencoes exige sessão e permite os três perfis. Valida a existência na tabela pai ativo_rede: inexistente retorna 404; existente sem manutenção correspondente retorna 200 com página vazia. Aceita os subtipos de ativos cadastrados.
+
+A resposta usa PageResponseDTO com page=0/size=20 por padrão e máximo 100. Cada item contém evento (EventoOperacionalResponseDTO) e ultimaTransicao (HistoricoEventoResponseDTO ou nulo), com instantes UTC. O histórico completo é consultado por /api/eventos-operacionais/{eventoId}/transicoes.
+
+Filtros opcionais: situacao (ABERTO/EM_ANDAMENTO/CONCLUIDO), responsavelUsuarioId positivo, dataInicio inclusiva e dataFim exclusiva sobre inicioEfetivo. Datas usam ISO 8601 com offset e início deve ser anterior ao fim. Sem período, inclui todos os estados; início efetivo nulo fica ao final. Com período, eventos sem início efetivo são excluídos. A ordem fixa é inicioEfetivo DESC NULLS LAST/id DESC. Sort, parâmetros não suportados e valores inválidos/vazios/repetidos retornam 400. Exemplo: /api/ativos-rede/1/manutencoes?situacao=CONCLUIDO&size=10.
+
+A composição usa quatro consultas para uma página preenchida, incluindo validação do ativo; a última transição é buscada em lote, sem N+1 na montagem dos DTOs. Página vazia usa apenas validação e contagem. Responsável e autor da transição não comprovam execução da manutenção; executores granulares e relatórios técnicos estruturados permanecem fora deste recorte.
+
+
+### Disponibilidade do cadastro de manutenção
+
+O POST da US16 aceita MANOBRA e DESLIGAMENTO_PROGRAMADO. A US19 consulta eventos MANUTENCAO persistidos, mas não amplia esse cadastro HTTP. Uma operação de cadastro de manutenção depende de contrato e implementação próprios. Nos testes da US19, as manutenções são inseridas como fixtures e evoluídas pela API de transições da US18.
