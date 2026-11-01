@@ -333,7 +333,7 @@ O DTO expõe idOrigem e tipoAlerta para identificar a origem sem colisões, alé
 
 A V12 cria historico_evento_operacional, com evento e usuário obrigatórios, estados anterior/novo, alterado_em e comentario obrigatório de até 1.000 caracteres. O CHECK aceita apenas ABERTO → EM_ANDAMENTO e EM_ANDAMENTO → CONCLUIDO. A entidade é imutável para atualizações pelo Hibernate e o repositório expõe somente inserção e consultas. A leitura por evento é paginada.
 
-A migração normaliza espaços e maiúsculas de situações conhecidas. Datas, situações desconhecidas/nulas e vínculos existentes são preservados, sem histórico retroativo. As datas efetivas já estão mapeadas em EventoOperacional. O serviço transacional de transições está implementado; DTOs e endpoints pertencem ao Lote 3.
+A migração normaliza espaços e maiúsculas de situações conhecidas. Datas, situações desconhecidas/nulas e vínculos existentes são preservados, sem histórico retroativo. As datas efetivas já estão mapeadas em EventoOperacional. O serviço transacional e os endpoints de transições estão implementados.
 
 
 ### Serviço de transição de eventos
@@ -342,4 +342,13 @@ EventoOperacionalService.transicionar recebe o ID do evento, situacaoEsperada, s
 
 O evento é bloqueado pessimisticamente e a situação esperada é conferida antes da transição. São permitidos apenas ABERTO → EM_ANDAMENTO e EM_ANDAMENTO → CONCLUIDO. Conflitos de situação, transições inválidas e dados efetivos legados inconsistentes resultam em 409; evento inexistente resulta em 404; argumentos ou comentário inválidos resultam em 400.
 
-O servidor preenche datas efetivas em UTC, com precisão de microssegundos: preserva o início existente e valida início obrigatório/término não anterior ao início na conclusão. Estado, datas e histórico são confirmados na mesma transação. Falha no histórico desfaz as alterações do evento. Este lote não expõe novos endpoints.
+O servidor preenche datas efetivas em UTC, com precisão de microssegundos: preserva o início existente e valida início obrigatório/término não anterior ao início na conclusão. Estado, datas e histórico são confirmados na mesma transação. Falha no histórico desfaz as alterações do evento. Os endpoints de criação e consulta de transições estão disponíveis conforme o contrato abaixo.
+
+
+### Endpoints de transições — US18
+
+POST /api/eventos-operacionais/{id}/transicoes exige sessão e CSRF. O corpo contém situacaoEsperada, situacaoDestino e comentario não branco de até 1.000 caracteres. O autor é obtido da sessão; campos extras de usuário ou instante não definem a auditoria. Sucesso retorna 201, header Location e HistoricoEventoResponseDTO (id, eventoId, usuarioId, situacaoAnterior, situacaoNova, alteradoEm UTC, comentario). Validação retorna 400, permissão insuficiente 403, evento ausente 404 e conflito de situação/transição 409.
+
+GET /api/eventos-operacionais/{id}/transicoes exige sessão e retorna PageResponseDTO com padrões page=0/size=20 e máximo 100. A ordem é fixa alteradoEm DESC/id DESC; sort, parâmetros não suportados e paginação inválida retornam 400. Evento existente sem transições retorna página vazia; evento inexistente retorna 404. A consulta é limitada e contada no banco por evento.
+
+GET /api/eventos-operacionais/{id}/transicoes/{transicaoId} exige sessão e retorna o detalhe. Transição inexistente ou pertencente a outro evento retorna 404. As leituras seguem as permissões das consultas existentes de eventos; o POST aplica a restrição de responsável ou gerente. Transições são novas operações de auditoria: repetir uma solicitação com situação esperada ultrapassada retorna 409.

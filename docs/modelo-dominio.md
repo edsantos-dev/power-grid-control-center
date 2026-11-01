@@ -284,3 +284,10 @@ A migração normaliza a grafia de situações conhecidas sem alterar datas nem 
 A transição obtém usuário pela sessão e valida o perfil persistido: gerente pode atuar em qualquer evento; operador e técnico de manutenção precisam ser o responsável. O evento é consultado com bloqueio pessimista e sua situação deve coincidir com situacaoEsperada. O fluxo é ABERTO → EM_ANDAMENTO → CONCLUIDO, sem saltos, retornos ou repetição do estado atual.
 
 Início efetivo ausente recebe o instante UTC do servidor; início existente é preservado. A conclusão exige início efetivo e término maior ou igual a ele. O instante é normalizado para microssegundos e compartilhado pelo histórico e pela data efetiva preenchida. Eventos com término já preenchido em estado não terminal ou situação legada desconhecida/ausente exigem regularização, sem alteração automática. O serviço mantém previsões, registrador e responsável. Atualização do evento e inserção do histórico são atômicas.
+
+
+### API de transições e consulta do histórico
+
+O POST de transições recebe somente situação esperada, destino e comentário. O usuário autor vem da sessão e o instante é gerado pelo servidor. HistoricoEventoResponseDTO preserva evento, usuário, estados, instante UTC e comentário. A resposta inclui o endereço do novo registro de histórico. A fachada transacional engloba a alteração e a montagem do retorno.
+
+O histórico é consultado por evento, com paginação e ordenação alteradoEm DESC/id DESC. O detalhe usa evento e ID da transição conjuntamente, impedindo acesso ao registro sob o endereço de outro evento. As consultas seguem o acesso autenticado já existente para eventos; a alteração aplica as permissões de responsável/gerente.
