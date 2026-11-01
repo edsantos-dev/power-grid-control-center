@@ -191,7 +191,9 @@ Três associações possuem significados distintos:
 
 Participar de uma equipe não comprova participação em todos os seus serviços. A composição atual da equipe não substitui o registro dos executores de uma manutenção passada.
 
-Todo integrante terá conta de usuário no MVP. Perfil de acesso não comprova qualificação profissional. Regras de exclusividade, disponibilidade e limite de atendimentos serão definidas em US04.
+Todo integrante possui conta de usuário no MVP. Perfil de acesso não comprova qualificação profissional; todos os perfis podem integrar equipes. Um usuário pode possuir vínculos simultâneos com várias equipes. VinculoEquipe tem identidade própria, equipe e usuário obrigatórios, início obrigatório no JPA e fim opcional. Encerrar o vínculo preserva a linha e um novo ingresso abre outro período. A V1 mantém início nullable no banco; as novas inclusões pela API sempre recebem o instante UTC do servidor.
+
+A equipe nasce FORA_DE_SERVICO. A disponibilidade é manual: DISPONIVEL e EM_ATENDIMENTO exigem ao menos um vínculo aberto. Remover o último integrante nesses estados exige tirar a equipe de serviço antes; conflito retorna 409. Não há exclusividade entre equipes nem limite presumido de atendimentos. Adicionar integrante é idempotente para vínculo aberto; remover encerra sua vigência e repetições não alteram o histórico. Gestão de integrantes, disponibilidade e edição textual serializam alterações por bloqueio pessimista na equipe pai. Escritas exigem GERENTE_OPERACOES ou TECNICO_MANUTENCAO; leituras permitem todos os perfis autenticados.
 
 O registro granular de executores e múltiplas equipes simultâneas não integram a primeira entrega. O registro de eventos de US16 funciona sem designação obrigatória de equipe.
 

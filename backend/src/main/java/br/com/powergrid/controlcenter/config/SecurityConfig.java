@@ -68,7 +68,7 @@ public class SecurityConfig {
 			@Value("${FRONTEND_URL:http://localhost:5173}") String frontendUrl) {
 		CorsConfiguration configuration = new CorsConfiguration();
 		configuration.setAllowedOrigins(List.of(frontendUrl));
-		configuration.setAllowedMethods(List.of("GET", "POST", "PUT", "PATCH", "OPTIONS"));
+		configuration.setAllowedMethods(List.of("GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"));
 		configuration.setAllowedHeaders(List.of("Content-Type", "X-CSRF-TOKEN"));
 		configuration.setAllowCredentials(true);
 

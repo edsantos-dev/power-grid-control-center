@@ -375,3 +375,23 @@ A composição usa quatro consultas para uma página preenchida, incluindo valid
 ### Disponibilidade do cadastro de manutenção
 
 POST /api/eventos-operacionais aceita MANOBRA, DESLIGAMENTO_PROGRAMADO e MANUTENCAO. A manutenção usa os mesmos campos obrigatórios e validações temporais do cadastro existente. Não exige ativo em FALHA nem altera seu estado operacional. A criação define ABERTO, autoria pela sessão e datas efetivas nulas. INTERRUPCAO_FORNECIMENTO, SOBRECARGA e FALHA_EQUIPAMENTO permanecem bloqueadas no POST manual. ManutencaoFluxoE2ETest cobre a integração ponta a ponta da API: cadastro, início, conclusão e consulta por ativo, com sessão/CSRF e transações independentes por requisição.
+
+
+## Cadastro e consulta de equipes — US04
+
+POST /api/equipes recebe nome obrigatório (não branco, até 255 caracteres após trim), responsabilidades e especialidades opcionais. Retorna 201, Location e EquipeResponseDTO com id, campos textuais e situacao. A situação inicial é sempre FORA_DE_SERVICO; o corpo não define a disponibilidade. PUT /api/equipes/{id} substitui somente os campos textuais e preserva a situação existente. Campos opcionais omitidos ficam nulos. Ambas as operações exigem sessão, CSRF e perfil GERENTE_OPERACOES ou TECNICO_MANUTENCAO. OPERADOR recebe 403 nas escritas.
+
+GET /api/equipes/{id} e GET /api/equipes permitem todos os perfis autenticados. Equipe inexistente retorna 404. A listagem usa PageResponseDTO, page=0/size=20 por padrão, máximo 100 e ordem fixa id ASC. Aceita nome (trecho sem diferenciar maiúsculas/minúsculas, com caracteres de LIKE tratados literalmente) e situacao (DISPONIVEL, EM_ATENDIMENTO, FORA_DE_SERVICO). Sort, parâmetros desconhecidos e valores inválidos, vazios ou repetidos retornam 400. Ausência de correspondências retorna 200 com página vazia.
+
+EquipeManutencao e VinculoEquipe reutilizam equipe_manutencao e vinculo_equipe da V1. O vínculo conserva os períodos encerrados e permite integrantes em equipes diferentes. O início de vigência é obrigatório no mapeamento JPA; a coluna legada ainda aceita nulo no banco. A API gerencia integrantes e disponibilidade manual conforme o contrato abaixo. O cadastro da equipe não atribui atendimento a eventos nem comprova execução de manutenção.
+
+
+### Integrantes e disponibilidade de equipes
+
+GET /api/equipes/{id}/integrantes retorna somente vínculos abertos, com paginação page=0/size=20, máximo 100 e ordem id ASC. Exige sessão e permite todos os perfis. O DTO expõe id do vínculo, equipeId, usuarioId, nome, perfil e instantes de vigência UTC; não expõe credenciais. Sort, parâmetros desconhecidos e paginação inválida retornam 400. Equipe inexistente retorna 404; equipe sem integrantes retorna página vazia.
+
+PUT /api/equipes/{id}/integrantes/{usuarioId} não exige corpo. Retorna 201 ao abrir um vínculo, com inicioVigencia gerado pelo servidor; vínculo já aberto retorna 200 com os dados originais. DELETE na mesma rota encerra a vigência com instante UTC e retorna 204. Repetir a exclusão, ou remover usuário existente sem vínculo, retorna 204 sem alterar o histórico. Equipe ou usuário inexistente retorna 404. Um novo ingresso após encerramento cria outro vínculo, preservando o anterior. Todos os perfis podem ser integrantes e um usuário pode integrar várias equipes simultaneamente.
+
+PATCH /api/equipes/{id}/situacao recebe situacao obrigatória: DISPONIVEL, EM_ATENDIMENTO ou FORA_DE_SERVICO, retornando a equipe com 200. DISPONIVEL e EM_ATENDIMENTO exigem ao menos um vínculo aberto; sem integrante ativo, retorna 409. Remover o último integrante nesses estados também retorna 409, exigindo colocar a equipe FORA_DE_SERVICO antes. A disponibilidade é declarada manualmente; não reserva capacidade individual nem é derivada de eventos.
+
+PUT de integrantes, DELETE e PATCH de situação exigem sessão, CSRF e perfil GERENTE_OPERACOES ou TECNICO_MANUTENCAO. As três operações usam transação e bloqueio pessimista na equipe pai. A edição textual também usa esse bloqueio, evitando sobrescrita concorrente da situação. A prevenção de vínculos ativos duplicados ocorre no serviço sob o mesmo bloqueio, sem nova constraint no schema legado. A origem local do frontend aceita DELETE no CORS. Designação de equipe em eventos, registro de executores e integração da interface permanecem fora deste recorte.
