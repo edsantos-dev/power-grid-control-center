@@ -507,7 +507,7 @@ Como operador, quero registrar eventos operacionais como manobras e desligamento
 - [ ] **US16-CA04:** Criar evento com estado inicial definido e explícito no contrato (S4, p. 5).
 - [ ] **US16-CA05:** Rejeitar fim anterior ao início (S4, p. 5), definindo o par temporal pertinente.
 - [ ] **US16-CA06:** Listar data/hora, ativo, categoria e situação (S4, p. 5).
-- [ ] **US16-CA07:** Usar as categorias MANOBRA e DESLIGAMENTO_PROGRAMADO no registro de eventos deste recorte.
+- [ ] **US16-CA07:** Permitir MANOBRA, DESLIGAMENTO_PROGRAMADO e MANUTENCAO no cadastro manual, mantendo INTERRUPCAO_FORNECIMENTO, SOBRECARGA e FALHA_EQUIPAMENTO bloqueadas.
 
 **Tarefas:**
 
@@ -518,7 +518,7 @@ Como operador, quero registrar eventos operacionais como manobras e desligamento
 
 **US16-T02 — persistência e API em revisão:** Relacionamentos ManyToOne LAZY, sem cascata; datas previstas e efetivas mapeadas com fuso. EventoOperacionalRepositoryTest cobre vínculos polimórficos, obrigatoriedade, referências inexistentes e períodos previstos/efetivos. Designação de equipe permanece sem mapeamento Java neste recorte. A V1 permanece inalterada.
 
-**Contrato de criação:** MANOBRA ou DESLIGAMENTO_PROGRAMADO; ativoId, responsavelUsuarioId, descrição não vazia e inicioPrevisto obrigatórios. IDs positivos e existentes. Registrador obtido da sessão, nunca do DTO. Situação inicial ABERTO; datas efetivas e equipe nulas. TerminoPrevisto opcional e maior ou igual a inicioPrevisto; datas com fuso e previsões passadas permitidas. Criticidade opcional, até 32 caracteres, sem catálogo presumido. Registrador e responsável podem coincidir, sem restrição adicional de perfil do responsável. Entrada inválida retorna 400; referências inexistentes, 404. POST /api/eventos-operacionais retorna 201 com Location; GET da coleção e GET /{id} retornam 200, ou 404 para evento inexistente. O serviço obtém o registrador pelo SecurityContextHolder. O DTO não permite atribuir registrador, situação ou datas efetivas. EventoOperacionalControllerTest cobre US16-CA01–CA07 no recorte de backend, incluindo autoria, CSRF, categorias permitidas, vínculos e validações temporais.
+**Contrato de criação:** MANOBRA, DESLIGAMENTO_PROGRAMADO ou MANUTENCAO; ativoId, responsavelUsuarioId, descrição não vazia e inicioPrevisto obrigatórios. IDs positivos e existentes. Registrador obtido da sessão, nunca do DTO. Situação inicial ABERTO; datas efetivas e equipe nulas. TerminoPrevisto opcional e maior ou igual a inicioPrevisto; datas com fuso e previsões passadas permitidas. Criticidade opcional, até 32 caracteres, sem catálogo presumido. Registrador e responsável podem coincidir, sem restrição adicional de perfil do responsável. Entrada inválida retorna 400; referências inexistentes, 404. POST /api/eventos-operacionais retorna 201 com Location; GET da coleção e GET /{id} retornam 200, ou 404 para evento inexistente. O serviço obtém o registrador pelo SecurityContextHolder. O DTO não permite atribuir registrador, situação ou datas efetivas. EventoOperacionalControllerTest cobre US16-CA01–CA07 no recorte de backend, incluindo autoria, CSRF, categorias permitidas, vínculos e validações temporais.
 
 ### US17 — Registrar interrupções de fornecimento
 
@@ -593,7 +593,7 @@ Como técnico de manutenção, quero consultar o histórico de manutenções de 
 - **Perfil e prioridade:** Técnico de Manutenção. Prioridade: Média.
 - **Status:** Em andamento.
 - **Implementação existente:** Eventos MANUTENCAO e transições da US18 persistidos; consulta Web composta por ativo em revisão. O frontend mantém dados simulados.
-- **Trabalho pendente:** Revisão do backend, contrato/operação de cadastro HTTP de manutenção, integração da interface e aceite funcional. Tipo específico de manutenção, relatório técnico estruturado e executores granulares permanecem fora do recorte inicial.
+- **Trabalho pendente:** Revisão do backend, teste E2E do cadastro/transições/consulta de manutenção, integração da interface e aceite funcional. Tipo específico de manutenção, relatório técnico estruturado e executores granulares permanecem fora do recorte inicial.
 - **Dependências:** US16; US18; US25; registro de manutenção.
 - **Referências no frontend:** [Eventos/index.tsx](../frontend/src/pages/Eventos/index.tsx#L26) (linhas 26,55); [Relatorios/index.tsx](../frontend/src/pages/Relatorios/index.tsx#L22) (linhas 22).
 
@@ -622,9 +622,9 @@ Como técnico de manutenção, quero consultar o histórico de manutenções de 
 
 **Verificação Web:** ManutencaoAtivoControllerTest cobre eventos persistidos em fixtures e transições pela API da US18, resposta composta, legado sem histórico, subtipos de ativo, filtros combinados, paginação, isolamento, 400/401/404 e leitura por perfil. A quantidade de SQL do endpoint é constante: quatro consultas para página preenchida (existência do ativo, contagem, conteúdo e últimas transições em lote); página vazia requer apenas existência e contagem. Integração da interface e aceite funcional permanecem pendentes.
 
-**Cadastro de manutenção — pendência relacionada:**
+**Cadastro de manutenção — Lote 1 em revisão:**
 
-O POST da US16 aceita MANOBRA e DESLIGAMENTO_PROGRAMADO. A US19 consulta eventos MANUTENCAO persistidos, mas não amplia esse cadastro HTTP. Uma operação de cadastro de manutenção depende de contrato e implementação próprios. Nos testes da US19, as manutenções são inseridas como fixtures e evoluídas pela API de transições da US18.
+POST /api/eventos-operacionais aceita MANOBRA, DESLIGAMENTO_PROGRAMADO e MANUTENCAO. A manutenção usa os mesmos campos obrigatórios e validações temporais do cadastro existente. Não exige ativo em FALHA nem altera seu estado operacional. A criação define ABERTO, autoria pela sessão e datas efetivas nulas. INTERRUPCAO_FORNECIMENTO, SOBRECARGA e FALHA_EQUIPAMENTO permanecem bloqueadas no POST manual. O teste E2E de cadastro, transições e consulta por ativo pertence ao próximo lote. EventoOperacionalControllerTest cobre criação/consulta, autoria, campos obrigatórios, referências, período previsto e as três condições operacionais do ativo. Não há histórico de transição criado automaticamente no cadastro.
 
 ### US20 — Consultar alertas ativos por criticidade
 

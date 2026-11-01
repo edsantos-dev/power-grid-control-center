@@ -170,9 +170,9 @@ POST e PUT exigem nome (trim, até 255 caracteres), latitude e longitude válida
 
 POST `/api/eventos-operacionais` cria um evento e retorna 201 com Location. GET no mesmo caminho lista os eventos; GET `/{id}` consulta um evento, retornando 404 se inexistente. As rotas exigem sessão autenticada e a criação exige CSRF.
 
-A requisição exige ativoId e responsavelUsuarioId positivos e existentes, categoria MANOBRA ou DESLIGAMENTO_PROGRAMADO, descrição não vazia e inicioPrevisto com fuso. TerminoPrevisto é opcional e não pode anteceder o início, considerando os instantes; igualdade e previsões passadas são permitidas. Criticidade é opcional, com até 32 caracteres. Entrada inválida retorna 400; ativo ou responsável inexistente, 404.
+A requisição exige ativoId e responsavelUsuarioId positivos e existentes, categoria MANOBRA, DESLIGAMENTO_PROGRAMADO ou MANUTENCAO, descrição não vazia e inicioPrevisto com fuso. TerminoPrevisto é opcional e não pode anteceder o início, considerando os instantes; igualdade e previsões passadas são permitidas. Criticidade é opcional, com até 32 caracteres. Entrada inválida retorna 400; ativo ou responsável inexistente, 404.
 
-O registrador é obtido da sessão pelo serviço. A criação fixa ABERTO e mantém as datas efetivas nulas. A resposta contém os IDs do ativo e dos usuários, categoria, descrição, criticidade, situação e datas, sem credenciais. Alteração de situação, execução e integração com frontend ficam para incrementos posteriores.
+O registrador é obtido da sessão pelo serviço. A criação fixa ABERTO e mantém as datas efetivas nulas. A resposta contém os IDs do ativo e dos usuários, categoria, descrição, criticidade, situação e datas, sem credenciais. A evolução de situação e as datas efetivas usam a API de transições da US18. Integração com o frontend e registro granular de executores permanecem pendentes.
 
 ## API de alertas
 
@@ -374,4 +374,4 @@ A composição usa quatro consultas para uma página preenchida, incluindo valid
 
 ### Disponibilidade do cadastro de manutenção
 
-O POST da US16 aceita MANOBRA e DESLIGAMENTO_PROGRAMADO. A US19 consulta eventos MANUTENCAO persistidos, mas não amplia esse cadastro HTTP. Uma operação de cadastro de manutenção depende de contrato e implementação próprios. Nos testes da US19, as manutenções são inseridas como fixtures e evoluídas pela API de transições da US18.
+POST /api/eventos-operacionais aceita MANOBRA, DESLIGAMENTO_PROGRAMADO e MANUTENCAO. A manutenção usa os mesmos campos obrigatórios e validações temporais do cadastro existente. Não exige ativo em FALHA nem altera seu estado operacional. A criação define ABERTO, autoria pela sessão e datas efetivas nulas. INTERRUPCAO_FORNECIMENTO, SOBRECARGA e FALHA_EQUIPAMENTO permanecem bloqueadas no POST manual. O teste E2E de cadastro, transições e consulta por ativo pertence ao próximo lote.

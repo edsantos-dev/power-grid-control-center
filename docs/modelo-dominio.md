@@ -175,7 +175,7 @@ Os atributos comuns pertencem ao evento. Informações específicas, como causa 
 
 Início previsto e início efetivo são campos diferentes. Uma previsão não preenche automaticamente o instante efetivo.
 
-Na criação de MANOBRA e DESLIGAMENTO_PROGRAMADO pela US16, inicioPrevisto é obrigatório e terminoPrevisto é opcional, maior ou igual ao início previsto. Previsões passadas são permitidas. Datas possuem fuso. A situação inicial é ABERTO; inicioEfetivo, terminoEfetivo e equipe designada permanecem nulos. Registros efetivos e transições serão detalhados posteriormente. O banco compara separadamente cada par previsto ou efetivo e permite instantes iguais.
+Na criação de MANOBRA, DESLIGAMENTO_PROGRAMADO e MANUTENCAO pelo cadastro manual, inicioPrevisto é obrigatório e terminoPrevisto é opcional, maior ou igual ao início previsto. Previsões passadas são permitidas. Datas possuem fuso. A situação inicial é ABERTO; inicioEfetivo, terminoEfetivo e equipe designada permanecem nulos. Datas efetivas e transições são registradas pelo fluxo da US18. O banco compara separadamente cada par previsto ou efetivo e permite instantes iguais.
 
 A referência para o ciclo básico é `ABERTO → EM_ANDAMENTO → CONCLUIDO`. Estado inicial, permissões, encerramento e exceções serão detalhados nas operações de US16 e US18.
 
@@ -303,3 +303,8 @@ A página é selecionada no banco em ordem inicioEfetivo DESC NULLS LAST/id DESC
 ### Resposta composta da manutenção
 
 ManutencaoHistoricoResponseDTO reúne EventoOperacionalResponseDTO e a última HistoricoEventoResponseDTO, quando existente. ManutencaoService valida a identidade do ativo na tabela pai e faz o mapeamento em uma transação de leitura. A consulta não cria auditoria para registros sem histórico e não trata responsável ou autor como executor. Todos os instantes retornam em UTC. O histórico completo continua disponível pela API paginada da US18.
+
+
+### Cadastro manual de manutenção
+
+MANUTENCAO utiliza o POST de eventos operacionais, a mesma identidade e os mesmos campos de planejamento. O ativo precisa existir; sua condição OPERACIONAL, FALHA ou MANUTENCAO não impede o cadastro e não é modificada pela criação do evento. Descrição, responsável e início previsto são obrigatórios; término previsto e criticidade são opcionais conforme o contrato de eventos. A situação inicial é ABERTO e datas efetivas ficam nulas até as transições. Categoria identifica a intervenção, sem inferir executor ou relatório técnico estruturado. As categorias INTERRUPCAO_FORNECIMENTO, SOBRECARGA e FALHA_EQUIPAMENTO não são aceitas por este cadastro manual.
