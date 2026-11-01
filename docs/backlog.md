@@ -6,7 +6,7 @@ O backlog reúne as histórias, os critérios de aceitação, as tarefas e as pe
 
 O frontend possui páginas com dados simulados, filtros e navegação local. O backend possui configuração PostgreSQL/JPA/Flyway, schema SQL inicial, persistência de usuários e autenticação HTTP por sessão, com CORS e CSRF. A V2 provisiona os três perfis e a segurança por método está habilitada. O backend também possui cadastros de subestações, alimentadores e transformadores, APIs de eventos e alertas e persistência de consumidores. A integração com o frontend permanece pendente.
 
-US01 está **Em andamento**, com persistência, criação, consulta e edição de subestações em revisão; US02 está **Em andamento**, com backend de Alimentador em revisão; US03 está **Em andamento**, com persistência e API de Transformador em revisão; US16 está **Em andamento**, com persistência e API de eventos em revisão; US20 está **Em andamento**, com persistência e API de alertas em revisão; US07 está **Em andamento**, com persistência e API de consumidores em revisão; US06 está **Em andamento**, com persistência e API de medidores em revisão; US04 está **Em andamento**, com backend de equipes, integrantes e disponibilidade implementado e integração com o frontend pendente; US08–US15, US17–US19 e US23–US24 permanecem **A fazer** para o trabalho restante. O recorte de backend de US25 está **Em revisão**, com persistência, autenticação HTTP, contas iniciais e segurança por método. US05 está **Em andamento**, com migration e persistência implementadas e API pendente. A presença de uma tela não representa a conclusão da história. O mapa geográfico ainda não está implementado.
+US01 está **Em andamento**, com persistência, criação, consulta e edição de subestações em revisão; US02 está **Em andamento**, com backend de Alimentador em revisão; US03 está **Em andamento**, com persistência e API de Transformador em revisão; US16 está **Em andamento**, com persistência e API de eventos em revisão; US20 está **Em andamento**, com persistência e API de alertas em revisão; US07 está **Em andamento**, com persistência e API de consumidores em revisão; US06 está **Em andamento**, com persistência e API de medidores em revisão; US04 está **Em andamento**, com backend de equipes, integrantes e disponibilidade implementado e integração com o frontend pendente; US08–US15, US17–US19 e US23–US24 permanecem **A fazer** para o trabalho restante. O recorte de backend de US25 está **Em revisão**, com persistência, autenticação HTTP, contas iniciais e segurança por método. US05 está **Em andamento**, com persistência e API de usinas implementadas e integração com o frontend pendente. A presença de uma tela não representa a conclusão da história. O mapa geográfico ainda não está implementado.
 
 O frontend consome a autenticação e os cadastros de subestações, alimentadores e linhas de transmissão pela API, com endereço definido em VITE_API_URL; as demais telas continuam com dados simulados. Os testes existentes cobrem contexto, persistência, credenciais, autenticação HTTP, sessão, CORS e CSRF. A política de gestão de acesso restringe as futuras operações ao Gerente de Operações; esses endpoints ainda não existem.
 
@@ -191,21 +191,21 @@ Como gerente, quero cadastrar as usinas geradoras vinculadas à rede, para ter c
 
 - **Perfil e prioridade:** Gerente de Operações. Prioridade: Média.
 - **Status:** Em andamento.
-- **Implementação existente:** Backend com V13, entidade JOINED, tipo de geração, capacidade máxima em MW e vínculo obrigatório com subestação. Repositório com filtros paginados por tipo e subestação. Frontend ainda possui listagem, filtros e somatórios simulados.
-- **Trabalho pendente:** DTOs, Service e API de cadastro/edição/consulta; integração com o frontend e aceite. Geração instantânea e exclusão/inativação não integram o cadastro estrutural.
+- **Implementação existente:** Backend com V13, entidade JOINED e API de criação, edição, detalhe e consulta paginada. Filtros por nome, tipo, estado e subestação; escritas exclusivas do gerente, com sessão e CSRF. Precisão e referências validadas antes de salvar. Frontend ainda possui listagem, filtros e somatórios simulados.
+- **Trabalho pendente:** Integração com o frontend e aceite completo. Geração instantânea e exclusão/inativação não integram o cadastro estrutural.
 - **Dependências:** PEN-06; US25; vínculos com a rede definidos em US02.
 - **Referências no frontend:** [Usinas/index.tsx](../frontend/src/pages/Usinas/index.tsx#L7) (linhas 7,17,44,50).
 
 **Critérios de aceitação:**
 
-- [ ] **US05-CA01:** Persistir usina com identificação e localização herdadas de AtivoRede, tipo HIDRELETRICA/SOLAR/EOLICA/TERMICA, capacidadeMaximaMw positiva e subestação obrigatória. Persistência implementada; contrato HTTP e integração pendentes.
-- [ ] **US05-CA02:** Consultar dados salvos, distinguindo capacidade máxima de geração observada. Repositório implementado; API e integração pendentes.
-- [ ] **US05-CA03:** Rejeitar tipo inválido, capacidade nula/não positiva e subestação nula/inexistente. Constraints persistentes implementadas; validações e respostas HTTP pendentes.
+- [ ] **US05-CA01:** Persistir usina com identificação e localização herdadas de AtivoRede, tipo HIDRELETRICA/SOLAR/EOLICA/TERMICA, capacidadeMaximaMw positiva e subestação obrigatória. Persistência e contrato HTTP implementados; integração com a interface pendente.
+- [ ] **US05-CA02:** Consultar dados salvos, distinguindo capacidade máxima de geração observada. Repositório e API implementados; integração com a interface pendente.
+- [ ] **US05-CA03:** Rejeitar tipo inválido, capacidade nula/não positiva e subestação nula/inexistente. Constraints, validações e respostas HTTP implementadas; integração com a interface pendente.
 
 **Tarefas:**
 
 - [x] **US05-T01:** Detalhar contrato e critérios propostos, resolver as decisões pertinentes e definir cenários de teste.
-- [ ] **US05-T02:** Implementar o recorte de backend com testes pertinentes e documentação. Migration e persistência implementadas; camada web pendente.
+- [x] **US05-T02:** Implementar o recorte de backend com testes pertinentes e documentação. Migration, persistência, DTOs, Service e endpoints implementados.
 - [ ] **US05-T03:** Integrar a interface com testes pertinentes e documentação.
 - [ ] **US05-T04:** Verificar integração/aceite e apresentar resultados e limitações.
 

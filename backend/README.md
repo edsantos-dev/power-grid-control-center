@@ -403,4 +403,13 @@ UsinaGeradora herda AtivoRede pela estratégia JOINED, compartilhando a identida
 
 A V13 acrescenta subestacao_id, sua FK, obrigatoriedade de tipo e capacidade e os CHECKs correspondentes. Como a V1 não registra a subestação da usina, não há backfill automático confiável. A migration remove cadastros inconsistentes somente quando não possuem referências externas, excluindo a usina e seu registro pai. Eventos e seu histórico, alertas, fontes com suas medições e outros subtipos de ativo são preservados. Cadastros já regularizados explicitamente são mantidos. Se restarem usinas referenciadas incompatíveis com as novas restrições, a migração falha, exigindo regularização manual. Não são criadas associações fictícias.
 
-Service, DTOs e endpoints de usinas permanecem pendentes. A API não disponibiliza exclusão ou inativação cadastral de usinas nesta etapa.
+Service, DTOs e endpoints de usinas estão disponíveis conforme o contrato abaixo. A API não disponibiliza exclusão ou inativação cadastral de usinas nesta etapa.
+
+
+### API de usinas geradoras
+
+POST /api/usinas retorna 201, Location e UsinaResponseDTO. PUT /api/usinas/{id} retorna 200 e substitui os atributos cadastrais. Ambos exigem sessão, CSRF e perfil GERENTE_OPERACOES; OPERADOR e TECNICO_MANUTENCAO recebem 403. O corpo exige nome não branco com trim e máximo de 255 caracteres, latitude/longitude dentro dos intervalos inclusivos [-90,90]/[-180,180] com até sete casas decimais, tipoGeracao, capacidadeMaximaMw positiva com até 13 dígitos inteiros e seis decimais e subestacaoId positivo. Precisão excedida retorna 400, sem arredondamento silencioso. Data de instalação é opcional, permitindo datas futuras. Estado omitido ou nulo assume OPERACIONAL na criação e atualização; valores aceitos são OPERACIONAL, FALHA e MANUTENCAO. Subestação inexistente retorna 404.
+
+GET /api/usinas/{id} permite todos os perfis autenticados e retorna o cadastro ou 404. O DTO expõe id, nome, coordenadas, tipoGeracao, capacidadeMaximaMw, subestacaoId, dataInstalacao e estadoOperacional. GET /api/usinas usa PageResponseDTO, page=0/size=20 por padrão e máximo 100, ordenado por id ASC. Filtros opcionais: nome (trecho sem diferenciar maiúsculas/minúsculas, caracteres de LIKE tratados literalmente), tipoGeracao, estadoOperacional e subestacaoId positivo. Sem correspondência, retorna 200 com página vazia. Sort, parâmetros desconhecidos, vazios, repetidos ou inválidos retornam 400.
+
+O vínculo cadastral pode mudar no PUT, sem alterar a identidade da usina. Geração instantânea, unidades geradoras, inativação e exclusão não integram esta API. A integração da tela de usinas permanece pendente.

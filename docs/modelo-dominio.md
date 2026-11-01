@@ -317,3 +317,10 @@ MANUTENCAO utiliza o POST de eventos operacionais, a mesma identidade e os mesmo
 UsinaGeradora é uma especialização de AtivoRede com herança JOINED. Seus atributos específicos são tipoGeracao (HIDRELETRICA, SOLAR, EOLICA ou TERMICA) e capacidadeMaximaMw obrigatória e maior que zero, com precisão 19 e escala 6. Cada usina pertence cadastralmente a uma subestação (N:1 obrigatório); uma subestação pode possuir zero ou várias usinas. O vínculo não representa a topologia elétrica completa. A usina é um nó único no MVP, sem unidades geradoras. Capacidade máxima é informação de cadastro, distinta de geração observada.
 
 A V13 adiciona o vínculo e suas restrições. Legados inconsistentes sem referências externas podem ser removidos com seu ativo pai; legados referenciados impedem a migração até regularização explícita. Registros regularizados são preservados, sem preenchimento automático de subestação, tipo ou capacidade. A associação JPA com subestação é LAZY e não possui cascata. Exclusão/inativação de usinas, geração instantânea e integração com o frontend permanecem fora deste incremento de persistência.
+
+
+### Contrato HTTP de usinas
+
+O cadastro exige nome, coordenadas geográficas, tipo de geração, capacidade máxima positiva em MW e subestação existente. Nome recebe trim e possui limite de 255 caracteres. Coordenadas aceitam até sete casas, dentro dos limites geográficos; capacidade aceita até 13 dígitos inteiros e seis casas. Precisão excedida é rejeitada sem arredondamento. Data de instalação é opcional e pode ser futura. Estado operacional omitido ou nulo assume OPERACIONAL, inclusive no PUT; os demais estados são FALHA e MANUTENCAO. O PUT substitui o cadastro e permite trocar a subestação, preservando a identidade.
+
+POST e PUT são exclusivos de GERENTE_OPERACOES e exigem sessão e CSRF. Consultas individuais e paginadas permitem os três perfis autenticados. Os filtros são nome, tipoGeracao, estadoOperacional e subestacaoId, com ordenação fixa id ASC. O cadastro não representa geração instantânea nem fornece exclusão ou inativação.
