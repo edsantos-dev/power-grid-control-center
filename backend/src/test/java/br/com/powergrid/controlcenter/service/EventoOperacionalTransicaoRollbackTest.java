@@ -81,4 +81,39 @@ class EventoOperacionalTransicaoRollbackTest {
             });
         }
     }
+
+    @org.junit.jupiter.api.Test
+    void deveDesfazerTerminoFisicoDaInterrupcaoSeHistoricoFalhar() {
+        var tx = new TransactionTemplate(manager);
+        Long[] ids = tx.execute(status -> {
+            var evento = EventosTransicaoFixture.evento(em, PerfilAcesso.OPERADOR);
+            evento.setCategoria(EventoOperacional.Categoria.INTERRUPCAO_FORNECIMENTO);
+            evento.setSituacao("EM_ANDAMENTO"); evento.setInicioEfetivo(AGORA.minusSeconds(3600).atOffset(ZoneOffset.UTC)); em.flush();
+            EventosTransicaoFixture.autenticar(evento.getResponsavelUsuario().getEmail());
+            return new Long[] {evento.getId(), evento.getAtivo().getId()};
+        });
+        var termino = AGORA.minusSeconds(1800).atOffset(ZoneOffset.UTC);
+        try {
+            doAnswer(invocation -> {
+                var historico = invocation.getArgument(0, HistoricoEventoOperacional.class);
+                assertThat(historico.getAlteradoEm().toInstant()).isEqualTo(AGORA);
+                assertThat(jdbc.queryForObject("SELECT termino_efetivo FROM evento_operacional WHERE id = ?", OffsetDateTime.class, ids[0]).toInstant())
+                        .isEqualTo(termino.toInstant());
+                throw new IllegalStateException("Falha simulada no histórico");
+            }).when(historicos).saveAndFlush(any(HistoricoEventoOperacional.class));
+            assertThrows(IllegalStateException.class, () -> service.transicionar(ids[0], EM_ANDAMENTO, CONCLUIDO, "Restabelecimento", termino));
+            verify(historicos).saveAndFlush(any(HistoricoEventoOperacional.class));
+            assertThat(jdbc.queryForObject("SELECT situacao FROM evento_operacional WHERE id = ?", String.class, ids[0])).isEqualTo("EM_ANDAMENTO");
+            assertThat(jdbc.queryForObject("SELECT termino_efetivo FROM evento_operacional WHERE id = ?", OffsetDateTime.class, ids[0])).isNull();
+            assertThat(jdbc.queryForObject("SELECT inicio_efetivo FROM evento_operacional WHERE id = ?", OffsetDateTime.class, ids[0]).toInstant())
+                    .isEqualTo(AGORA.minusSeconds(3600));
+            assertThat(jdbc.queryForObject("SELECT COUNT(*) FROM historico_evento_operacional WHERE evento_id = ?", Long.class, ids[0])).isZero();
+        } finally {
+            tx.executeWithoutResult(status -> {
+                jdbc.update("DELETE FROM historico_evento_operacional WHERE evento_id = ?", ids[0]);
+                jdbc.update("DELETE FROM evento_operacional WHERE id = ?", ids[0]);
+                jdbc.update("DELETE FROM subestacao WHERE id = ?", ids[1]); jdbc.update("DELETE FROM ativo_rede WHERE id = ?", ids[1]);
+            });
+        }
+    }
 }

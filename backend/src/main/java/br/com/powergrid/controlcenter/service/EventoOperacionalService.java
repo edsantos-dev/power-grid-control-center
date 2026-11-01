@@ -91,6 +91,12 @@ public class EventoOperacionalService {
     @Transactional
     public Long transicionar(Long eventoId, SituacaoEventoOperacional situacaoEsperada,
             SituacaoEventoOperacional situacaoDestino, String comentario) {
+        return transicionar(eventoId, situacaoEsperada, situacaoDestino, comentario, null);
+    }
+
+    @Transactional
+    public Long transicionar(Long eventoId, SituacaoEventoOperacional situacaoEsperada,
+            SituacaoEventoOperacional situacaoDestino, String comentario, OffsetDateTime terminoEfetivo) {
         Usuario usuario = usuarioAutenticado();
         EventoOperacional evento = repository.buscarPorIdParaTransicao(eventoId).orElseThrow(() ->
                 new ResponseStatusException(HttpStatus.NOT_FOUND, "Evento não encontrado."));
@@ -115,9 +121,23 @@ public class EventoOperacionalService {
         if (evento.getTerminoEfetivo() != null) {
             throw conflito("Evento já possui término efetivo e exige regularização antes da transição.");
         }
-        var agora = OffsetDateTime.now(clock).withOffsetSameInstant(ZoneOffset.UTC).truncatedTo(ChronoUnit.MICROS);
+        boolean interrupcao = evento.getCategoria() == EventoOperacional.Categoria.INTERRUPCAO_FORNECIMENTO;
+        if (terminoEfetivo != null && (!concluir || !interrupcao)) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Término físico informado é permitido somente na conclusão de interrupções.");
+        }
+        var instanteServidor = clock.instant();
+        var agora = instanteServidor.truncatedTo(ChronoUnit.MICROS).atOffset(ZoneOffset.UTC);
         if (iniciar && evento.getInicioEfetivo() == null) evento.setInicioEfetivo(agora);
-        if (concluir) {
+        if (concluir && interrupcao) {
+            if (terminoEfetivo == null) {
+                throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Informe o término efetivo da interrupção.");
+            }
+            if (evento.getInicioEfetivo() == null) throw conflito("Interrupção sem início efetivo exige regularização.");
+            if (terminoEfetivo.toInstant().isAfter(instanteServidor) || terminoEfetivo.isBefore(evento.getInicioEfetivo())) {
+                throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Término efetivo não pode ser futuro nem anterior ao início efetivo.");
+            }
+            evento.setTerminoEfetivo(terminoEfetivo.withOffsetSameInstant(ZoneOffset.UTC).truncatedTo(ChronoUnit.MICROS));
+        } else if (concluir) {
             if (evento.getInicioEfetivo() == null || agora.isBefore(evento.getInicioEfetivo())) {
                 throw conflito("Conclusão exige início efetivo existente e término maior ou igual ao início.");
             }

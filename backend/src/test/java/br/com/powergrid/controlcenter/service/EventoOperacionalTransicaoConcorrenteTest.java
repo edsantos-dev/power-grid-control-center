@@ -61,4 +61,43 @@ class EventoOperacionalTransicaoConcorrenteTest {
             });
         }
     }
+
+    @Test
+    void devePreservarUmUnicoTerminoFisicoEmConclusoesConcorrentes() throws Exception {
+        var tx = new TransactionTemplate(manager);
+        var referencia = OffsetDateTime.now(java.time.ZoneOffset.UTC).minusHours(2).truncatedTo(java.time.temporal.ChronoUnit.MICROS);
+        Long[] ids = tx.execute(status -> {
+            var evento = EventosTransicaoFixture.evento(em, PerfilAcesso.OPERADOR);
+            evento.setCategoria(br.com.powergrid.controlcenter.model.EventoOperacional.Categoria.INTERRUPCAO_FORNECIMENTO);
+            evento.setSituacao("EM_ANDAMENTO"); evento.setInicioEfetivo(referencia); em.flush();
+            return new Long[] {evento.getId(), evento.getAtivo().getId(), evento.getResponsavelUsuario().getId()};
+        });
+        String email = jdbc.queryForObject("SELECT email FROM usuario WHERE id = ?", String.class, ids[2]);
+        var executor = Executors.newFixedThreadPool(2);
+        try {
+            var inicio = new CountDownLatch(1);
+            java.util.function.Function<OffsetDateTime, Callable<Integer>> tarefa = termino -> () -> {
+                inicio.await(); EventosTransicaoFixture.autenticar(email);
+                try { service.transicionar(ids[0], EM_ANDAMENTO, CONCLUIDO, "Conclusão concorrente", termino); return 201; }
+                catch (ResponseStatusException ex) { return ex.getStatusCode().value(); }
+                finally { SecurityContextHolder.clearContext(); }
+            };
+            var terminoA = referencia.plusMinutes(30); var terminoB = referencia.plusMinutes(45);
+            var a = executor.submit(tarefa.apply(terminoA)); var b = executor.submit(tarefa.apply(terminoB)); inicio.countDown();
+            int statusA = a.get(30, TimeUnit.SECONDS), statusB = b.get(30, TimeUnit.SECONDS);
+            assertThat(java.util.List.of(statusA, statusB)).containsExactlyInAnyOrder(201, 409);
+            var salvo = jdbc.queryForObject("SELECT termino_efetivo FROM evento_operacional WHERE id = ?", OffsetDateTime.class, ids[0]);
+            assertThat(salvo.toInstant()).isEqualTo((statusA == 201 ? terminoA : terminoB).toInstant());
+            assertThat(jdbc.queryForObject("SELECT COUNT(*) FROM historico_evento_operacional WHERE evento_id = ?", Long.class, ids[0])).isEqualTo(1);
+            var auditoria = jdbc.queryForObject("SELECT alterado_em FROM historico_evento_operacional WHERE evento_id = ?", OffsetDateTime.class, ids[0]);
+            assertThat(auditoria.toInstant()).isAfter(salvo.toInstant());
+        } finally {
+            executor.shutdownNow(); assertThat(executor.awaitTermination(30, TimeUnit.SECONDS)).isTrue();
+            tx.executeWithoutResult(status -> {
+                jdbc.update("DELETE FROM historico_evento_operacional WHERE evento_id = ?", ids[0]);
+                jdbc.update("DELETE FROM evento_operacional WHERE id = ?", ids[0]);
+                jdbc.update("DELETE FROM subestacao WHERE id = ?", ids[1]); jdbc.update("DELETE FROM ativo_rede WHERE id = ?", ids[1]);
+            });
+        }
+    }
 }

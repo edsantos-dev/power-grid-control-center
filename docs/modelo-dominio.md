@@ -330,4 +330,11 @@ POST e PUT são exclusivos de GERENTE_OPERACOES e exigem sessão e CSRF. Consult
 
 A interrupção reutiliza EventoOperacional, com categoria fixa INTERRUPCAO_FORNECIMENTO. Seu POST específico registra inicioEfetivo informado pelo operador, obrigatório e não futuro segundo o relógio UTC do servidor. A situação inicial é ABERTO: o início físico pode anteceder o atendimento. Registrador é o usuário da sessão e responsável deve ser um usuário existente. O ativo deve existir, sem exigência de FALHA e sem mudança automática do estado operacional. Previsões e término efetivo ficam nulos na criação. O início é normalizado para UTC e microssegundos.
 
-O histórico de transições mantém o tempo operacional de atendimento separado do instante físico informado. O cadastro não cria histórico retroativo. A extensão para informar restabelecimento físico na conclusão será tratada separadamente, mantendo os estados ABERTO, EM_ANDAMENTO e CONCLUIDO. Causa provável, consumidores afetados e fases afetadas não são campos estruturados neste MVP; se incorporados, poderão usar composição 1:1 sem sobrecarregar o evento genérico.
+O histórico de transições mantém o tempo operacional de atendimento separado do instante físico informado. O cadastro não cria histórico retroativo. A conclusão de interrupções recebe o restabelecimento físico informado, mantendo os estados ABERTO, EM_ANDAMENTO e CONCLUIDO. Causa provável, consumidores afetados e fases afetadas não são campos estruturados neste MVP; se incorporados, poderão usar composição 1:1 sem sobrecarregar o evento genérico.
+
+
+### Conclusão física da interrupção
+
+Na transição EM_ANDAMENTO → CONCLUIDO de INTERRUPCAO_FORNECIMENTO, terminoEfetivo é obrigatório no comando, não futuro e maior ou igual ao início físico. O término informado é armazenado em UTC com precisão de microssegundos. Outras categorias mantêm término automático pelo servidor; informar término manual fora da conclusão de interrupções é rejeitado. O instante alteradoEm da transição é sempre gerado pelo servidor, distinguindo a ocorrência física do registro operacional.
+
+O comando mantém autorização, bloqueio pessimista e situação esperada da US18. Estado, término físico e histórico são atômicos. Concorrência confirma somente uma conclusão para a mesma situação esperada; a outra solicitação recebe 409 sem substituir o término confirmado.
