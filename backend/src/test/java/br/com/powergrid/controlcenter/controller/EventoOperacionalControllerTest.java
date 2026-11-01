@@ -83,7 +83,7 @@ class EventoOperacionalControllerTest {
 
 
     @ParameterizedTest
-    @ValueSource(strings = {"MANOBRA", "DESLIGAMENTO_PROGRAMADO"})
+    @ValueSource(strings = {"MANOBRA", "DESLIGAMENTO_PROGRAMADO", "MANUTENCAO"})
     void deveCriarConsultarEListarComAutoriaDaSessao(String categoria) throws Exception {
         mockMvc.perform(get("/api/eventos-operacionais").session(sessao))
                 .andExpect(status().isOk()).andExpect(content().json("[]"));
@@ -94,6 +94,7 @@ class EventoOperacionalControllerTest {
         assertThat(result.getResponse().getHeader("Location"))
                 .isEqualTo("http://localhost/api/eventos-operacionais/" + response.id());
         assertThat(response.ativoId()).isEqualTo(alimentadorId);
+        assertThat(response.categoria().name()).isEqualTo(categoria);
         assertThat(response.registradorUsuarioId()).isEqualTo(usuarioId("operador"));
         assertThat(response.responsavelUsuarioId()).isEqualTo(usuarioId("gerente"));
         assertThat(response.situacao()).isEqualTo("ABERTO");
@@ -110,9 +111,11 @@ class EventoOperacionalControllerTest {
                 .andExpect(status().isOk()).andExpect(jsonPath("$[0].id").value(response.id()));
     }
 
-    @Test
-    void naoDeveConfiarEmAutoriaOuEstadoEnviadosPeloCliente() throws Exception {
+    @ParameterizedTest
+    @ValueSource(strings = {"MANOBRA", "MANUTENCAO"})
+    void naoDeveConfiarEmAutoriaOuEstadoEnviadosPeloCliente(String categoria) throws Exception {
         Map<String, Object> request = requestValido();
+        request.put("categoria", categoria);
         request.put("registradorUsuarioId", usuarioId("gerente"));
         request.put("situacao", "CONCLUIDO");
         request.put("inicioEfetivo", "2026-01-01T10:00:00Z");
@@ -128,9 +131,11 @@ class EventoOperacionalControllerTest {
     }
 
     @ParameterizedTest
-    @ValueSource(strings = {"ativoId", "categoria", "descricao", "responsavelUsuarioId", "inicioPrevisto"})
-    void deveRejeitarObrigatorioNulo(String campo) throws Exception {
+    @CsvSource({"MANOBRA,ativoId", "MANOBRA,categoria", "MANOBRA,descricao", "MANOBRA,responsavelUsuarioId", "MANOBRA,inicioPrevisto",
+            "MANUTENCAO,ativoId", "MANUTENCAO,categoria", "MANUTENCAO,descricao", "MANUTENCAO,responsavelUsuarioId", "MANUTENCAO,inicioPrevisto"})
+    void deveRejeitarObrigatorioNulo(String categoria, String campo) throws Exception {
         Map<String, Object> request = requestValido();
+        request.put("categoria", categoria);
         request.put(campo, null);
         enviar(request, 400);
         assertThat(repository.count()).isZero();
@@ -146,7 +151,7 @@ class EventoOperacionalControllerTest {
     }
 
     @ParameterizedTest
-    @ValueSource(strings = {"INTERRUPCAO_FORNECIMENTO", "SOBRECARGA", "FALHA_EQUIPAMENTO", "MANUTENCAO", "INVALIDA"})
+    @ValueSource(strings = {"INTERRUPCAO_FORNECIMENTO", "SOBRECARGA", "FALHA_EQUIPAMENTO", "INVALIDA"})
     void deveRejeitarCategoriaForaDoRecorte(String categoria) throws Exception {
         Map<String, Object> request = requestValido();
         request.put("categoria", categoria);
@@ -190,9 +195,11 @@ class EventoOperacionalControllerTest {
     }
 
     @ParameterizedTest
-    @ValueSource(strings = {"2026-01-01T13:00:00Z", "2026-01-01T14:00:00Z"})
-    void deveAceitarIgualdadeOuTerminoPosteriorComFusosDistintos(String termino) throws Exception {
+    @CsvSource({"MANOBRA,2026-01-01T13:00:00Z", "MANOBRA,2026-01-01T14:00:00Z",
+            "MANUTENCAO,2026-01-01T13:00:00Z", "MANUTENCAO,2026-01-01T14:00:00Z"})
+    void deveAceitarIgualdadeOuTerminoPosteriorComFusosDistintos(String categoria, String termino) throws Exception {
         Map<String, Object> request = requestValido();
+        request.put("categoria", categoria);
         request.put("terminoPrevisto", termino);
         request.put("responsavelUsuarioId", usuarioId("operador"));
         EventoOperacionalResponseDTO response = resposta(enviar(request, 201));
@@ -244,6 +251,39 @@ class EventoOperacionalControllerTest {
                         .content(objectMapper.writeValueAsString(requestValido())))
                 .andExpect(status().isUnauthorized());
         assertThat(repository.count()).isZero();
+    }
+
+    @ParameterizedTest
+    @ValueSource(strings = {"OPERACIONAL", "FALHA", "MANUTENCAO"})
+    void deveCadastrarManutencaoSemExigirOuAlterarCondicaoOperacionalDoAtivo(EstadoOperacional estado) throws Exception {
+        alimentadorRepository.findById(alimentadorId).orElseThrow().setEstadoOperacional(estado);
+        entityManager.flush();
+        var request = requestValido(); request.put("categoria", "MANUTENCAO");
+        request.put("descricao", "  Inspeção preventiva  ");
+        var response = resposta(enviar(request, 201));
+        assertThat(response.categoria()).isEqualTo(br.com.powergrid.controlcenter.model.EventoOperacional.Categoria.MANUTENCAO);
+        assertThat(response.descricao()).isEqualTo("Inspeção preventiva");
+        assertThat(response.situacao()).isEqualTo("ABERTO");
+        assertThat(response.inicioEfetivo()).isNull(); assertThat(response.terminoEfetivo()).isNull();
+        assertThat(response.terminoPrevisto()).isNull(); assertThat(response.criticidade()).isNull();
+        entityManager.clear();
+        assertThat(alimentadorRepository.findById(alimentadorId).orElseThrow().getEstadoOperacional()).isEqualTo(estado);
+        assertThat(entityManager.createQuery("select count(h) from HistoricoEventoOperacional h where h.evento.id = :id", Long.class)
+                .setParameter("id", response.id()).getSingleResult()).isZero();
+    }
+
+    @ParameterizedTest
+    @ValueSource(strings = {"2026-01-01T12:59:59Z", "2026-01-01T12:00:00", "data-invalida"})
+    void deveRejeitarPeriodoInvalidoNoCadastroDeManutencao(String termino) throws Exception {
+        var request = requestValido(); request.put("categoria", "MANUTENCAO"); request.put("terminoPrevisto", termino);
+        enviar(request, 400); assertThat(repository.count()).isZero();
+    }
+
+    @ParameterizedTest
+    @ValueSource(strings = {"ativoId", "responsavelUsuarioId"})
+    void deveRejeitarReferenciaInexistenteNoCadastroDeManutencao(String campo) throws Exception {
+        var request = requestValido(); request.put("categoria", "MANUTENCAO"); request.put(campo, Long.MAX_VALUE);
+        enviar(request, 404); assertThat(repository.count()).isZero();
     }
 
     private Long usuarioId(String nome) {

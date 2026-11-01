@@ -21,10 +21,11 @@ public record EventoOperacionalRequestDTO(
         if (descricao != null) descricao = descricao.trim();
     }
 
-    @AssertTrue(message = "Categoria deve ser MANOBRA ou DESLIGAMENTO_PROGRAMADO.")
+    @AssertTrue(message = "Categoria deve ser MANOBRA, DESLIGAMENTO_PROGRAMADO ou MANUTENCAO.")
     public boolean isCategoriaPermitida() {
         return categoria == null || categoria == Categoria.MANOBRA
-                || categoria == Categoria.DESLIGAMENTO_PROGRAMADO;
+                || categoria == Categoria.DESLIGAMENTO_PROGRAMADO
+                || categoria == Categoria.MANUTENCAO;
     }
 
     @AssertTrue(message = "Término previsto não pode anteceder o início previsto.")
