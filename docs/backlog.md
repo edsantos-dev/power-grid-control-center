@@ -593,7 +593,7 @@ Como técnico de manutenção, quero consultar o histórico de manutenções de 
 - **Perfil e prioridade:** Técnico de Manutenção. Prioridade: Média.
 - **Status:** Em andamento.
 - **Implementação existente:** Eventos MANUTENCAO e transições da US18 persistidos; consulta Web composta por ativo em revisão. O frontend mantém dados simulados.
-- **Trabalho pendente:** Revisão do backend, teste E2E do cadastro/transições/consulta de manutenção, integração da interface e aceite funcional. Tipo específico de manutenção, relatório técnico estruturado e executores granulares permanecem fora do recorte inicial.
+- **Trabalho pendente:** Revisão do backend, integração da interface e aceite funcional. Tipo específico de manutenção, relatório técnico estruturado e executores granulares permanecem fora do recorte inicial.
 - **Dependências:** US16; US18; US25; registro de manutenção.
 - **Referências no frontend:** [Eventos/index.tsx](../frontend/src/pages/Eventos/index.tsx#L26) (linhas 26,55); [Relatorios/index.tsx](../frontend/src/pages/Relatorios/index.tsx#L22) (linhas 22).
 
@@ -624,7 +624,9 @@ Como técnico de manutenção, quero consultar o histórico de manutenções de 
 
 **Cadastro de manutenção — Lote 1 em revisão:**
 
-POST /api/eventos-operacionais aceita MANOBRA, DESLIGAMENTO_PROGRAMADO e MANUTENCAO. A manutenção usa os mesmos campos obrigatórios e validações temporais do cadastro existente. Não exige ativo em FALHA nem altera seu estado operacional. A criação define ABERTO, autoria pela sessão e datas efetivas nulas. INTERRUPCAO_FORNECIMENTO, SOBRECARGA e FALHA_EQUIPAMENTO permanecem bloqueadas no POST manual. O teste E2E de cadastro, transições e consulta por ativo pertence ao próximo lote. EventoOperacionalControllerTest cobre criação/consulta, autoria, campos obrigatórios, referências, período previsto e as três condições operacionais do ativo. Não há histórico de transição criado automaticamente no cadastro.
+POST /api/eventos-operacionais aceita MANOBRA, DESLIGAMENTO_PROGRAMADO e MANUTENCAO. A manutenção usa os mesmos campos obrigatórios e validações temporais do cadastro existente. Não exige ativo em FALHA nem altera seu estado operacional. A criação define ABERTO, autoria pela sessão e datas efetivas nulas. INTERRUPCAO_FORNECIMENTO, SOBRECARGA e FALHA_EQUIPAMENTO permanecem bloqueadas no POST manual. O teste ManutencaoFluxoE2ETest cobre cadastro, transições e consulta por ativo via MockMvc. EventoOperacionalControllerTest cobre criação/consulta, autoria, campos obrigatórios, referências, período previsto e as três condições operacionais do ativo. Não há histórico de transição criado automaticamente no cadastro.
+
+**Cadastro de manutenção — Lote 2 em revisão:** ManutencaoFluxoE2ETest executa a jornada de um operador autenticado: POST MANUTENCAO, transições ABERTO → EM_ANDAMENTO → CONCLUIDO e consulta paginada por ativo. O teste usa sessão e CSRF reais, relógio controlado e confirmações transacionais separadas por requisição. Verifica Location, autoria, datas efetivas UTC, histórico completo e ultimaTransicao embutida. O ativo permanece OPERACIONAL durante a intervenção preventiva. A integração do frontend e o aceite funcional permanecem pendentes.
 
 ### US20 — Consultar alertas ativos por criticidade
 
