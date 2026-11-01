@@ -550,8 +550,8 @@ Como técnico de manutenção, quero atualizar a situação de um evento operaci
 
 - **Perfil e prioridade:** Técnico de Manutenção. Prioridade: Alta.
 - **Status:** Em andamento.
-- **Implementação existente:** Cadastro e consultas da US16; V12 e persistência do histórico de eventos em revisão. O frontend possui estados e contagens estáticos.
-- **Trabalho pendente:** Serviço transacional de transições, permissões, controle de situação esperada e preenchimento das datas efetivas (Lote 2); endpoints, integração da interface e aceite.
+- **Implementação existente:** Cadastro e consultas da US16; V12, persistência do histórico e serviço de transições em revisão. O frontend possui estados e contagens estáticos.
+- **Trabalho pendente:** Controllers, DTOs e consultas Web (Lote 3), integração da interface e aceite funcional.
 - **Dependências:** US16; US25; transições e permissões.
 - **Referências no frontend:** [Eventos/index.tsx](../frontend/src/pages/Eventos/index.tsx#L6) (linhas 6,45,166).
 
@@ -568,11 +568,17 @@ Como técnico de manutenção, quero atualizar a situação de um evento operaci
 - [ ] **US18-T03:** Integrar a interface com testes pertinentes e documentação.
 - [ ] **US18-T04:** Verificar integração/aceite e apresentar resultados e limitações.
 
-**US18-T02 — Lote 1 em revisão:** V12 cria historico_evento_operacional com FKs obrigatórias para evento e usuário, estados anterior/novo, instante e comentário obrigatório de até 1.000 caracteres. O CHECK permite apenas ABERTO → EM_ANDAMENTO e EM_ANDAMENTO → CONCLUIDO. HistoricoEventoOperacional usa associações LAZY sem cascata, identidade própria e imutabilidade de atualização no Hibernate. O repositório expõe inserção e leitura, sem operações de exclusão. EventoOperacional já possui os mapeamentos de inicioEfetivo/terminoEfetivo; a relação 1:N é representada pelo vínculo do histórico, sem coleção bidirecional. A alteração do evento pai permanece no serviço do Lote 2.
+**US18-T02 — Lote 1 em revisão:** V12 cria historico_evento_operacional com FKs obrigatórias para evento e usuário, estados anterior/novo, instante e comentário obrigatório de até 1.000 caracteres. O CHECK permite apenas ABERTO → EM_ANDAMENTO e EM_ANDAMENTO → CONCLUIDO. HistoricoEventoOperacional usa associações LAZY sem cascata, identidade própria e imutabilidade de atualização no Hibernate. O repositório expõe inserção e leitura, sem operações de exclusão. EventoOperacional já possui os mapeamentos de inicioEfetivo/terminoEfetivo; a relação 1:N é representada pelo vínculo do histórico, sem coleção bidirecional. A alteração do evento pai é implementada pelo serviço transacional do Lote 2.
 
 **Dados legados:** a V12 normaliza apenas maiúsculas e espaços nas situações conhecidas. Valores desconhecidos ou nulos e datas efetivas são preservados; não há preenchimento de datas nem geração retroativa de transições. As restrições temporais da V1 permanecem. O lote não acrescenta CHECK de ciclo ao evento pai que exigiria inventar dados para registros legados; essas inconsistências deverão ser rejeitadas ou tratadas explicitamente no fluxo de negócio posterior.
 
 **Verificação:** HistoricoEventoOperacionalRepositoryTest cobre gravação, leitura paginada por evento, obrigatoriedade, FKs, limite do comentário, pares de estados e preservação de registros já gravados. EventosV12MigrationTest cobre a passagem da V11 à V12 e a preservação dos registros anteriores.
+
+**US18-T02 — Lote 2 em revisão:** EventoOperacionalService.transicionar usa a identidade da sessão e o perfil persistido do usuário. GERENTE_OPERACOES pode transicionar qualquer evento; OPERADOR e TECNICO_MANUTENCAO somente quando responsáveis. Autorizações informadas no principal não substituem o perfil do banco. Falhas de permissão lançam AccessDeniedException (403). O serviço obtém bloqueio pessimista do evento, confere situacaoEsperada e admite apenas ABERTO → EM_ANDAMENTO → CONCLUIDO. Divergências, saltos, retornos e repetições retornam 409.
+
+**Datas e atomicidade:** O relógio UTC do servidor é normalizado para microssegundos. A primeira transição preenche inicioEfetivo somente se ausente; a conclusão exige início existente e término maior ou igual ao início. Um término efetivo já presente em estado não terminal exige regularização e retorna 409, preservando o dado anterior. Situações legadas desconhecidas/nulas também retornam 409. Previsões, registrador e responsável não são alterados. Estado, datas e histórico são persistidos na mesma transação, com rollback conjunto em falhas. O método retorna o ID do histórico criado; DTOs e endpoints pertencem ao Lote 3.
+
+**Verificação do serviço:** EventoOperacionalTransicaoServiceTest cobre fluxo completo, perfis, autoria, estados, datas, contrato e situações legadas; EventoOperacionalTransicaoRollbackTest confirma rollback real da atualização do pai quando o histórico falha, nas duas transições; EventoOperacionalTransicaoConcorrenteTest confirma uma transição e um conflito quando duas solicitações esperam ABERTO.
 
 ### US19 — Consultar histórico de manutenção por ativo
 

@@ -333,4 +333,13 @@ O DTO expõe idOrigem e tipoAlerta para identificar a origem sem colisões, alé
 
 A V12 cria historico_evento_operacional, com evento e usuário obrigatórios, estados anterior/novo, alterado_em e comentario obrigatório de até 1.000 caracteres. O CHECK aceita apenas ABERTO → EM_ANDAMENTO e EM_ANDAMENTO → CONCLUIDO. A entidade é imutável para atualizações pelo Hibernate e o repositório expõe somente inserção e consultas. A leitura por evento é paginada.
 
-A migração normaliza espaços e maiúsculas de situações conhecidas. Datas, situações desconhecidas/nulas e vínculos existentes são preservados, sem histórico retroativo. As datas efetivas já estão mapeadas em EventoOperacional. O serviço de transições, suas permissões e os endpoints pertencem ao próximo lote; nenhum fluxo de alteração de situação é disponibilizado nesta etapa.
+A migração normaliza espaços e maiúsculas de situações conhecidas. Datas, situações desconhecidas/nulas e vínculos existentes são preservados, sem histórico retroativo. As datas efetivas já estão mapeadas em EventoOperacional. O serviço transacional de transições está implementado; DTOs e endpoints pertencem ao Lote 3.
+
+
+### Serviço de transição de eventos
+
+EventoOperacionalService.transicionar recebe o ID do evento, situacaoEsperada, situacaoDestino e comentário obrigatório de até 1.000 caracteres. A identidade vem da sessão; as permissões usam o perfil salvo no banco. GERENTE_OPERACOES atua em qualquer evento; OPERADOR e TECNICO_MANUTENCAO somente nos eventos dos quais são responsáveis. Falta de sessão/usuário válido resulta em 401; falta de permissão, em 403.
+
+O evento é bloqueado pessimisticamente e a situação esperada é conferida antes da transição. São permitidos apenas ABERTO → EM_ANDAMENTO e EM_ANDAMENTO → CONCLUIDO. Conflitos de situação, transições inválidas e dados efetivos legados inconsistentes resultam em 409; evento inexistente resulta em 404; argumentos ou comentário inválidos resultam em 400.
+
+O servidor preenche datas efetivas em UTC, com precisão de microssegundos: preserva o início existente e valida início obrigatório/término não anterior ao início na conclusão. Estado, datas e histórico são confirmados na mesma transação. Falha no histórico desfaz as alterações do evento. Este lote não expõe novos endpoints.
