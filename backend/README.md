@@ -375,3 +375,12 @@ A composição usa quatro consultas para uma página preenchida, incluindo valid
 ### Disponibilidade do cadastro de manutenção
 
 POST /api/eventos-operacionais aceita MANOBRA, DESLIGAMENTO_PROGRAMADO e MANUTENCAO. A manutenção usa os mesmos campos obrigatórios e validações temporais do cadastro existente. Não exige ativo em FALHA nem altera seu estado operacional. A criação define ABERTO, autoria pela sessão e datas efetivas nulas. INTERRUPCAO_FORNECIMENTO, SOBRECARGA e FALHA_EQUIPAMENTO permanecem bloqueadas no POST manual. ManutencaoFluxoE2ETest cobre a integração ponta a ponta da API: cadastro, início, conclusão e consulta por ativo, com sessão/CSRF e transações independentes por requisição.
+
+
+## Cadastro e consulta de equipes — US04
+
+POST /api/equipes recebe nome obrigatório (não branco, até 255 caracteres após trim), responsabilidades e especialidades opcionais. Retorna 201, Location e EquipeResponseDTO com id, campos textuais e situacao. A situação inicial é sempre FORA_DE_SERVICO; o corpo não define a disponibilidade. PUT /api/equipes/{id} substitui somente os campos textuais e preserva a situação existente. Campos opcionais omitidos ficam nulos. Ambas as operações exigem sessão, CSRF e perfil GERENTE_OPERACOES ou TECNICO_MANUTENCAO. OPERADOR recebe 403 nas escritas.
+
+GET /api/equipes/{id} e GET /api/equipes permitem todos os perfis autenticados. Equipe inexistente retorna 404. A listagem usa PageResponseDTO, page=0/size=20 por padrão, máximo 100 e ordem fixa id ASC. Aceita nome (trecho sem diferenciar maiúsculas/minúsculas, com caracteres de LIKE tratados literalmente) e situacao (DISPONIVEL, EM_ATENDIMENTO, FORA_DE_SERVICO). Sort, parâmetros desconhecidos e valores inválidos, vazios ou repetidos retornam 400. Ausência de correspondências retorna 200 com página vazia.
+
+EquipeManutencao e VinculoEquipe reutilizam equipe_manutencao e vinculo_equipe da V1. O vínculo conserva os períodos encerrados e permite integrantes em equipes diferentes. O início de vigência é obrigatório no mapeamento JPA; a coluna legada ainda aceita nulo no banco. Gestão de integrantes, alteração de disponibilidade e controle de concorrência dessas operações permanecem pendentes. O cadastro da equipe não atribui atendimento a eventos nem comprova execução de manutenção.

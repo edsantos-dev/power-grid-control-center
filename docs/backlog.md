@@ -6,7 +6,7 @@ O backlog reúne as histórias, os critérios de aceitação, as tarefas e as pe
 
 O frontend possui páginas com dados simulados, filtros e navegação local. O backend possui configuração PostgreSQL/JPA/Flyway, schema SQL inicial, persistência de usuários e autenticação HTTP por sessão, com CORS e CSRF. A V2 provisiona os três perfis e a segurança por método está habilitada. O backend também possui cadastros de subestações, alimentadores e transformadores, APIs de eventos e alertas e persistência de consumidores. A integração com o frontend permanece pendente.
 
-US01 está **Em andamento**, com persistência, criação, consulta e edição de subestações em revisão; US02 está **Em andamento**, com backend de Alimentador em revisão; US03 está **Em andamento**, com persistência e API de Transformador em revisão; US16 está **Em andamento**, com persistência e API de eventos em revisão; US20 está **Em andamento**, com persistência e API de alertas em revisão; US07 está **Em andamento**, com persistência e API de consumidores em revisão; US06 está **Em andamento**, com persistência e API de medidores em revisão; US04–US05, US08–US15, US17–US19 e US23–US24 permanecem **A fazer** para o trabalho restante. O recorte de backend de US25 está **Em revisão**, com persistência, autenticação HTTP, contas iniciais e segurança por método. A presença de uma tela não representa a conclusão da história. O mapa geográfico ainda não está implementado.
+US01 está **Em andamento**, com persistência, criação, consulta e edição de subestações em revisão; US02 está **Em andamento**, com backend de Alimentador em revisão; US03 está **Em andamento**, com persistência e API de Transformador em revisão; US16 está **Em andamento**, com persistência e API de eventos em revisão; US20 está **Em andamento**, com persistência e API de alertas em revisão; US07 está **Em andamento**, com persistência e API de consumidores em revisão; US06 está **Em andamento**, com persistência e API de medidores em revisão; US04 está **Em andamento**, com persistência e CRUD de equipes implementados e gestão de integrantes/disponibilidade pendente; US05, US08–US15, US17–US19 e US23–US24 permanecem **A fazer** para o trabalho restante. O recorte de backend de US25 está **Em revisão**, com persistência, autenticação HTTP, contas iniciais e segurança por método. A presença de uma tela não representa a conclusão da história. O mapa geográfico ainda não está implementado.
 
 O frontend consome a autenticação e os cadastros de subestações, alimentadores e linhas de transmissão pela API, com endereço definido em VITE_API_URL; as demais telas continuam com dados simulados. Os testes existentes cobrem contexto, persistência, credenciais, autenticação HTTP, sessão, CORS e CSRF. A política de gestão de acesso restringe as futuras operações ao Gerente de Operações; esses endpoints ainda não existem.
 
@@ -166,22 +166,22 @@ Como operador, quero cadastrar transformadores com sua capacidade operacional, p
 Como técnico de manutenção, quero cadastrar equipes de manutenção e suas responsabilidades, para saber quem está disponível para cada tipo de atendimento.
 
 - **Perfil e prioridade:** Técnico de Manutenção. Prioridade: Média.
-- **Status:** A fazer.
-- **Implementação existente:** Listagem e filtros; quantidade de membros numérica e responsável textual.
-- **Trabalho pendente:** Sem integrantes identificados, persistência ou regra de disponibilidade. Execução granular e múltiplas equipes simultâneas adiadas.
+- **Status:** Em andamento.
+- **Implementação existente:** Backend com entidades de equipe e vínculo por vigência, consultas de vínculos ativos e CRUD de equipes (POST, PUT, GET paginado e GET por ID). Escritas restritas a gerente e técnico; criação em FORA_DE_SERVICO e edição somente textual. Frontend ainda usa dados simulados, quantidade numérica de membros e responsável textual.
+- **Trabalho pendente:** Endpoints de integrantes, disponibilidade manual com integrante ativo obrigatório e concorrência; integração do frontend e aceite completo. Um usuário pode integrar várias equipes; designação simultânea de múltiplas equipes ao mesmo evento e execução granular permanecem adiadas.
 - **Dependências:** PEN-06; US25; regras de integrantes e disponibilidade.
 - **Referências no frontend:** [Equipes/index.tsx](../frontend/src/pages/Equipes/index.tsx#L7) (linhas 7,18,44).
 
 **Critérios de aceitação:**
 
-- [ ] **US04-CA01:** Cada integrante referencia conta de usuário no MVP; contagem não substitui vínculos.
-- [ ] **US04-CA02:** Persistir e consultar equipe e responsabilidades/especialidades conforme contrato definido. **A detalhar.**
-- [ ] **US04-CA03:** Apresentar disponibilidade segundo regra verificável, sem presumir exclusividade ou limite de atendimentos. **A detalhar.**
+- [ ] **US04-CA01:** Cada integrante referencia conta de usuário no MVP; contagem não substitui vínculos. Mapeamento e consultas persistentes implementados; gestão web de integrantes pendente.
+- [ ] **US04-CA02:** Persistir e consultar equipe e responsabilidades/especialidades conforme contrato definido. Backend implementado; integração com a interface pendente.
+- [ ] **US04-CA03:** Apresentar disponibilidade manual: DISPONIVEL e EM_ATENDIMENTO exigem integrante ativo; remover o último integrante nesses estados retorna 409. Sem exclusividade entre equipes ou limite presumido de atendimentos. Alteração de disponibilidade e integração pendentes.
 
 **Tarefas:**
 
-- [ ] **US04-T01:** Detalhar contrato e critérios propostos, resolver as decisões pertinentes e definir cenários de teste.
-- [ ] **US04-T02:** Implementar o recorte de backend com testes pertinentes e documentação.
+- [x] **US04-T01:** Detalhar contrato e critérios propostos, resolver as decisões pertinentes e definir cenários de teste.
+- [ ] **US04-T02:** Implementar o recorte de backend com testes pertinentes e documentação. Persistência e CRUD de equipes implementados; integrantes, disponibilidade e concorrência pendentes.
 - [ ] **US04-T03:** Integrar a interface com testes pertinentes e documentação.
 - [ ] **US04-T04:** Verificar integração/aceite e apresentar resultados e limitações.
 
