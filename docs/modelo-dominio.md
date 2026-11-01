@@ -268,3 +268,26 @@ Os diagramas anteriores precisam ser sincronizados com este modelo e com o schem
 - [Diagrama de classes](diagramas/DiagramaDeClasses.png).
 - [Diagrama de banco de dados](diagramas/DiagramaBancoDeDados.pdf).
 - [Backlog](backlog.md): prioridades, critérios e tarefas.
+
+
+## Histórico de transições de eventos operacionais — US18
+
+A V12 introduz HistoricoEventoOperacional com identidade própria, associações obrigatórias N:1 para EventoOperacional e Usuario, situações anterior/nova, alteradoEm e comentario de até 1.000 caracteres. As associações são LAZY, sem cascata de persistência ou exclusão. A atualização do histórico é imutável no Hibernate; o repositório não expõe exclusão. A FK preserva os vínculos de auditoria. Não há coleção bidirecional no evento.
+
+SituacaoEventoOperacional define ABERTO, EM_ANDAMENTO e CONCLUIDO. O CHECK do histórico permite somente ABERTO → EM_ANDAMENTO e EM_ANDAMENTO → CONCLUIDO. O estado do evento pai e as datas efetivas continuam com os mapeamentos existentes; a atualização conjunta com o histórico será responsabilidade do serviço transacional. Este histórico é independente dos alertas e da view da US24.
+
+A migração normaliza a grafia de situações conhecidas sem alterar datas nem inventar usuário ou instante de ações passadas. Estados desconhecidos/nulos são preservados para tratamento explícito no fluxo de negócio, e nenhum histórico retroativo é criado. Não há novas restrições de ciclo sobre o evento pai neste lote; as comparações temporais já presentes na V1 permanecem válidas.
+
+
+### Serviço de transições da US18
+
+A transição obtém usuário pela sessão e valida o perfil persistido: gerente pode atuar em qualquer evento; operador e técnico de manutenção precisam ser o responsável. O evento é consultado com bloqueio pessimista e sua situação deve coincidir com situacaoEsperada. O fluxo é ABERTO → EM_ANDAMENTO → CONCLUIDO, sem saltos, retornos ou repetição do estado atual.
+
+Início efetivo ausente recebe o instante UTC do servidor; início existente é preservado. A conclusão exige início efetivo e término maior ou igual a ele. O instante é normalizado para microssegundos e compartilhado pelo histórico e pela data efetiva preenchida. Eventos com término já preenchido em estado não terminal ou situação legada desconhecida/ausente exigem regularização, sem alteração automática. O serviço mantém previsões, registrador e responsável. Atualização do evento e inserção do histórico são atômicas.
+
+
+### API de transições e consulta do histórico
+
+O POST de transições recebe somente situação esperada, destino e comentário. O usuário autor vem da sessão e o instante é gerado pelo servidor. HistoricoEventoResponseDTO preserva evento, usuário, estados, instante UTC e comentário. A resposta inclui o endereço do novo registro de histórico. A fachada transacional engloba a alteração e a montagem do retorno.
+
+O histórico é consultado por evento, com paginação e ordenação alteradoEm DESC/id DESC. O detalhe usa evento e ID da transição conjuntamente, impedindo acesso ao registro sob o endereço de outro evento. As consultas seguem o acesso autenticado já existente para eventos; a alteração aplica as permissões de responsável/gerente.

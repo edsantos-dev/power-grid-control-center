@@ -549,17 +549,17 @@ Como operador, quero registrar interrupções de fornecimento com data, horário
 Como técnico de manutenção, quero atualizar a situação de um evento operacional registrado, para manter o status da ocorrência sempre correto.
 
 - **Perfil e prioridade:** Técnico de Manutenção. Prioridade: Alta.
-- **Status:** A fazer.
-- **Implementação existente:** Estados e contagens visíveis, sem ação de atualização.
-- **Trabalho pendente:** Sem transições autorizadas, gravação ou histórico.
+- **Status:** Em andamento.
+- **Implementação existente:** Cadastro e consultas da US16; V12, histórico, serviço transacional e endpoints de transições em revisão. O frontend possui estados e contagens estáticos.
+- **Trabalho pendente:** Revisão do backend, integração da interface e aceite funcional.
 - **Dependências:** US16; US25; transições e permissões.
 - **Referências no frontend:** [Eventos/index.tsx](../frontend/src/pages/Eventos/index.tsx#L6) (linhas 6,45,166).
 
 **Critérios de aceitação:**
 
-- [ ] **US18-CA01:** Usuário autorizado altera situação conforme transições explicitadas no contrato. **A detalhar.**
-- [ ] **US18-CA02:** Persistir autor, instante e estados anterior/novo; apresentar alteração após nova consulta. **A detalhar.**
-- [ ] **US18-CA03:** Rejeitar usuário/transição inválidos sem modificar evento e validar término na conclusão. **A detalhar.**
+- [ ] **US18-CA01:** Usuário autorizado altera situação apenas em ABERTO → EM_ANDAMENTO → CONCLUIDO, conferindo a situação esperada; repetição, saltos e retornos são rejeitados.
+- [ ] **US18-CA02:** Persistir usuário da sessão, instante UTC, estados anterior/novo e comentário obrigatório de até 1.000 caracteres em histórico imutável; apresentar alteração após nova consulta.
+- [ ] **US18-CA03:** Rejeitar usuário ou transição inválidos sem modificar evento nem histórico. Início e término efetivos são preenchidos pelo servidor; conclusão exige início existente e término maior ou igual ao início.
 
 **Tarefas:**
 
@@ -567,6 +567,24 @@ Como técnico de manutenção, quero atualizar a situação de um evento operaci
 - [ ] **US18-T02:** Implementar o recorte de backend com testes pertinentes e documentação.
 - [ ] **US18-T03:** Integrar a interface com testes pertinentes e documentação.
 - [ ] **US18-T04:** Verificar integração/aceite e apresentar resultados e limitações.
+
+**US18-T02 — Lote 1 em revisão:** V12 cria historico_evento_operacional com FKs obrigatórias para evento e usuário, estados anterior/novo, instante e comentário obrigatório de até 1.000 caracteres. O CHECK permite apenas ABERTO → EM_ANDAMENTO e EM_ANDAMENTO → CONCLUIDO. HistoricoEventoOperacional usa associações LAZY sem cascata, identidade própria e imutabilidade de atualização no Hibernate. O repositório expõe inserção e leitura, sem operações de exclusão. EventoOperacional já possui os mapeamentos de inicioEfetivo/terminoEfetivo; a relação 1:N é representada pelo vínculo do histórico, sem coleção bidirecional. A alteração do evento pai é implementada pelo serviço transacional do Lote 2.
+
+**Dados legados:** a V12 normaliza apenas maiúsculas e espaços nas situações conhecidas. Valores desconhecidos ou nulos e datas efetivas são preservados; não há preenchimento de datas nem geração retroativa de transições. As restrições temporais da V1 permanecem. O lote não acrescenta CHECK de ciclo ao evento pai que exigiria inventar dados para registros legados; essas inconsistências deverão ser rejeitadas ou tratadas explicitamente no fluxo de negócio posterior.
+
+**Verificação:** HistoricoEventoOperacionalRepositoryTest cobre gravação, leitura paginada por evento, obrigatoriedade, FKs, limite do comentário, pares de estados e preservação de registros já gravados. EventosV12MigrationTest cobre a passagem da V11 à V12 e a preservação dos registros anteriores.
+
+**US18-T02 — Lote 2 em revisão:** EventoOperacionalService.transicionar usa a identidade da sessão e o perfil persistido do usuário. GERENTE_OPERACOES pode transicionar qualquer evento; OPERADOR e TECNICO_MANUTENCAO somente quando responsáveis. Autorizações informadas no principal não substituem o perfil do banco. Falhas de permissão lançam AccessDeniedException (403). O serviço obtém bloqueio pessimista do evento, confere situacaoEsperada e admite apenas ABERTO → EM_ANDAMENTO → CONCLUIDO. Divergências, saltos, retornos e repetições retornam 409.
+
+**Datas e atomicidade:** O relógio UTC do servidor é normalizado para microssegundos. A primeira transição preenche inicioEfetivo somente se ausente; a conclusão exige início existente e término maior ou igual ao início. Um término efetivo já presente em estado não terminal exige regularização e retorna 409, preservando o dado anterior. Situações legadas desconhecidas/nulas também retornam 409. Previsões, registrador e responsável não são alterados. Estado, datas e histórico são persistidos na mesma transação, com rollback conjunto em falhas. O método retorna o ID do histórico criado; DTOs e endpoints estão implementados no Lote 3.
+
+**Verificação do serviço:** EventoOperacionalTransicaoServiceTest cobre fluxo completo, perfis, autoria, estados, datas, contrato e situações legadas; EventoOperacionalTransicaoRollbackTest confirma rollback real da atualização do pai quando o histórico falha, nas duas transições; EventoOperacionalTransicaoConcorrenteTest confirma uma transição e um conflito quando duas solicitações esperam ABERTO.
+
+**US18-T02 — Lote 3 em revisão:** POST /api/eventos-operacionais/{id}/transicoes recebe TransacaoEventoRequestDTO (situacaoDestino e situacaoEsperada obrigatórias; comentario não branco de até 1.000 caracteres). A resposta 201 inclui HistoricoEventoResponseDTO e Location para o detalhe. A fachada HistoricoEventoOperacionalService mantém transição e montagem do DTO na mesma transação; autoria permanece resolvida pela sessão no serviço de eventos. Validação retorna 400; falta de permissão 403; recurso ausente 404; situação divergente ou transição inválida 409. Sessão e CSRF são obrigatórios no POST.
+
+**Consultas do histórico:** GET /api/eventos-operacionais/{id}/transicoes retorna PageResponseDTO, padrão page=0/size=20, máximo 100 e ordem fixa alteradoEm DESC/id DESC. Sort e parâmetros não suportados são rejeitados com 400. GET /api/eventos-operacionais/{id}/transicoes/{transicaoId} valida o vínculo com o evento e retorna 404 para histórico de outro evento. As consultas exigem sessão, seguindo o acesso às consultas existentes de eventos. O DTO expõe ID do histórico, evento, usuário, estados anterior/novo, instante UTC e comentário.
+
+**Verificação Web:** TransacaoEventoControllerTest cobre o fluxo completo, Location, validações, autoria, CSRF, perfis, conflitos, consultas e paginação isolada por evento. TransacaoEventoConcorrenciaWebTest dispara duas requisições HTTP com a mesma situação esperada, confirmando uma resposta 201, uma 409 e um único registro de histórico. Integração da interface e aceite funcional continuam pendentes.
 
 ### US19 — Consultar histórico de manutenção por ativo
 
