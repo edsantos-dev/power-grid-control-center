@@ -24,4 +24,16 @@ public interface HistoricoEventoOperacionalRepository extends Repository<Histori
     List<HistoricoEventoOperacional> buscarPorEventoOrdenado(@Param("eventoId") Long eventoId,
             @Param("limite") int limite, @Param("deslocamento") long deslocamento);
     Page<HistoricoEventoOperacional> findByEventoId(Long eventoId, Pageable pageable);
+    @Query("select h from HistoricoEventoOperacional h where h.evento.id in :eventoIds"
+            + " and not exists (select posterior.id from HistoricoEventoOperacional posterior"
+            + " where posterior.evento.id = h.evento.id"
+            + " and (posterior.alteradoEm > h.alteradoEm"
+            + " or (posterior.alteradoEm = h.alteradoEm and posterior.id > h.id)))"
+            + " order by h.alteradoEm desc, h.id desc")
+    List<HistoricoEventoOperacional> consultarUltimasTransicoes(@Param("eventoIds") List<Long> eventoIds);
+
+    default List<HistoricoEventoOperacional> buscarUltimasTransicoes(List<Long> eventoIds) {
+        if (eventoIds.isEmpty()) return List.of();
+        return consultarUltimasTransicoes(eventoIds);
+    }
 }

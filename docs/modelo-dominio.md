@@ -291,3 +291,10 @@ Início efetivo ausente recebe o instante UTC do servidor; início existente é 
 O POST de transições recebe somente situação esperada, destino e comentário. O usuário autor vem da sessão e o instante é gerado pelo servidor. HistoricoEventoResponseDTO preserva evento, usuário, estados, instante UTC e comentário. A resposta inclui o endereço do novo registro de histórico. A fachada transacional engloba a alteração e a montagem do retorno.
 
 O histórico é consultado por evento, com paginação e ordenação alteradoEm DESC/id DESC. O detalhe usa evento e ID da transição conjuntamente, impedindo acesso ao registro sob o endereço de outro evento. As consultas seguem o acesso autenticado já existente para eventos; a alteração aplica as permissões de responsável/gerente.
+
+
+## Consulta de manutenção por ativo — US19
+
+Manutenção é EventoOperacional de categoria MANUTENCAO e mantém a identidade, situação e transições do evento. A consulta por ativo não cria nova entidade ou histórico duplicado. O período usa inicioEfetivo, com início inclusivo e fim exclusivo; valores nulos ficam fora quando houver filtro temporal. Sem período, eventos sem início permanecem na lista, ordenados ao final. Responsável e situação são filtros opcionais.
+
+A página é selecionada no banco em ordem inicioEfetivo DESC NULLS LAST/id DESC. As últimas transições são obtidas em lote pelos IDs selecionados, com desempate alteradoEm DESC/id DESC, sem materializar o histórico inteiro. Eventos sem transições permanecem elegíveis na página. O responsável e o autor da transição não representam necessariamente executores da manutenção; executor granular e relatório técnico estruturado continuam pendentes de evolução específica.

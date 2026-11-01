@@ -352,3 +352,10 @@ POST /api/eventos-operacionais/{id}/transicoes exige sessão e CSRF. O corpo con
 GET /api/eventos-operacionais/{id}/transicoes exige sessão e retorna PageResponseDTO com padrões page=0/size=20 e máximo 100. A ordem é fixa alteradoEm DESC/id DESC; sort, parâmetros não suportados e paginação inválida retornam 400. Evento existente sem transições retorna página vazia; evento inexistente retorna 404. A consulta é limitada e contada no banco por evento.
 
 GET /api/eventos-operacionais/{id}/transicoes/{transicaoId} exige sessão e retorna o detalhe. Transição inexistente ou pertencente a outro evento retorna 404. As leituras seguem as permissões das consultas existentes de eventos; o POST aplica a restrição de responsável ou gerente. Transições são novas operações de auditoria: repetir uma solicitação com situação esperada ultrapassada retorna 409.
+
+
+## Consultas de manutenção por ativo — US19
+
+EventoOperacionalRepository.buscarManutencoesPorAtivo seleciona somente eventos MANUTENCAO do ativo informado. Suporta situação, responsável e período opcional sobre inicioEfetivo (início inclusivo/fim exclusivo). A paginação ocorre no banco, com ordem fixa inicioEfetivo DESC NULLS LAST/id DESC. Eventos sem início efetivo ficam ao final e não atendem filtros temporais.
+
+HistoricoEventoOperacionalRepository.buscarUltimasTransicoes consulta em lote os IDs da página e retorna apenas a última transição por alteradoEm/id. Lista vazia não executa SQL e eventos sem histórico não geram linha. A consulta completa usa contagem, página e histórico em lote, evitando buscas individuais por evento. Este lote implementa os repositórios; Service, DTO e endpoint pertencem ao próximo lote.
