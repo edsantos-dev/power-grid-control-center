@@ -404,3 +404,39 @@ flowchart TD
 As consultas escalares carregam coordenadas e identificadores em conjunto, evitando N+1. Pontos são filtrados espacialmente no banco; linhas passam por pré-seleção de envelope e interseção analítica em Java. O serviço percorre lotes por ID, aplica o limite após a seleção geométrica e combina o resultado com a contagem global de ativos sem geometria. Toda a leitura compartilha uma transação somente leitura com isolamento REPEATABLE_READ. Não há nova tabela, migration espacial ou dependência de PostGIS.
 
 MapaGeograficoFluxoE2ETest integra persistência real, autenticação por sessão, consulta GeoJSON e navegação pelos caminhos de cadastro. O cenário inclui usina interna, subestações externas, transformador sem coordenadas e linha que atravessa a BBOX com ambas as extremidades fora. A resposta contém somente os dois elementos elegíveis e contabiliza um ativo sem geometria.
+
+## Indicadores operacionais — US14
+
+O escopo cadastral compreende SUBESTACAO, ALIMENTADOR, TRANSFORMADOR, LINHA e USINA. Medidores, inclusive os de estoque, não integram essa população. O inventário atual é agrupado por tipo e estado, sem reconstrução histórica. Os filtros de ativo, tipos e subestação são combinados por interseção. Transformadores derivam a subestação do alimentador; usinas e alimentadores usam o vínculo direto; linhas pertencem ao escopo de qualquer extremidade sem duplicação. Uma interrupção não é propagada automaticamente a ativos dependentes.
+
+O tempo médio de restabelecimento considera exclusivamente eventos INTERRUPCAO_FORNECIMENTO em situação CONCLUIDO, com início físico informado e término maior ou igual ao início, cujo término físico pertence à janela semiaberta [dataInicio,dataFim). A duração usada é a duração física integral de cada ocorrência, mesmo que tenha começado antes da janela. Sem ocorrências elegíveis, a média é nula. Datas previstas e instantes de auditoria não substituem as datas físicas.
+
+O tempo interrompido utiliza os intervalos físicos que intersectam a janela. Inícios anteriores são limitados a dataInicio; términos posteriores ou ausentes são limitados a dataFim. Intervalos de duração zero não acumulam tempo. A consulta funde intervalos sobrepostos, aninhados ou adjacentes por ativo antes da soma, mantendo separados equipamentos diferentes. A identificação dos grupos usa o maior término de todos os intervalos anteriores, evitando a dupla contagem que uma comparação apenas com o registro anterior poderia causar. Segundos são extraídos como valores decimais, preservando microssegundos e fusos.
+
+IndicadoresRepository fornece projeções escalares de inventário, restabelecimento e tempo interrompido. A fusão e as agregações são executadas no banco com CTEs e funções de janela; não há carga do histórico completo em memória, nova tabela de resultados ou migration adicional. A API, as situações de qualidade e o cálculo final de disponibilidade estão implementados e cobertos pelo fluxo E2E integrado. A integração com o frontend permanece pendente. A disponibilidade estimada adota a população cadastral atual durante toda a janela e indica COBERTURA_NAO_AFERIDA, pois não há histórico completo do inventário. MTBF e indicadores por consumidor ficam fora deste recorte.
+
+### Contrato de cálculo dos indicadores
+
+O período é obrigatório, com fuso, início anterior ao fim e fim não futuro. Os valores temporais são apresentados em segundos. Contagens de interrupções iniciadas usam inicioEfetivo na janela; contagens de sobreposição usam a interseção física com a janela. Ocorrências sem término físico são identificadas separadamente. Registros legados com datas físicas ausentes ou inconsistências de conclusão são contabilizados separadamente. Agregados temporais utilizáveis podem permanecer na resposta, mas as inconsistências impedem apresentar um percentual de disponibilidade como resultado completo. Essas contagens e situações integram IndicadoresService e a resposta agregada da API.
+
+A disponibilidade estimada é 100 × (1 − tempoInterrompido / tempoObservadoAtivos), com tempoObservadoAtivos igual à quantidade de ativos elegíveis multiplicada pela duração da janela. Tempos são somados por equipamento; não se usa média simples de percentuais. Sem população elegível, a disponibilidade é nula. Sem restabelecimentos elegíveis, a média de restabelecimento é nula. Ausência de interrupções pode produzir estimativa de 100%, acompanhada de COBERTURA_NAO_AFERIDA, sem comprovar cobertura histórica. O resultado final usa BigDecimal com seis casas e HALF_EVEN; não há arredondamento intermediário de durações. O acesso à API é exclusivo de GERENTE_OPERACOES.
+
+SituacaoDisponibilidade distingue COBERTURA_NAO_AFERIDA, SEM_POPULACAO_ATIVA e DADOS_INCONSISTENTES. Não há situação de cobertura comprovada no MVP. Disponibilidade é nula sem população ou com inconsistências relevantes; média de restabelecimento é nula sem ocorrências elegíveis. O serviço captura o relógio UTC uma única vez por consulta e usa transação somente leitura com REPEATABLE_READ para combinar inventário, durações e contagens. O arredondamento HALF_EVEN para seis casas ocorre nos resultados finais.
+
+### Arquitetura e cenário de referência dos indicadores
+
+IndicadoresController aplica a autorização de GERENTE_OPERACOES e encaminha os filtros a IndicadoresService. O serviço valida o período e os identificadores, captura o relógio UTC e combina projeções de inventário, restabelecimento, contagens e tempo interrompido fornecidas por IndicadoresRepository. CTEs e funções de janela fazem a fusão dos intervalos no banco. A disponibilidade usa os totais sem arredondamento intermediário; a média usa a soma das durações físicas e a quantidade de restabelecimentos elegíveis. A resposta inclui esses denominadores e a situação de qualidade. Não há cache, scheduler ou persistência de resultados consolidados.
+
+IndicadoresFluxoE2ETest integra cadastro de transformador, registro de interrupção, transições de atendimento e consulta de indicadores via HTTP com sessão e CSRF nas escritas. Os registros são confirmados em transações independentes. No cenário de referência, a janela é [08:00,18:00), o início físico é 10:00 e o término físico é 12:00. O filtro ativoId restringe a população ao transformador, excluindo subestação e alimentador do denominador.
+
+| Grandeza | Resultado |
+| --- | --- |
+| População consultada | 1 transformador |
+| Tempo observado | 36.000 segundos |
+| Tempo interrompido | 7.200 segundos |
+| Restabelecimentos elegíveis | 1 |
+| Tempo médio de restabelecimento | 7.200 segundos |
+| Disponibilidade estimada | 100 × (1 − 7.200 / 36.000) = 80,000000% |
+| Situação da disponibilidade | COBERTURA_NAO_AFERIDA |
+
+O registro operacional das transições ocorre no dia seguinte à ocorrência física. Isso preserva a distinção entre o instante da auditoria e os instantes usados no cálculo. O resultado de 80% permanece uma estimativa baseada nos registros e na população cadastral atual, sem comprovação da cobertura histórica do inventário.

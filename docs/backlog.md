@@ -6,7 +6,7 @@ O backlog reúne as histórias, os critérios de aceitação, as tarefas e as pe
 
 O frontend possui páginas com dados simulados, filtros e navegação local. O backend possui configuração PostgreSQL/JPA/Flyway, schema SQL inicial, persistência de usuários e autenticação HTTP por sessão, com CORS e CSRF. A V2 provisiona os três perfis e a segurança por método está habilitada. O backend também possui cadastros de subestações, alimentadores e transformadores, APIs de eventos e alertas e persistência de consumidores. A integração com o frontend permanece pendente.
 
-US01 está **Em andamento**, com persistência, criação, consulta e edição de subestações em revisão; US02 está **Em andamento**, com backend de Alimentador em revisão; US03 está **Em andamento**, com persistência e API de Transformador em revisão; US16 está **Em andamento**, com persistência e API de eventos em revisão; US20 está **Em andamento**, com persistência e API de alertas em revisão; US07 está **Em andamento**, com persistência e API de consumidores em revisão; US06 está **Em andamento**, com persistência e API de medidores em revisão; US04 está **Em andamento**, com backend de equipes, integrantes e disponibilidade implementado e integração com o frontend pendente; US08–US11, US14–US15, US18–US19 e US23–US24 permanecem **A fazer** para o trabalho restante. O recorte de backend de US25 está **Em revisão**, com persistência, autenticação HTTP, contas iniciais e segurança por método. US05 está **Em andamento**, com persistência e API de usinas implementadas e integração com o frontend pendente. US17 está **Em andamento**, com backend de cadastro, conclusão física e consultas de interrupções implementado e integração com o frontend pendente. US12 está **Em andamento**, com backend de energia e perdas estimadas implementado e integração com o frontend pendente. US13 está **Em andamento**, com backend GeoJSON concluído e fluxo E2E integrado; interface pendente. A presença de uma tela não representa a conclusão da história. A interface do mapa geográfico ainda não está implementada.
+US01 está **Em andamento**, com persistência, criação, consulta e edição de subestações em revisão; US02 está **Em andamento**, com backend de Alimentador em revisão; US03 está **Em andamento**, com persistência e API de Transformador em revisão; US16 está **Em andamento**, com persistência e API de eventos em revisão; US20 está **Em andamento**, com persistência e API de alertas em revisão; US07 está **Em andamento**, com persistência e API de consumidores em revisão; US06 está **Em andamento**, com persistência e API de medidores em revisão; US04 está **Em andamento**, com backend de equipes, integrantes e disponibilidade implementado e integração com o frontend pendente; US08–US11, US15, US18–US19 e US23–US24 permanecem **A fazer** para o trabalho restante. O recorte de backend de US25 está **Em revisão**, com persistência, autenticação HTTP, contas iniciais e segurança por método. US05 está **Em andamento**, com persistência e API de usinas implementadas e integração com o frontend pendente. US17 está **Em andamento**, com backend de cadastro, conclusão física e consultas de interrupções implementado e integração com o frontend pendente. US12 está **Em andamento**, com backend de energia e perdas estimadas implementado e integração com o frontend pendente. US13 está **Em andamento**, com backend GeoJSON concluído e fluxo E2E integrado; interface pendente. US14 está **Em andamento**, com backend de indicadores concluído e fluxo E2E integrado; interface e aceite completo pendentes. A presença de uma tela não representa a conclusão da história. A interface do mapa geográfico ainda não está implementada.
 
 O frontend consome a autenticação e os cadastros de subestações, alimentadores e linhas de transmissão pela API, com endereço definido em VITE_API_URL; as demais telas continuam com dados simulados. Os testes existentes cobrem contexto, persistência, credenciais, autenticação HTTP, sessão, CORS e CSRF. A política de gestão de acesso restringe as futuras operações ao Gerente de Operações; esses endpoints ainda não existem.
 
@@ -445,22 +445,22 @@ Como operador, quero visualizar o mapa geográfico dos ativos da rede, para loca
 Como gerente, quero visualizar KPIs de disponibilidade e desempenho da rede, para avaliar a eficiência operacional da operadora.
 
 - **Perfil e prioridade:** Gerente de Operações. Prioridade: Alta.
-- **Status:** A fazer.
-- **Implementação existente:** Cartões fixos e média local de disponibilidades fictícias.
-- **Trabalho pendente:** Sem fórmula/período/fonte definidos e cálculo operacional real.
+- **Status:** Em andamento.
+- **Implementação existente:** Backend concluído com consultas escalares, fusão temporal por ativo, cálculo, situações de qualidade, DTOs, API exclusiva do gerente e fluxo E2E integrado. O frontend mantém cartões fixos e disponibilidades fictícias.
+- **Trabalho pendente:** Integração com o frontend e aceite completo da história.
 - **Dependências:** Cadastros, eventos e medições conforme a definição de cada indicador.
 - **Referências no frontend:** [Dashboard/index.tsx](../frontend/src/pages/Dashboard/index.tsx#L45) (linhas 45); [Subestacoes/index.tsx](../frontend/src/pages/Subestacoes/index.tsx#L44) (linhas 44).
 
 **Critérios de aceitação:**
 
-- [ ] **US14-CA01:** Definir fórmula, unidade, período e fonte de cada KPI. **A detalhar.**
-- [ ] **US14-CA02:** Calcular e exibir resultado verificável a partir de dados persistidos de cenário conhecido. **A detalhar.**
-- [ ] **US14-CA03:** Distinguir indisponibilidade de dados de indisponibilidade do ativo. **A detalhar.**
+- [x] **US14-CA01:** Definir fórmula, unidade, período e fonte de cada KPI. Fórmulas e fontes documentadas no modelo de domínio: inventário atual, interrupções físicas, recorte semiaberto e disponibilidade estimada com cobertura não aferida.
+- [ ] **US14-CA02:** Calcular e exibir resultado verificável a partir de dados persistidos de cenário conhecido. Cálculo validado em fluxo E2E com interrupção de duas horas em janela de dez horas, resultando em 80% de disponibilidade estimada; exibição na interface pendente.
+- [ ] **US14-CA03:** Distinguir indisponibilidade de dados de indisponibilidade do ativo. API distingue cobertura não aferida, média nula sem restabelecimentos, ausência de população e dados inconsistentes; apresentação na interface pendente.
 
 **Tarefas:**
 
-- [ ] **US14-T01:** Detalhar contrato e critérios propostos, resolver as decisões pertinentes e definir cenários de teste.
-- [ ] **US14-T02:** Implementar o recorte de backend com testes pertinentes e documentação.
+- [x] **US14-T01:** Detalhar contrato e critérios propostos, resolver as decisões pertinentes e definir cenários de teste.
+- [x] **US14-T02:** Implementar o recorte de backend com testes pertinentes e documentação. Consultas, serviço, fórmulas, situações de qualidade, DTOs e API concluídos, com fluxo E2E integrado e arquitetura documentada.
 - [ ] **US14-T03:** Integrar a interface com testes pertinentes e documentação.
 - [ ] **US14-T04:** Verificar integração/aceite e apresentar resultados e limitações.
 
