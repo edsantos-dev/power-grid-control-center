@@ -60,6 +60,13 @@ public class GlobalExceptionHandler extends ResponseEntityExceptionHandler {
                 "Você não possui permissão para esta operação.", List.of(), request);
     }
 
+    @ExceptionHandler(LimiteFeaturesMapaException.class)
+    public ResponseEntity<Object> handleLimiteMapa(LimiteFeaturesMapaException ex, WebRequest request) {
+        var headers = new HttpHeaders();
+        headers.setContentType(org.springframework.http.MediaType.APPLICATION_JSON);
+        return resposta(HttpStatusCode.valueOf(422), headers, ex.getMessage(), List.of(), request);
+    }
+
     @ExceptionHandler(Exception.class)
     public ResponseEntity<Object> handleUnexpected(Exception ex, WebRequest request) {
         return resposta(HttpStatus.INTERNAL_SERVER_ERROR, new HttpHeaders(),
