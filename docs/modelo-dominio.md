@@ -374,7 +374,7 @@ A cobertura usa a união temporal dos intervalos, sem contagem duplicada. A deci
 
 O mapa inicial usa subestações, usinas e transformadores como pontos e linhas de transmissão como conexões simplificadas. Não são criadas entidades geográficas persistentes. Pontos utilizam exclusivamente coordenadas do próprio cadastro; linhas utilizam as coordenadas das subestações de origem e destino, independentemente do ponto herdado em ativo_rede. O segmento não equivale ao traçado físico nem à direção instantânea do fluxo de potência. Coordenadas ausentes não são preenchidas artificialmente, e extremidades geograficamente coincidentes não formam uma conexão utilizável.
 
-BoundingBox representa uma área retangular válida, sem cruzamento do antimeridiano. Consultas filtram tipo, estado e faixas de coordenadas, com inclusão das bordas. O estado de uma linha é próprio e não é substituído pelos estados de suas extremidades. As projeções escalares evitam navegação por entidades para obter dados geográficos. O envelope de uma linha é somente um pré-filtro; a interseção exata segmento-retângulo ocorre em Java com aritmética decimal. GeoJSON, metadados, limite de payload e API estão implementados; fluxo E2E integrado e interface permanecem pendentes.
+BoundingBox representa uma área retangular válida, sem cruzamento do antimeridiano. Consultas filtram tipo, estado e faixas de coordenadas, com inclusão das bordas. O estado de uma linha é próprio e não é substituído pelos estados de suas extremidades. As projeções escalares evitam navegação por entidades para obter dados geográficos. O envelope de uma linha é somente um pré-filtro; a interseção exata segmento-retângulo ocorre em Java com aritmética decimal. GeoJSON, metadados, limite de payload e API estão implementados e cobertos pelo fluxo E2E integrado. A interface do mapa permanece pendente.
 
 
 ### Contrato GeoJSON e escopo dos metadados
@@ -382,3 +382,25 @@ BoundingBox representa uma área retangular válida, sem cruzamento do antimerid
 FeatureCollection reúne os pontos e conexões simplificadas da BBOX, com identificação estável pelo ID do ativo e propriedades tipadas. Coordenadas GeoJSON usam longitude antes de latitude. A conexão linear mantém os IDs das subestações e a identificação CONEXAO_SIMPLIFICADA. O caminho detalheUri aponta para o cadastro já existente, sem expor entidades JPA.
 
 O limite de 1000 Features por padrão, configurável na consulta até 5000, aplica-se aos resultados após o teste geométrico. A consulta excedente falha com 422, sem truncamento silencioso. A contagem de ativos sem geometria é global às camadas/estados selecionados e não depende da área visível. Leituras em lotes e contagens compartilham uma visão transacional repetível dos dados. O endpoint permite os três perfis autenticados.
+
+### Arquitetura de consulta geográfica
+
+```mermaid
+flowchart TD
+    Cliente[Cliente autenticado] --> Controller[MapaGeograficoController]
+    Controller --> Service[MapaGeograficoService: BBOX, camadas, estados e limite]
+    Service --> Pontos[Projeções pontuais filtradas no banco]
+    Service --> Linhas[Projeções de linhas: pré-filtro por envelope]
+    Linhas --> Algebra[Interseção segmento-retângulo em BigDecimal]
+    Pontos --> Features[Features elegíveis ordenadas por ID]
+    Algebra --> Features
+    Features --> Limite{Quantidade dentro do limite?}
+    Limite -->|Sim| GeoJSON[FeatureCollection e metadados]
+    Limite -->|Não| Erro[ApiError: HTTP 422 sem resposta parcial]
+    Service --> Contagem[Contagem sem geometria por camada e estado]
+    Contagem --> GeoJSON
+```
+
+As consultas escalares carregam coordenadas e identificadores em conjunto, evitando N+1. Pontos são filtrados espacialmente no banco; linhas passam por pré-seleção de envelope e interseção analítica em Java. O serviço percorre lotes por ID, aplica o limite após a seleção geométrica e combina o resultado com a contagem global de ativos sem geometria. Toda a leitura compartilha uma transação somente leitura com isolamento REPEATABLE_READ. Não há nova tabela, migration espacial ou dependência de PostGIS.
+
+MapaGeograficoFluxoE2ETest integra persistência real, autenticação por sessão, consulta GeoJSON e navegação pelos caminhos de cadastro. O cenário inclui usina interna, subestações externas, transformador sem coordenadas e linha que atravessa a BBOX com ambas as extremidades fora. A resposta contém somente os dois elementos elegíveis e contabiliza um ativo sem geometria.

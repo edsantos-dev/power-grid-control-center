@@ -6,7 +6,7 @@ O backlog reúne as histórias, os critérios de aceitação, as tarefas e as pe
 
 O frontend possui páginas com dados simulados, filtros e navegação local. O backend possui configuração PostgreSQL/JPA/Flyway, schema SQL inicial, persistência de usuários e autenticação HTTP por sessão, com CORS e CSRF. A V2 provisiona os três perfis e a segurança por método está habilitada. O backend também possui cadastros de subestações, alimentadores e transformadores, APIs de eventos e alertas e persistência de consumidores. A integração com o frontend permanece pendente.
 
-US01 está **Em andamento**, com persistência, criação, consulta e edição de subestações em revisão; US02 está **Em andamento**, com backend de Alimentador em revisão; US03 está **Em andamento**, com persistência e API de Transformador em revisão; US16 está **Em andamento**, com persistência e API de eventos em revisão; US20 está **Em andamento**, com persistência e API de alertas em revisão; US07 está **Em andamento**, com persistência e API de consumidores em revisão; US06 está **Em andamento**, com persistência e API de medidores em revisão; US04 está **Em andamento**, com backend de equipes, integrantes e disponibilidade implementado e integração com o frontend pendente; US08–US11, US14–US15, US18–US19 e US23–US24 permanecem **A fazer** para o trabalho restante. O recorte de backend de US25 está **Em revisão**, com persistência, autenticação HTTP, contas iniciais e segurança por método. US05 está **Em andamento**, com persistência e API de usinas implementadas e integração com o frontend pendente. US17 está **Em andamento**, com backend de cadastro, conclusão física e consultas de interrupções implementado e integração com o frontend pendente. US12 está **Em andamento**, com backend de energia e perdas estimadas implementado e integração com o frontend pendente. US13 está **Em andamento**, com API GeoJSON de mapa implementada e E2E/interface pendentes. A presença de uma tela não representa a conclusão da história. O mapa geográfico ainda não está implementado.
+US01 está **Em andamento**, com persistência, criação, consulta e edição de subestações em revisão; US02 está **Em andamento**, com backend de Alimentador em revisão; US03 está **Em andamento**, com persistência e API de Transformador em revisão; US16 está **Em andamento**, com persistência e API de eventos em revisão; US20 está **Em andamento**, com persistência e API de alertas em revisão; US07 está **Em andamento**, com persistência e API de consumidores em revisão; US06 está **Em andamento**, com persistência e API de medidores em revisão; US04 está **Em andamento**, com backend de equipes, integrantes e disponibilidade implementado e integração com o frontend pendente; US08–US11, US14–US15, US18–US19 e US23–US24 permanecem **A fazer** para o trabalho restante. O recorte de backend de US25 está **Em revisão**, com persistência, autenticação HTTP, contas iniciais e segurança por método. US05 está **Em andamento**, com persistência e API de usinas implementadas e integração com o frontend pendente. US17 está **Em andamento**, com backend de cadastro, conclusão física e consultas de interrupções implementado e integração com o frontend pendente. US12 está **Em andamento**, com backend de energia e perdas estimadas implementado e integração com o frontend pendente. US13 está **Em andamento**, com backend GeoJSON concluído e fluxo E2E integrado; interface pendente. A presença de uma tela não representa a conclusão da história. A interface do mapa geográfico ainda não está implementada.
 
 O frontend consome a autenticação e os cadastros de subestações, alimentadores e linhas de transmissão pela API, com endereço definido em VITE_API_URL; as demais telas continuam com dados simulados. Os testes existentes cobrem contexto, persistência, credenciais, autenticação HTTP, sessão, CORS e CSRF. A política de gestão de acesso restringe as futuras operações ao Gerente de Operações; esses endpoints ainda não existem.
 
@@ -422,21 +422,21 @@ Como operador, quero visualizar o mapa geográfico dos ativos da rede, para loca
 
 - **Perfil e prioridade:** Operador. Prioridade: Alta.
 - **Status:** Em andamento.
-- **Implementação existente:** Backend com projeções e álgebra de interseção, API GeoJSON, filtros BBOX/camada/estado, metadados e limite sem truncamento com 422. Frontend ainda sem mapa; Dashboard tem KPIs/gráficos.
-- **Trabalho pendente:** Fluxo E2E integrado, revisão final da documentação, integração do mapa e aceite completo. Dependência Leaflet não comprova funcionalidade.
+- **Implementação existente:** Backend concluído com projeções e álgebra de interseção, API GeoJSON, filtros BBOX/camada/estado, metadados, limite sem truncamento com 422 e fluxo E2E integrado. Frontend ainda sem mapa; Dashboard tem KPIs/gráficos.
+- **Trabalho pendente:** Integração do mapa no frontend e aceite completo. Dependência Leaflet não comprova funcionalidade.
 - **Dependências:** US01; US02; coordenadas e traçados dos demais cadastros.
 - **Referências no frontend:** [Dashboard/index.tsx](../frontend/src/pages/Dashboard/index.tsx#L32) (linhas 32).
 
 **Critérios de aceitação:**
 
-- [ ] **US13-CA01:** Representar SUBESTACAO, USINA e TRANSFORMADOR como pontos das coordenadas persistidas e LINHA como conexão simplificada entre subestações. Projeções e GeoJSON implementados; fluxo E2E e interface pendentes.
-- [ ] **US13-CA02:** Selecionar ativo no mapa e identificar o cadastro por ID/tipo e caminho de API. Identificação e detalheUri disponíveis no GeoJSON; fluxo E2E e interface pendentes.
-- [ ] **US13-CA03:** Identificar linhas como CONEXAO_SIMPLIFICADA; incluir interseções mesmo com ambas as extremidades fora da BBOX e omitir geometrias incompletas/coincidentes. Consultas, álgebra e resposta GeoJSON implementadas; fluxo E2E e interface pendentes.
+- [ ] **US13-CA01:** Representar SUBESTACAO, USINA e TRANSFORMADOR como pontos das coordenadas persistidas e LINHA como conexão simplificada entre subestações. Backend validado em fluxo E2E; representação na interface pendente.
+- [ ] **US13-CA02:** Selecionar ativo no mapa e identificar o cadastro por ID/tipo e caminho de API. Identificação, detalheUri e consulta dos cadastros validados em fluxo E2E; seleção na interface pendente.
+- [ ] **US13-CA03:** Identificar linhas como CONEXAO_SIMPLIFICADA; incluir interseções mesmo com ambas as extremidades fora da BBOX e omitir geometrias incompletas/coincidentes. Consultas, álgebra e resposta GeoJSON validadas em fluxo E2E; integração visual pendente.
 
 **Tarefas:**
 
 - [x] **US13-T01:** Detalhar contrato e critérios propostos, resolver as decisões pertinentes e definir cenários de teste.
-- [ ] **US13-T02:** Implementar o recorte de backend com testes pertinentes e documentação. Projeções, álgebra, GeoJSON, API, metadados e limites implementados; E2E integrado e revisão final pendentes.
+- [x] **US13-T02:** Implementar o recorte de backend com testes pertinentes e documentação. Projeções, álgebra, GeoJSON, API, metadados e limites implementados, com fluxo E2E integrado e arquitetura documentada.
 - [ ] **US13-T03:** Integrar a interface com testes pertinentes e documentação.
 - [ ] **US13-T04:** Verificar integração/aceite e apresentar resultados e limitações.
 
