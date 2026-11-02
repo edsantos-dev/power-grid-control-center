@@ -440,3 +440,35 @@ IndicadoresFluxoE2ETest integra cadastro de transformador, registro de interrup�
 | Situação da disponibilidade | COBERTURA_NAO_AFERIDA |
 
 O registro operacional das transições ocorre no dia seguinte à ocorrência física. Isso preserva a distinção entre o instante da auditoria e os instantes usados no cálculo. O resultado de 80% permanece uma estimativa baseada nos registros e na população cadastral atual, sem comprovação da cobertura histórica do inventário.
+
+## Histórico de energia injetada e perdas estimadas — US15
+
+O recorte inicial utiliza MedicaoEnergiaAlimentador e seus snapshots de percentual de perda. Energia injetada não representa consumo medido dos consumidores; a série de consumo medido permanece fora deste recorte. Não há tabela consolidada de resultados. O contrato prevê pontos DIA ou MES no calendário UTC, sem rateio presumido de energia, com limite de 366 pontos e acesso exclusivo de GERENTE_OPERACOES.
+
+MedicaoEnergiaAlimentadorRepository.buscarParaHistorico retorna MedicaoEnergiaHistoricoProjection com inicioPeriodo, fimPeriodo, energiaInjetadaMwh e percentualPerdaReferencia. A consulta JPQL filtra pelo alimentador derivado da fonte e exige inicioPeriodo maior ou igual ao início solicitado e fimPeriodo menor ou igual ao fim solicitado. Os resultados têm ordem fixa por início e ID. Não são carregadas entidades nem associações LAZY para compor a projeção.
+
+A contenção na janela macro não assegura contenção no dia ou mês: uma leitura de 23:00 a 01:00 pode ser retornada integralmente para uma janela de dois dias. O motor de agregação verifica as fronteiras de cada ponto, sem repartir essa energia ou atribuí-la integralmente ao início da leitura. Pontos sem cobertura completa têm valores nulos e situação DADOS_INSUFICIENTES; zero é reservado para energia efetivamente medida com cobertura completa. O percentual agregado é ponderado pela energia, utilizando os snapshots e arredondando apenas o resultado final.
+
+O backend do recorte de energia injetada e perdas estimadas está concluído, com projeção, consulta, calendário, cobertura, lacunas, DTOs, API e fluxo E2E integrado. A integração visual permanece pendente e consumo medido continua adiado. Não há migration ou novo índice; eventual mudança de índices dependerá da análise do plano de execução no PostgreSQL.
+
+### Agregação temporal e calendário UTC
+
+HistoricoEnergiaService gera no máximo 366 pontos DIA/MES antes de consultar leituras. Cada ponto é limitado à interseção entre o dia ou mês UTC e o período solicitado; um mês parcial não presume cobertura fora da janela. O serviço percorre as projeções em ordem temporal, somando apenas leituras contidas no ponto e verificando continuidade exata. Uma leitura que cruza fronteiras não é repartida e torna insuficientes todos os pontos atravessados. Sobreposições legadas também impedem apresentação de totais completos.
+
+PontoHistoricoDTO reutiliza SituacaoPerdaTecnica: OK para cobertura completa com energia positiva, SEM_ENERGIA_INJETADA para cobertura completa com energia zero e DADOS_INSUFICIENTES para ausência de cobertura ou inconsistência. QuantidadeLeituras conta leituras integralmente contidas no ponto, incluindo as de um ponto incompleto; leituras atravessadas não entram nessa contagem. HistoricoEnergiaResponseDTO mantém todos os pontos do calendário, com valores nulos nas lacunas, e possuiDados informa a existência de projeções na janela macro, sem equivaler a cobertura completa.
+
+Energia e perdas são acumuladas em BigDecimal sem arredondamento intermediário. O percentual final é 100 × somaPerdas / somaEnergia; os valores finais usam seis casas e HALF_EVEN. O endpoint é GET /api/alimentadores/{id}/historico-energia, exclusivo de GERENTE_OPERACOES. Existência do alimentador, leitura das projeções e resposta compartilham transação somente leitura com REPEATABLE_READ.
+
+### Cenário integrado de energia e perdas
+
+HistoricoEnergiaFluxoE2ETest integra cadastro de alimentador e fonte, configuração do percentual, ingestão de energia e consulta histórica via HTTP autenticado. A subestação de suporte é persistida previamente e cada requisição confirma sua própria transação. A janela diária tem cinco dias em UTC. No Dia 1, duas leituras contíguas registram 40 MWh a 3,5% e 60 MWh a 5%; a perda total é 4,4 MWh e o percentual ponderado é 4,4%, diferente da média simples dos percentuais. O parâmetro cadastral é alterado após as ingestões, sem modificar os snapshots históricos.
+
+| Dia | Energia injetada (MWh) | Perda estimada (MWh) | Percentual ponderado | Situação |
+| --- | --- | --- | --- | --- |
+| 1 | 100 | 4,4 | 4,4% | OK |
+| 2 | 50 | 2,5 | 5% | OK |
+| 3 | nulo | nulo | nulo | DADOS_INSUFICIENTES |
+| 4 | 200 | 4 | 2% | OK |
+| 5 | nulo | nulo | nulo | DADOS_INSUFICIENTES |
+
+Os dias sem registros permanecem na lista, com seus limites temporais e quantidadeLeituras zero. A consulta não interpola energia nem substitui lacunas por zero. O não rateio também vale nas fronteiras da janela macro e entre meses: somente leituras integralmente contidas podem compor os totais do ponto. A consulta mensal é apurada diretamente das projeções originais, sem somar resultados diários arredondados.

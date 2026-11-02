@@ -6,7 +6,7 @@ O backlog reúne as histórias, os critérios de aceitação, as tarefas e as pe
 
 O frontend possui páginas com dados simulados, filtros e navegação local. O backend possui configuração PostgreSQL/JPA/Flyway, schema SQL inicial, persistência de usuários e autenticação HTTP por sessão, com CORS e CSRF. A V2 provisiona os três perfis e a segurança por método está habilitada. O backend também possui cadastros de subestações, alimentadores e transformadores, APIs de eventos e alertas e persistência de consumidores. A integração com o frontend permanece pendente.
 
-US01 está **Em andamento**, com persistência, criação, consulta e edição de subestações em revisão; US02 está **Em andamento**, com backend de Alimentador em revisão; US03 está **Em andamento**, com persistência e API de Transformador em revisão; US16 está **Em andamento**, com persistência e API de eventos em revisão; US20 está **Em andamento**, com persistência e API de alertas em revisão; US07 está **Em andamento**, com persistência e API de consumidores em revisão; US06 está **Em andamento**, com persistência e API de medidores em revisão; US04 está **Em andamento**, com backend de equipes, integrantes e disponibilidade implementado e integração com o frontend pendente; US08–US11, US15, US18–US19 e US23–US24 permanecem **A fazer** para o trabalho restante. O recorte de backend de US25 está **Em revisão**, com persistência, autenticação HTTP, contas iniciais e segurança por método. US05 está **Em andamento**, com persistência e API de usinas implementadas e integração com o frontend pendente. US17 está **Em andamento**, com backend de cadastro, conclusão física e consultas de interrupções implementado e integração com o frontend pendente. US12 está **Em andamento**, com backend de energia e perdas estimadas implementado e integração com o frontend pendente. US13 está **Em andamento**, com backend GeoJSON concluído e fluxo E2E integrado; interface pendente. US14 está **Em andamento**, com backend de indicadores concluído e fluxo E2E integrado; interface e aceite completo pendentes. A presença de uma tela não representa a conclusão da história. A interface do mapa geográfico ainda não está implementada.
+US01 está **Em andamento**, com persistência, criação, consulta e edição de subestações em revisão; US02 está **Em andamento**, com backend de Alimentador em revisão; US03 está **Em andamento**, com persistência e API de Transformador em revisão; US16 está **Em andamento**, com persistência e API de eventos em revisão; US20 está **Em andamento**, com persistência e API de alertas em revisão; US07 está **Em andamento**, com persistência e API de consumidores em revisão; US06 está **Em andamento**, com persistência e API de medidores em revisão; US04 está **Em andamento**, com backend de equipes, integrantes e disponibilidade implementado e integração com o frontend pendente; US08–US11, US18–US19 e US23–US24 permanecem **A fazer** para o trabalho restante. O recorte de backend de US25 está **Em revisão**, com persistência, autenticação HTTP, contas iniciais e segurança por método. US05 está **Em andamento**, com persistência e API de usinas implementadas e integração com o frontend pendente. US17 está **Em andamento**, com backend de cadastro, conclusão física e consultas de interrupções implementado e integração com o frontend pendente. US12 está **Em andamento**, com backend de energia e perdas estimadas implementado e integração com o frontend pendente. US13 está **Em andamento**, com backend GeoJSON concluído e fluxo E2E integrado; interface pendente. US14 está **Em andamento**, com backend de indicadores concluído e fluxo E2E integrado; interface e aceite completo pendentes. US15 está **Em andamento**, com backend de energia injetada/perdas concluído e fluxo E2E integrado; interface pendente e consumo medido adiado. A presença de uma tela não representa a conclusão da história. A interface do mapa geográfico ainda não está implementada.
 
 O frontend consome a autenticação e os cadastros de subestações, alimentadores e linhas de transmissão pela API, com endereço definido em VITE_API_URL; as demais telas continuam com dados simulados. Os testes existentes cobrem contexto, persistência, credenciais, autenticação HTTP, sessão, CORS e CSRF. A política de gestão de acesso restringe as futuras operações ao Gerente de Operações; esses endpoints ainda não existem.
 
@@ -469,22 +469,22 @@ Como gerente, quero visualizar KPIs de disponibilidade e desempenho da rede, par
 Como gerente, quero acompanhar gráficos históricos de consumo e perdas, para identificar tendências ao longo do tempo.
 
 - **Perfil e prioridade:** Gerente de Operações. Prioridade: Média.
-- **Status:** A fazer.
-- **Implementação existente:** Gráfico Consumo x Geração com pontos constantes e relatórios fictícios.
-- **Trabalho pendente:** Sem série persistida de perdas, consulta histórica ou download funcional.
+- **Status:** Em andamento.
+- **Implementação existente:** Backend do recorte de energia injetada e perdas estimadas concluído, com consulta escalar, agregação DIA/MES UTC, cobertura sem rateio, lacunas nulas, DTOs, API exclusiva do gerente e fluxo E2E integrado. Frontend mantém gráfico Consumo x Geração com pontos constantes e relatórios fictícios.
+- **Trabalho pendente:** Integração visual e aceite completo da história. O recorte do MVP é energia injetada e perdas estimadas; consumo medido está adiado. Download não integra o aceite deste recorte.
 - **Dependências:** US12; medições e histórico.
 - **Referências no frontend:** [Dashboard/index.tsx](../frontend/src/pages/Dashboard/index.tsx#L12) (linhas 12,105); [Relatorios/index.tsx](../frontend/src/pages/Relatorios/index.tsx#L17) (linhas 17).
 
 **Critérios de aceitação:**
 
-- [ ] **US15-CA01:** Consultar consumo e perdas do período/escopo definidos; geração não substitui perdas. **A detalhar.**
-- [ ] **US15-CA02:** Conferir agregações/unidades e persistência das séries com conjunto histórico conhecido. **A detalhar.**
-- [ ] **US15-CA03:** Tratar período sem dados com estado vazio; PDF não é critério implícito desta história. **A detalhar.**
+- [ ] **US15-CA01:** Consultar o histórico do período/escopo definidos. No MVP, apresentar energia injetada e perdas estimadas por alimentador; consumo medido permanece adiado e não será substituído por geração ou energia injetada.
+- [ ] **US15-CA02:** Conferir agregações DIA/MES em UTC, unidade MWh e snapshots com conjunto histórico conhecido, sem rateio entre pontos e com percentual ponderado. Consulta, agregação e API validadas, incluindo fluxo E2E de cinco dias com snapshots distintos e lacunas; integração visual pendente.
+- [ ] **US15-CA03:** Representar lacunas com pontos nulos e situação de dados insuficientes; indicar ausência de dados para o estado vazio da interface. PDF não é critério desta história.
 
 **Tarefas:**
 
-- [ ] **US15-T01:** Detalhar contrato e critérios propostos, resolver as decisões pertinentes e definir cenários de teste.
-- [ ] **US15-T02:** Implementar o recorte de backend com testes pertinentes e documentação.
+- [x] **US15-T01:** Detalhar contrato e critérios propostos, resolver as decisões pertinentes e definir cenários de teste. Recorte de energia injetada/perdas, calendário UTC, ausência de rateio e limite de 366 pontos definidos.
+- [x] **US15-T02:** Implementar o recorte de backend com testes pertinentes e documentação. Consulta, agregação, lacunas, DTOs e API concluídos, com fluxo E2E integrado e arquitetura documentada.
 - [ ] **US15-T03:** Integrar a interface com testes pertinentes e documentação.
 - [ ] **US15-T04:** Verificar integração/aceite e apresentar resultados e limitações.
 
