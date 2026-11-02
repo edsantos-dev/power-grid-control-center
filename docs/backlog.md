@@ -215,8 +215,8 @@ Como operador, quero cadastrar medidores inteligentes vinculados aos consumidore
 
 - **Perfil e prioridade:** Operador. Prioridade: Média.
 - **Status:** Em andamento.
-- **Implementação existente:** Frontend com dados simulados. Backend com MedidorInteligente em herança JOINED, vínculos opcionais LAZY, API de criação em estoque, consultas e instalação.
-- **Trabalho pendente:** Revisão do backend, integração com frontend e fonte de medições. A associação direta simulada ao alimentador diverge do modelo de domínio.
+- **Implementação existente:** Cadastro, consultas e instalação de medidores implementados. A V15 acrescenta persistência de consumo por intervalo em kWh, snapshots históricos e consulta de sobreposição, com testes de repositório. Frontend mantém dados simulados.
+- **Trabalho pendente:** Cadastro de fontes para medidores, ingestão e consulta de consumo, integração transacional com comunicação da US23, E2E e frontend. A associação direta simulada ao alimentador diverge do modelo de domínio.
 - **Dependências:** PEN-02; PEN-03; PEN-06; US25; cadastro mínimo do titular em US07; US03 e alimentadores de US02.
 - **Referências no frontend:** [SmartMeters/index.tsx](../frontend/src/pages/SmartMeters/index.tsx#L6) (linhas 6,16,36).
 
@@ -225,7 +225,7 @@ Como operador, quero cadastrar medidores inteligentes vinculados aos consumidore
 - [ ] **US06-CA01:** Permitir medidores em estoque sem titular ou transformador; admitir zero ou vários medidores por consumidor.
 - [ ] **US06-CA02:** Usar a localização do medidor como referência temporária do endereço de fornecimento, sem UnidadeConsumidora.
 - [ ] **US06-CA03:** Quando vinculado, referenciar Transformador e obter Alimentador por ele, sem vínculo cadastral direto Medidor–Alimentador. As condições de instalação serão detalhadas no contrato.
-- [ ] **US06-CA04:** Persistir e consultar cadastro com referências válidas e consumo/instante de fonte definida; transferências não integram este aceite inicial. **A detalhar.**
+- [ ] **US06-CA04:** Persistir e consultar cadastro com referências válidas e consumo por intervalo em kWh, fonte e instantes UTC. A V15 e a persistência do consumo estão implementadas; ingestão/consulta HTTP e comunicação permanecem pendentes. Transferências e reinstalações não integram este aceite inicial.
 
 **Tarefas:**
 
@@ -237,6 +237,8 @@ Como operador, quero cadastrar medidores inteligentes vinculados aos consumidore
 **US06-T02 — persistência e API em revisão:** MedidorInteligente compartilha o ID de AtivoRede; numeroSerie obrigatório e único, enderecoFornecimento opcional e vínculos opcionais com Consumidor e Transformador. MedidorInteligenteRepositoryTest cobre estoque, instalação por atualização, herança, relacionamentos, unicidade sensível a maiúsculas/minúsculas e referências inexistentes. A V1 permanece inalterada.
 
 **Contrato de estoque e instalação:** POST criará medidor em estoque, exigindo nome e numeroSerie com trim e limites de 255 e 128 caracteres. Preservar capitalização, zeros e pontuação interna da série; duplicidade normalizada retorna 409, inclusive quando detectada pelo banco. Estado omitido ou nulo assume OPERACIONAL; vínculos, coordenadas, endereço e data de instalação ficam nulos. PATCH /api/medidores/{id}/instalacao exigirá consumidorId e transformadorId positivos existentes, latitude, longitude e dataInstalacao não futura. Coordenadas respeitam limites geográficos e sete casas decimais, sem arredondamento. Endereço opcional com trim e vazio convertido em nulo. Gravação atômica; entrada inválida retorna 400, referência inexistente 404 e medidor já instalado 409. Estoque/instalado não são estados operacionais. Transferências e reinstalações dependem de histórico; leituras e consumo ficam para Monitoramento. POST /api/medidores retorna 201 com Location; GET da coleção e GET /{id} retornam 200, ou 404 para ID inexistente; PATCH /{id}/instalacao retorna 200. O serviço bloqueia o registro durante a instalação e valida ambos os vínculos antes de alterar campos. A resposta inclui os IDs de consumidor, transformador, alimentador e subestação, estes últimos derivados. MedidorInteligenteControllerTest cobre o ciclo cadastral, validações, ausência de alterações nas falhas, duplicidade, sessão, CSRF e CORS do PATCH. O consumo/instante de US06-CA04 permanece para Monitoramento.
+
+**US06-T02 — telemetria de consumo, persistência:** V15, MedicaoConsumoMedidor e repositório implementados. Fonte e snapshots são obrigatórios, com FKs; snapshots são IDs imutáveis no mapeamento JPA. O banco exige consumo não negativo e início anterior ao fim. A consulta de sobreposição abrange fontes distintas do mesmo medidor e permite adjacências. Validação de instalação, composição dos snapshots, bloqueio do medidor e comunicação atômica serão aplicados pelo serviço de ingestão.
 
 ### US07 — Cadastrar consumidores titulares
 

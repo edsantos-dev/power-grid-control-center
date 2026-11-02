@@ -472,3 +472,15 @@ HistoricoEnergiaFluxoE2ETest integra cadastro de alimentador e fonte, configura�
 | 5 | nulo | nulo | nulo | DADOS_INSUFICIENTES |
 
 Os dias sem registros permanecem na lista, com seus limites temporais e quantidadeLeituras zero. A consulta não interpola energia nem substitui lacunas por zero. O não rateio também vale nas fronteiras da janela macro e entre meses: somente leituras integralmente contidas podem compor os totais do ponto. A consulta mensal é apurada diretamente das projeções originais, sem somar resultados diários arredondados.
+
+## Consumo por intervalo de medidores — US06
+
+A V15 adiciona MedicaoConsumoMedidor, com identidade BIGINT e fonte obrigatória. InicioPeriodo, fimPeriodo e recebidoEm usam instantes com fuso. ConsumoKwh é não negativo e utiliza precisão 19/escala 6. O banco exige período estritamente crescente e impede duplicação do mesmo intervalo na mesma fonte. Consumo é energia do intervalo em kWh; não representa contador acumulado nem faturamento.
+
+ConsumidorId, transformadorId, alimentadorId e subestacaoId são snapshots obrigatórios, com FKs para registros reais. O mapeamento utiliza IDs escalares com updatable=false, preservando-os em atualizações JPA; a fonte também não é reatribuída pelo mapeamento da leitura. Essas referências não são recalculadas consultando os vínculos atuais do medidor ou transformador. Não há cascata para cadastros relacionados. A proteção de atualização é do mapeamento JPA; não foi criado mecanismo de imutabilidade contra SQL direto.
+
+MedicaoConsumoMedidorRepository.existeSobreposicaoPorMedidor verifica novoInicio < fimPeriodo e novoFim > inicioPeriodo, abrangendo todas as fontes do medidor. Intervalos adjacentes são permitidos. A consulta detecta conflitos; a serialização concorrente dependerá do bloqueio pessimista do medidor no serviço de ingestão. A unicidade por fonte não substitui essa verificação entre fontes.
+
+A camada de persistência e seus testes estão implementados. Cadastro de fontes, validação de instalação e pertencimento, ingestão, consulta individual e atualização transacional de comunicação da US23 permanecem pendentes. A ingestão preencherá os snapshots pelo cadastro conhecido no recebimento, sem aceitar IDs históricos do cliente. O contrato prevê período encerrado, normalização UTC/microssegundos, rejeição de período anterior ao início UTC da data de instalação e acesso de gerente/operador nas escritas. Essa data não comprova o horário exato da instalação.
+
+Troca, reinstalação e histórico completo de titularidade continuam adiados. Snapshots preservam o contexto registrado, mas não reconstroem uma instalação anterior desconhecida. Esses fluxos exigirão contrato de vigência próprio; UnidadeConsumidora não é introduzida neste recorte.
