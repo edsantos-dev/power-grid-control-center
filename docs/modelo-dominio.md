@@ -343,3 +343,14 @@ O comando mantém autorização, bloqueio pessimista e situação esperada da US
 ### Consultas específicas de interrupções
 
 O detalhe de interrupção usa a identidade do evento, restringindo a categoria INTERRUPCAO_FORNECIMENTO. A listagem é paginada no banco e filtra ativo, situação e período sobre o início físico (início inclusivo/fim exclusivo), em ordem inicioEfetivo DESC/id DESC. Início legado ausente fica ao final e não atende filtros temporais. Os dados são apresentados pelo DTO comum de evento, sem duplicação de entidade ou trilha de auditoria. A duração física pode ser obtida pela diferença entre término e início efetivos; o histórico registra separadamente quando cada operação foi confirmada pelo servidor.
+
+
+## Energia por intervalo e estimativa de perdas — US12
+
+O MVP adota estimativa parametrizada por alimentador, com energia ativa de entrada medida por intervalo, sem inferir perda técnica exclusivamente da diferença entre energia injetada e consumo/faturamento. A fronteira simplificada é unidirecional, sem geração distribuída ou armazenamento. O percentual é uma hipótese de simulação, distinta de um resultado regulatório ou de detecção de perda física.
+
+Alimentador possui percentualPerdaTecnica opcional, no intervalo [0,100). MedicaoEnergiaAlimentador tem identidade própria e FonteMedicao obrigatória (N:1, LAZY, sem cascata), inicioPeriodo, fimPeriodo, recebidoEm, energiaInjetadaMwh e percentualPerdaReferencia. O alimentador é derivado da fonte, sem coluna redundante na medição. A V14 preserva parâmetros legados como nulos e armazena os percentuais com precisão 9/escala 6. Energia utiliza precisão 19/escala 6 e admite zero. O período é estritamente crescente.
+
+Uma fonte não repete um período idêntico. A detecção de sobreposição abrange fontes diferentes do mesmo alimentador e usa intervalos semiabertos [início,fim). A coordenação concorrente e a validação do tipo/vínculo da fonte serão responsabilidades da ingestão. A configuração e o cálculo ainda não estão implementados neste lote.
+
+O cálculo previsto soma perdas estimadas por leitura e divide pelo total de energia para obter o percentual agregado, sem média simples dos percentuais. A consulta exige cobertura contínua do período, sem rateio presumido; lacunas são DADOS_INSUFICIENTES. Energia total zero produz perda zero e percentual nulo. A atualização futura do parâmetro cadastral não deve alterar o snapshot de leituras já gravadas.
