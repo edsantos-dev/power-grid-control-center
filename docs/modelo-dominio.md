@@ -472,3 +472,31 @@ HistoricoEnergiaFluxoE2ETest integra cadastro de alimentador e fonte, configura�
 | 5 | nulo | nulo | nulo | DADOS_INSUFICIENTES |
 
 Os dias sem registros permanecem na lista, com seus limites temporais e quantidadeLeituras zero. A consulta não interpola energia nem substitui lacunas por zero. O não rateio também vale nas fronteiras da janela macro e entre meses: somente leituras integralmente contidas podem compor os totais do ponto. A consulta mensal é apurada diretamente das projeções originais, sem somar resultados diários arredondados.
+
+## Consumo por intervalo de medidores — US06
+
+A V15 adiciona MedicaoConsumoMedidor, com identidade BIGINT e fonte obrigatória. InicioPeriodo, fimPeriodo e recebidoEm usam instantes com fuso. ConsumoKwh é não negativo e utiliza precisão 19/escala 6. O banco exige período estritamente crescente e impede duplicação do mesmo intervalo na mesma fonte. Consumo é energia do intervalo em kWh; não representa contador acumulado nem faturamento.
+
+ConsumidorId, transformadorId, alimentadorId e subestacaoId são snapshots obrigatórios, com FKs para registros reais. O mapeamento utiliza IDs escalares com updatable=false, preservando-os em atualizações JPA; a fonte também não é reatribuída pelo mapeamento da leitura. Essas referências não são recalculadas consultando os vínculos atuais do medidor ou transformador. Não há cascata para cadastros relacionados. A proteção de atualização é do mapeamento JPA; não foi criado mecanismo de imutabilidade contra SQL direto.
+
+MedicaoConsumoMedidorRepository.existeSobreposicaoPorMedidor verifica novoInicio < fimPeriodo e novoFim > inicioPeriodo, abrangendo todas as fontes do medidor. Intervalos adjacentes são permitidos. A consulta detecta conflitos; a serialização concorrente utiliza o bloqueio pessimista do medidor no serviço de ingestão. A unicidade por fonte não substitui essa verificação entre fontes.
+
+Persistência, cadastro de fontes, validação de instalação e pertencimento, ingestão, consulta individual e integração transacional de comunicação da US23 estão implementados e testados. O fluxo E2E integrado valida toda a cadeia HTTP; a integração visual permanece pendente. A ingestão preenche os snapshots pelo cadastro conhecido no recebimento, sem aceitar IDs históricos do cliente. O contrato prevê período encerrado, normalização UTC/microssegundos, rejeição de período anterior ao início UTC da data de instalação e acesso de gerente/operador nas escritas. Essa data não comprova o horário exato da instalação.
+
+Troca, reinstalação e histórico completo de titularidade continuam adiados. Snapshots preservam o contexto registrado, mas não reconstroem uma instalação anterior desconhecida. Esses fluxos exigirão contrato de vigência próprio; UnidadeConsumidora não é introduzida neste recorte.
+
+### Ingestão de consumo e comunicação transacional
+
+MedicaoConsumoService cadastra fontes com identificador gerado e recebe consumos por intervalo. As escritas são exclusivas de gerente e operador; a consulta individual exige autenticação e verifica o vínculo entre a medição e o medidor da URL. A criação de fonte retorna 409 para medidor inexistente ou instalação incompleta, enquanto referências inexistentes na ingestão retornam 404. O período anterior à data de instalação UTC retorna 409.
+
+A ordem de bloqueio é medidor e depois fonte. A topologia é carregada em conjunto após obter os bloqueios, evitando consultas individuais por associação na composição dos snapshots. A busca de sobreposição abrange todas as fontes do medidor. RecebidoEm UTC e a integração MANDATORY de FonteMedicaoService pertencem à mesma transação da leitura. O contato restabelece episódios ATIVO com o mesmo instante; rollback posterior reverte todas as alterações. O job de comunicação bloqueia a fonte, sem adquirir o bloqueio do medidor.
+
+MedicaoConsumoControllerTest verifica HTTP, snapshots, datas, sessão, CSRF e perfis; MedicaoConsumoRollbackTest verifica falha posterior à recuperação; MedicaoConsumoConcorrenciaTest verifica duas ingestões sobrepostas e a execução concorrente do job com ingestão. Esse contrato utiliza a V15, sem tabelas adicionais.
+
+### Decisão de consumo e fluxo integrado
+
+O consumo por intervalo foi escolhido para manter a ingestão independente de leitura inicial, reinicialização ou estouro de contador acumulado. Não são calculadas diferenças entre registradores de equipamentos distintos. O valor recebido representa energia do intervalo em kWh; faturamento e contador absoluto ficam fora do contrato atual. Snapshots são preenchidos pelo servidor e preservados no mapeamento JPA, mesmo após alterações cadastrais. Essa preservação não reconstrói uma instalação ou titularidade anterior desconhecida.
+
+MedicaoConsumoFluxoE2ETest cadastra subestação, alimentador, transformador, titular e medidor por HTTP, instala o medidor e provisiona uma fonte SIMULADA. As escritas usam sessão e CSRF e confirmam transações independentes. A avaliação manual da US23, após ultrapassar a tolerância de 300 segundos, gera um alerta ATIVO. A ingestão seguinte registra 150,5 kWh, copia os quatro IDs da topologia original e restabelece o alerta. A consulta individual e a leitura da base verificam snapshots, ultimaComunicacaoEm e restabelecidoEm, usando o mesmo recebidoEm UTC.
+
+O backend de telemetria está concluído. A série temporal agregada de consumo dos medidores na US15 será um complemento próprio; as séries existentes de energia injetada e perdas não são substituídas. Integração visual, troca e reinstalação permanecem pendentes nos respectivos escopos.
