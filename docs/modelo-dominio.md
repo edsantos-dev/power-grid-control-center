@@ -351,6 +351,13 @@ O MVP adota estimativa parametrizada por alimentador, com energia ativa de entra
 
 Alimentador possui percentualPerdaTecnica opcional, no intervalo [0,100). MedicaoEnergiaAlimentador tem identidade própria e FonteMedicao obrigatória (N:1, LAZY, sem cascata), inicioPeriodo, fimPeriodo, recebidoEm, energiaInjetadaMwh e percentualPerdaReferencia. O alimentador é derivado da fonte, sem coluna redundante na medição. A V14 preserva parâmetros legados como nulos e armazena os percentuais com precisão 9/escala 6. Energia utiliza precisão 19/escala 6 e admite zero. O período é estritamente crescente.
 
-Uma fonte não repete um período idêntico. A detecção de sobreposição abrange fontes diferentes do mesmo alimentador e usa intervalos semiabertos [início,fim). A coordenação concorrente e a validação do tipo/vínculo da fonte serão responsabilidades da ingestão. A configuração e o cálculo ainda não estão implementados neste lote.
+Uma fonte não repete um período idêntico. A detecção de sobreposição abrange fontes diferentes do mesmo alimentador e usa intervalos semiabertos [início,fim). A ingestão valida o vínculo da fonte e coordena gravações concorrentes sob bloqueio do alimentador. Configuração e ingestão estão implementadas; cálculo e consultas permanecem pendentes.
 
 O cálculo previsto soma perdas estimadas por leitura e divide pelo total de energia para obter o percentual agregado, sem média simples dos percentuais. A consulta exige cobertura contínua do período, sem rateio presumido; lacunas são DADOS_INSUFICIENTES. Energia total zero produz perda zero e percentual nulo. A atualização futura do parâmetro cadastral não deve alterar o snapshot de leituras já gravadas.
+
+
+### Ingestão transacional de energia
+
+Somente gerente configura o percentual; gerente e operador cadastram fontes de alimentador e ingerem leituras, mediante sessão e CSRF. A fonte deve pertencer ao alimentador informado. Parâmetro ausente impede ingestão com 409. O valor cadastral no momento da ingestão é copiado para percentualPerdaReferencia, preservando seis casas decimais e leituras anteriores. O período precisa estar encerrado e ser estritamente crescente na precisão de microssegundos; energia é não negativa, com precisão máxima 19/escala 6.
+
+A ordem de bloqueio é alimentador e depois fonte. O bloqueio do alimentador serializa alterações do parâmetro e verificação de sobreposição, inclusive entre fontes distintas. A edição cadastral também usa esse bloqueio. Comunicação e restabelecimento automático seguem a US23 com o mesmo recebidoEm UTC da leitura e compartilham a transação. Falha posterior reverte leitura, contato e restabelecimento. O cálculo não é executado na ingestão.
