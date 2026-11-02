@@ -6,7 +6,7 @@ O backlog reúne as histórias, os critérios de aceitação, as tarefas e as pe
 
 O frontend possui páginas com dados simulados, filtros e navegação local. O backend possui configuração PostgreSQL/JPA/Flyway, schema SQL inicial, persistência de usuários e autenticação HTTP por sessão, com CORS e CSRF. A V2 provisiona os três perfis e a segurança por método está habilitada. O backend também possui cadastros de subestações, alimentadores e transformadores, APIs de eventos e alertas e persistência de consumidores. A integração com o frontend permanece pendente.
 
-US01 está **Em andamento**, com persistência, criação, consulta e edição de subestações em revisão; US02 está **Em andamento**, com backend de Alimentador em revisão; US03 está **Em andamento**, com persistência e API de Transformador em revisão; US16 está **Em andamento**, com persistência e API de eventos em revisão; US20 está **Em andamento**, com persistência e API de alertas em revisão; US07 está **Em andamento**, com persistência e API de consumidores em revisão; US06 está **Em andamento**, com persistência e API de medidores em revisão; US04 está **Em andamento**, com backend de equipes, integrantes e disponibilidade implementado e integração com o frontend pendente; US08–US15, US18–US19 e US23–US24 permanecem **A fazer** para o trabalho restante. O recorte de backend de US25 está **Em revisão**, com persistência, autenticação HTTP, contas iniciais e segurança por método. US05 está **Em andamento**, com persistência e API de usinas implementadas e integração com o frontend pendente. US17 está **Em andamento**, com backend de cadastro, conclusão física e consultas de interrupções implementado e integração com o frontend pendente. A presença de uma tela não representa a conclusão da história. O mapa geográfico ainda não está implementado.
+US01 está **Em andamento**, com persistência, criação, consulta e edição de subestações em revisão; US02 está **Em andamento**, com backend de Alimentador em revisão; US03 está **Em andamento**, com persistência e API de Transformador em revisão; US16 está **Em andamento**, com persistência e API de eventos em revisão; US20 está **Em andamento**, com persistência e API de alertas em revisão; US07 está **Em andamento**, com persistência e API de consumidores em revisão; US06 está **Em andamento**, com persistência e API de medidores em revisão; US04 está **Em andamento**, com backend de equipes, integrantes e disponibilidade implementado e integração com o frontend pendente; US08–US11, US13–US15, US18–US19 e US23–US24 permanecem **A fazer** para o trabalho restante. O recorte de backend de US25 está **Em revisão**, com persistência, autenticação HTTP, contas iniciais e segurança por método. US05 está **Em andamento**, com persistência e API de usinas implementadas e integração com o frontend pendente. US17 está **Em andamento**, com backend de cadastro, conclusão física e consultas de interrupções implementado e integração com o frontend pendente. US12 está **Em andamento**, com backend de energia e perdas estimadas implementado e integração com o frontend pendente. A presença de uma tela não representa a conclusão da história. O mapa geográfico ainda não está implementado.
 
 O frontend consome a autenticação e os cadastros de subestações, alimentadores e linhas de transmissão pela API, com endereço definido em VITE_API_URL; as demais telas continuam com dados simulados. Os testes existentes cobrem contexto, persistência, credenciais, autenticação HTTP, sessão, CORS e CSRF. A política de gestão de acesso restringe as futuras operações ao Gerente de Operações; esses endpoints ainda não existem.
 
@@ -397,22 +397,22 @@ Como operador, quero visualizar a carga dos transformadores em tempo real, para 
 Como gerente, quero acompanhar as perdas técnicas na distribuição, para identificar os pontos da rede com maior ineficiência.
 
 - **Perfil e prioridade:** Gerente de Operações. Prioridade: Média.
-- **Status:** A fazer.
-- **Implementação existente:** Percentuais literais globais e por alimentador.
-- **Trabalho pendente:** Sem fronteira, período, fórmula, entradas compatíveis ou cálculo.
-- **Dependências:** Cadastros e medições; fórmula, fronteira e período de apuração.
+- **Status:** Em andamento.
+- **Implementação existente:** V14 com parâmetro opcional no alimentador e medições de energia por intervalo, fonte e percentual de referência persistido. Configuração por gerente, cadastro de fontes e ingestão por gerente/operador, com snapshot automático, bloqueio do alimentador, validação de sobreposição e integração transacional com a US23. Cálculo ponderado sob demanda com cobertura contínua, situações explícitas e rastreabilidade das entradas; consultas paginadas e fluxo HTTP E2E. Frontend ainda exibe percentuais literais.
+- **Trabalho pendente:** Integração do frontend e aceite completo.
+- **Dependências:** Alimentadores e fontes; ingestão por intervalo na fronteira do alimentador, com energia em MWh e percentual de simulação explicitamente configurado.
 - **Referências no frontend:** [Monitoramento/index.tsx](../frontend/src/pages/Monitoramento/index.tsx#L39) (linhas 39,107); [Alimentadores/index.tsx](../frontend/src/pages/Alimentadores/index.tsx#L12) (linhas 12,17).
 
 **Critérios de aceitação:**
 
-- [ ] **US12-CA01:** Calcular perdas para fronteira/período definidos, com fórmula e unidades definidas. **A detalhar.**
-- [ ] **US12-CA02:** Demonstrar resultado conhecido e rastrear seus dados de entrada. **A detalhar.**
-- [ ] **US12-CA03:** Indicar insuficiência de dados e apresentar comparação sem tratar literal como cálculo. **A detalhar.**
+- [ ] **US12-CA01:** Estimar perdas por alimentador e período: energiaInjetadaMwh × percentualReferencia / 100; percentual agregado ponderado pela energia. Backend implementado; integração com a interface pendente.
+- [ ] **US12-CA02:** Demonstrar resultado conhecido e rastrear fonte, intervalo, energia e snapshot do percentual. Fluxo HTTP completo implementado; integração com a interface pendente.
+- [ ] **US12-CA03:** Exigir cobertura contínua; retornar DADOS_INSUFICIENTES para lacunas. Com energia total zero, perda zero e percentual nulo. Identificar o percentual como parâmetro de estimativa; cálculo implementado; integração com a interface pendente.
 
 **Tarefas:**
 
-- [ ] **US12-T01:** Detalhar contrato e critérios propostos, resolver as decisões pertinentes e definir cenários de teste.
-- [ ] **US12-T02:** Implementar o recorte de backend com testes pertinentes e documentação.
+- [x] **US12-T01:** Detalhar contrato e critérios propostos, resolver as decisões pertinentes e definir cenários de teste.
+- [x] **US12-T02:** Implementar o recorte de backend com testes pertinentes e documentação. V14, persistência, configuração, fontes, ingestão transacional, cálculo, consultas e fluxo HTTP E2E implementados.
 - [ ] **US12-T03:** Integrar a interface com testes pertinentes e documentação.
 - [ ] **US12-T04:** Verificar integração/aceite e apresentar resultados e limitações.
 

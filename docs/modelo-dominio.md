@@ -343,3 +343,28 @@ O comando mantém autorização, bloqueio pessimista e situação esperada da US
 ### Consultas específicas de interrupções
 
 O detalhe de interrupção usa a identidade do evento, restringindo a categoria INTERRUPCAO_FORNECIMENTO. A listagem é paginada no banco e filtra ativo, situação e período sobre o início físico (início inclusivo/fim exclusivo), em ordem inicioEfetivo DESC/id DESC. Início legado ausente fica ao final e não atende filtros temporais. Os dados são apresentados pelo DTO comum de evento, sem duplicação de entidade ou trilha de auditoria. A duração física pode ser obtida pela diferença entre término e início efetivos; o histórico registra separadamente quando cada operação foi confirmada pelo servidor.
+
+
+## Energia por intervalo e estimativa de perdas — US12
+
+O MVP adota estimativa parametrizada por alimentador, com energia ativa de entrada medida por intervalo, sem inferir perda técnica exclusivamente da diferença entre energia injetada e consumo/faturamento. A fronteira simplificada é unidirecional, sem geração distribuída ou armazenamento. O percentual é uma hipótese de simulação, distinta de um resultado regulatório ou de detecção de perda física.
+
+Alimentador possui percentualPerdaTecnica opcional, no intervalo [0,100). MedicaoEnergiaAlimentador tem identidade própria e FonteMedicao obrigatória (N:1, LAZY, sem cascata), inicioPeriodo, fimPeriodo, recebidoEm, energiaInjetadaMwh e percentualPerdaReferencia. O alimentador é derivado da fonte, sem coluna redundante na medição. A V14 preserva parâmetros legados como nulos e armazena os percentuais com precisão 9/escala 6. Energia utiliza precisão 19/escala 6 e admite zero. O período é estritamente crescente.
+
+Uma fonte não repete um período idêntico. A detecção de sobreposição abrange fontes diferentes do mesmo alimentador e usa intervalos semiabertos [início,fim). A ingestão valida o vínculo da fonte e coordena gravações concorrentes sob bloqueio do alimentador. Configuração, ingestão, cálculo e consultas estão implementados.
+
+O cálculo previsto soma perdas estimadas por leitura e divide pelo total de energia para obter o percentual agregado, sem média simples dos percentuais. A consulta exige cobertura contínua do período, sem rateio presumido; lacunas são DADOS_INSUFICIENTES. Energia total zero produz perda zero e percentual nulo. A atualização futura do parâmetro cadastral não deve alterar o snapshot de leituras já gravadas.
+
+
+### Ingestão transacional de energia
+
+Somente gerente configura o percentual; gerente e operador cadastram fontes de alimentador e ingerem leituras, mediante sessão e CSRF. A fonte deve pertencer ao alimentador informado. Parâmetro ausente impede ingestão com 409. O valor cadastral no momento da ingestão é copiado para percentualPerdaReferencia, preservando seis casas decimais e leituras anteriores. O período precisa estar encerrado e ser estritamente crescente na precisão de microssegundos; energia é não negativa, com precisão máxima 19/escala 6.
+
+A ordem de bloqueio é alimentador e depois fonte. O bloqueio do alimentador serializa alterações do parâmetro e verificação de sobreposição, inclusive entre fontes distintas. A edição cadastral também usa esse bloqueio. Comunicação e restabelecimento automático seguem a US23 com o mesmo recebidoEm UTC da leitura e compartilham a transação. Falha posterior reverte leitura, contato e restabelecimento. O cálculo não é executado na ingestão.
+
+
+### Apuração sob demanda de perdas estimadas
+
+PerdaTecnicaResponseDTO apresenta período, totais, percentual ponderado, cobertura e leituras consideradas. SituacaoPerdaTecnica admite OK, DADOS_INSUFICIENTES e SEM_ENERGIA_INJETADA. A apuração utiliza os snapshots das leituras integralmente contidas no período e exige cobertura contínua, sem sobreposição e sem rateio nas fronteiras. Leituras de fontes diferentes integram a mesma fronteira do alimentador. Com lacunas ou sobreposição legada, os agregados são nulos, mantendo os detalhes e a cobertura temporal utilizável.
+
+A cobertura usa a união temporal dos intervalos, sem contagem duplicada. A decisão de cobertura completa é exata; seu percentual de apresentação é arredondado apenas ao final. A energia e a perda estimada são somadas sem arredondamento intermediário, e o percentual final é ponderado pela energia. O resultado final utiliza seis casas e HALF_EVEN. Quando não há energia, a perda é zero e o percentual é nulo. Não há tabela consolidada de resultados, scheduler ou escrita no GET.

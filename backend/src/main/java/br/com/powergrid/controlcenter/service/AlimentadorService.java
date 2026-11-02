@@ -45,7 +45,8 @@ public class AlimentadorService {
 
 	@Transactional
 	public AlimentadorResponseDTO atualizar(Long id, AlimentadorRequestDTO request) {
-		Alimentador alimentador = encontrar(id);
+		Alimentador alimentador = alimentadorRepository.buscarPorIdComBloqueio(id)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Alimentador não encontrado."));
 		Subestacao subestacao = encontrarSubestacao(request.subestacaoId());
 		preencher(alimentador, request, subestacao);
 		return toResponse(alimentador);

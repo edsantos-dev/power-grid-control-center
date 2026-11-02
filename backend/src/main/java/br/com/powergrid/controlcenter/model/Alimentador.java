@@ -24,6 +24,9 @@ public class Alimentador extends AtivoRede {
 	@Column(name = "tensao_nominal_kv", precision = 19, scale = 6)
 	private BigDecimal tensaoNominalKv;
 
+	@Column(name = "percentual_perda_tecnica", precision = 9, scale = 6)
+	private BigDecimal percentualPerdaTecnica;
+
 	@ManyToOne(fetch = FetchType.LAZY, optional = false)
 	@JoinColumn(name = "subestacao_id", nullable = false)
 	private Subestacao subestacao;
