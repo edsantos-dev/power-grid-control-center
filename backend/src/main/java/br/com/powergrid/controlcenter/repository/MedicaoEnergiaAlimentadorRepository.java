@@ -11,6 +11,7 @@ import org.springframework.data.jpa.domain.Specification;
 import org.springframework.data.jpa.repository.EntityGraph;
 import org.springframework.data.jpa.repository.JpaSpecificationExecutor;
 import br.com.powergrid.controlcenter.model.MedicaoEnergiaAlimentador;
+import br.com.powergrid.controlcenter.repository.projection.MedicaoEnergiaHistoricoProjection;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
@@ -27,6 +28,14 @@ public interface MedicaoEnergiaAlimentadorRepository extends JpaRepository<Medic
             + " order by m.inicioPeriodo asc, m.id asc")
     List<MedicaoEnergiaAlimentador> buscarParaCalculo(@Param("alimentadorId") Long alimentadorId,
             @Param("inicio") OffsetDateTime inicio, @Param("fim") OffsetDateTime fim);
+
+    @Query("select new br.com.powergrid.controlcenter.repository.projection.MedicaoEnergiaHistoricoProjection("
+            + "m.inicioPeriodo, m.fimPeriodo, m.energiaInjetadaMwh, m.percentualPerdaReferencia)"
+            + " from MedicaoEnergiaAlimentador m join m.fonte f"
+            + " where f.ativo.id = :alimentadorId and m.inicioPeriodo >= :dataInicio and m.fimPeriodo <= :dataFim"
+            + " order by m.inicioPeriodo asc, m.id asc")
+    List<MedicaoEnergiaHistoricoProjection> buscarParaHistorico(@Param("alimentadorId") Long alimentadorId,
+            @Param("dataInicio") OffsetDateTime dataInicio, @Param("dataFim") OffsetDateTime dataFim);
 
     @Override
     @EntityGraph(attributePaths = "fonte")

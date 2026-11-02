@@ -440,3 +440,13 @@ IndicadoresFluxoE2ETest integra cadastro de transformador, registro de interrup�
 | Situação da disponibilidade | COBERTURA_NAO_AFERIDA |
 
 O registro operacional das transições ocorre no dia seguinte à ocorrência física. Isso preserva a distinção entre o instante da auditoria e os instantes usados no cálculo. O resultado de 80% permanece uma estimativa baseada nos registros e na população cadastral atual, sem comprovação da cobertura histórica do inventário.
+
+## Histórico de energia injetada e perdas estimadas — US15
+
+O recorte inicial utiliza MedicaoEnergiaAlimentador e seus snapshots de percentual de perda. Energia injetada não representa consumo medido dos consumidores; a série de consumo medido permanece fora deste recorte. Não há tabela consolidada de resultados. O contrato prevê pontos DIA ou MES no calendário UTC, sem rateio presumido de energia, com limite de 366 pontos e acesso exclusivo de GERENTE_OPERACOES.
+
+MedicaoEnergiaAlimentadorRepository.buscarParaHistorico retorna MedicaoEnergiaHistoricoProjection com inicioPeriodo, fimPeriodo, energiaInjetadaMwh e percentualPerdaReferencia. A consulta JPQL filtra pelo alimentador derivado da fonte e exige inicioPeriodo maior ou igual ao início solicitado e fimPeriodo menor ou igual ao fim solicitado. Os resultados têm ordem fixa por início e ID. Não são carregadas entidades nem associações LAZY para compor a projeção.
+
+A contenção na janela macro não assegura contenção no dia ou mês: uma leitura de 23:00 a 01:00 pode ser retornada integralmente para uma janela de dois dias. O motor de agregação deve posteriormente verificar as fronteiras de cada ponto, sem repartir essa energia ou atribuí-la integralmente ao início da leitura. Pontos sem cobertura completa terão valores nulos e situação DADOS_INSUFICIENTES; zero será reservado para energia efetivamente medida com cobertura completa. O percentual agregado será ponderado pela energia, utilizando os snapshots e arredondando apenas o resultado final.
+
+A projeção e a consulta estão implementadas. Agrupamento por calendário, cobertura dos pontos, preenchimento de lacunas, DTOs e API permanecem pendentes. Não há migration ou novo índice nesta etapa; eventual mudança de índices dependerá da análise do plano de execução no PostgreSQL.
