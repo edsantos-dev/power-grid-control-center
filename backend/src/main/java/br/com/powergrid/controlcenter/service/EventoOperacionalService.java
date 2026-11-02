@@ -1,6 +1,10 @@
 package br.com.powergrid.controlcenter.service;
 
 import java.util.List;
+import java.util.Set;
+import br.com.powergrid.controlcenter.dto.PageResponseDTO;
+import br.com.powergrid.controlcenter.util.ParametrosConsultaMedicao;
+import org.springframework.util.MultiValueMap;
 import java.time.Clock;
 import java.time.OffsetDateTime;
 import java.time.ZoneOffset;
@@ -11,6 +15,7 @@ import br.com.powergrid.controlcenter.model.SituacaoEventoOperacional;
 import br.com.powergrid.controlcenter.repository.HistoricoEventoOperacionalRepository;
 import org.springframework.security.access.AccessDeniedException;
 import br.com.powergrid.controlcenter.dto.EventoOperacionalRequestDTO;
+import br.com.powergrid.controlcenter.dto.InterrupcaoRequestDTO;
 import br.com.powergrid.controlcenter.dto.EventoOperacionalResponseDTO;
 import br.com.powergrid.controlcenter.model.AtivoRede;
 import br.com.powergrid.controlcenter.model.EventoOperacional;
@@ -66,8 +71,36 @@ public class EventoOperacionalService {
     }
 
     @Transactional
+    public EventoOperacionalResponseDTO criarInterrupcao(InterrupcaoRequestDTO request) {
+        Usuario registrador = usuarioAutenticado();
+        if (request.inicioEfetivo() == null || request.inicioEfetivo().toInstant().isAfter(clock.instant())) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Informe o início efetivo, que não pode estar no futuro.");
+        }
+        AtivoRede ativo = entityManager.find(AtivoRede.class, request.ativoId());
+        if (ativo == null) throw new ResponseStatusException(HttpStatus.NOT_FOUND, "Ativo não encontrado.");
+        Usuario responsavel = usuarioRepository.findById(request.responsavelUsuarioId())
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Responsável não encontrado."));
+        var evento = new EventoOperacional();
+        evento.setAtivo(ativo);
+        evento.setCategoria(EventoOperacional.Categoria.INTERRUPCAO_FORNECIMENTO);
+        evento.setDescricao(request.descricao());
+        evento.setCriticidade(request.criticidade());
+        evento.setRegistradorUsuario(registrador);
+        evento.setResponsavelUsuario(responsavel);
+        evento.setSituacao(SituacaoEventoOperacional.ABERTO.name());
+        evento.setInicioEfetivo(request.inicioEfetivo().withOffsetSameInstant(ZoneOffset.UTC).truncatedTo(ChronoUnit.MICROS));
+        return toResponse(repository.save(evento));
+    }
+
+    @Transactional
     public Long transicionar(Long eventoId, SituacaoEventoOperacional situacaoEsperada,
             SituacaoEventoOperacional situacaoDestino, String comentario) {
+        return transicionar(eventoId, situacaoEsperada, situacaoDestino, comentario, null);
+    }
+
+    @Transactional
+    public Long transicionar(Long eventoId, SituacaoEventoOperacional situacaoEsperada,
+            SituacaoEventoOperacional situacaoDestino, String comentario, OffsetDateTime terminoEfetivo) {
         Usuario usuario = usuarioAutenticado();
         EventoOperacional evento = repository.buscarPorIdParaTransicao(eventoId).orElseThrow(() ->
                 new ResponseStatusException(HttpStatus.NOT_FOUND, "Evento não encontrado."));
@@ -92,9 +125,23 @@ public class EventoOperacionalService {
         if (evento.getTerminoEfetivo() != null) {
             throw conflito("Evento já possui término efetivo e exige regularização antes da transição.");
         }
-        var agora = OffsetDateTime.now(clock).withOffsetSameInstant(ZoneOffset.UTC).truncatedTo(ChronoUnit.MICROS);
+        boolean interrupcao = evento.getCategoria() == EventoOperacional.Categoria.INTERRUPCAO_FORNECIMENTO;
+        if (terminoEfetivo != null && (!concluir || !interrupcao)) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Término físico informado é permitido somente na conclusão de interrupções.");
+        }
+        var instanteServidor = clock.instant();
+        var agora = instanteServidor.truncatedTo(ChronoUnit.MICROS).atOffset(ZoneOffset.UTC);
         if (iniciar && evento.getInicioEfetivo() == null) evento.setInicioEfetivo(agora);
-        if (concluir) {
+        if (concluir && interrupcao) {
+            if (terminoEfetivo == null) {
+                throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Informe o término efetivo da interrupção.");
+            }
+            if (evento.getInicioEfetivo() == null) throw conflito("Interrupção sem início efetivo exige regularização.");
+            if (terminoEfetivo.toInstant().isAfter(instanteServidor) || terminoEfetivo.isBefore(evento.getInicioEfetivo())) {
+                throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Término efetivo não pode ser futuro nem anterior ao início efetivo.");
+            }
+            evento.setTerminoEfetivo(terminoEfetivo.withOffsetSameInstant(ZoneOffset.UTC).truncatedTo(ChronoUnit.MICROS));
+        } else if (concluir) {
             if (evento.getInicioEfetivo() == null || agora.isBefore(evento.getInicioEfetivo())) {
                 throw conflito("Conclusão exige início efetivo existente e término maior ou igual ao início.");
             }
@@ -122,6 +169,43 @@ public class EventoOperacionalService {
     public EventoOperacionalResponseDTO buscarPorId(Long id) {
         return toResponse(repository.findById(id).orElseThrow(() ->
                 new ResponseStatusException(HttpStatus.NOT_FOUND, "Evento não encontrado.")));
+    }
+
+    @Transactional(readOnly = true)
+    public EventoOperacionalResponseDTO obterInterrupcao(Long id) {
+        return toResponse(repository.findByIdAndCategoria(id, EventoOperacional.Categoria.INTERRUPCAO_FORNECIMENTO)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Interrupção não encontrada.")));
+    }
+
+    @Transactional(readOnly = true)
+    public PageResponseDTO<EventoOperacionalResponseDTO> listarInterrupcoes(MultiValueMap<String, String> params) {
+        for (String nome : params.keySet()) {
+            if (!Set.of("page", "size", "sort", "ativoId", "situacao", "dataInicio", "dataFim").contains(nome)) {
+                throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Parâmetro não suportado: " + nome);
+            }
+        }
+        var consulta = ParametrosConsultaMedicao.from(params, "inicioEfetivo");
+        String situacao = ParametrosConsultaMedicao.parametro(params, "situacao");
+        if (situacao != null) {
+            try { SituacaoEventoOperacional.valueOf(situacao); }
+            catch (IllegalArgumentException ex) { throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Situação de interrupção inválida."); }
+        }
+        Long ativoId = filtroAtivoInterrupcao(params);
+        return PageResponseDTO.from(repository.buscarInterrupcoes(ativoId, situacao, consulta.inicio(), consulta.fim(), consulta.pageable())
+                .map(this::toResponse));
+    }
+
+    private Long filtroAtivoInterrupcao(MultiValueMap<String, String> params) {
+        String valor = ParametrosConsultaMedicao.parametro(params, "ativoId");
+        if (valor == null) return null;
+        try {
+            if (!valor.matches("[0-9]+")) throw new NumberFormatException();
+            long id = Long.parseLong(valor);
+            if (id <= 0) throw new NumberFormatException();
+            return id;
+        } catch (NumberFormatException ex) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "ativoId deve ser um inteiro positivo válido.");
+        }
     }
 
     private Usuario usuarioAutenticado() {
