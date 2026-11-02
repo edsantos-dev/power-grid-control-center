@@ -35,4 +35,16 @@ public interface AtivoRedeRepository extends Repository<AtivoRede, Long> {
         if (classes.isEmpty() || estados.isEmpty()) return List.of();
         return consultarPontos(classes, estados, caixa.minLat(), caixa.maxLat(), caixa.minLng(), caixa.maxLng(), aposId, pagina);
     }
+
+    @Query("select count(a) from AtivoRede a where type(a) in :tipos and a.estadoOperacional in :estados"
+            + " and (a.latitude is null or a.longitude is null or a.latitude < -90 or a.latitude > 90"
+            + " or a.longitude < -180 or a.longitude > 180)")
+    long contarPontosSemGeometria(@Param("tipos") Set<Class<? extends AtivoRede>> tipos,
+            @Param("estados") Set<EstadoOperacional> estados);
+
+    default long contarSemGeometria(Set<TipoAtivoMapa> tipos, Set<EstadoOperacional> estados) {
+        Set<Class<? extends AtivoRede>> classes = new java.util.HashSet<>();
+        for (var tipo : tipos) if (tipo != TipoAtivoMapa.LINHA) classes.add(tipo.classe());
+        return classes.isEmpty() || estados.isEmpty() ? 0 : contarPontosSemGeometria(classes, estados);
+    }
 }

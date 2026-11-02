@@ -38,4 +38,12 @@ public interface LinhaTransmissaoRepository extends JpaRepository<LinhaTransmiss
         if (estados.isEmpty()) return List.of();
         return consultarCandidatas(estados, caixa.minLat(), caixa.maxLat(), caixa.minLng(), caixa.maxLng(), aposId, pagina);
     }
+
+    @Transactional(readOnly = true)
+    @Query("select count(l) from LinhaTransmissao l join l.subestacaoOrigem o join l.subestacaoDestino d"
+            + " where l.estadoOperacional in :estados and (o.latitude is null or o.longitude is null"
+            + " or d.latitude is null or d.longitude is null or o.latitude < -90 or o.latitude > 90"
+            + " or d.latitude < -90 or d.latitude > 90 or o.longitude < -180 or o.longitude > 180"
+            + " or d.longitude < -180 or d.longitude > 180 or (o.latitude = d.latitude and o.longitude = d.longitude))")
+    long contarSemGeometria(@Param("estados") Set<EstadoOperacional> estados);
 }
