@@ -117,6 +117,26 @@ public class IndicadoresRepository {
                         rs.getLong("ativos"), rs.getLong("intervalos"), rs.getBigDecimal("segundos")));
     }
 
+    public InterrupcoesIndicadoresProjection consultarInterrupcoes(Long ativoId,
+            Set<TipoAtivoIndicador> tipos, Long subestacaoId, OffsetDateTime dataInicio, OffsetDateTime dataFim) {
+        var parametros = periodo(dataInicio, dataFim);
+        String escopo = escopo(ativoId, tipos, subestacaoId, parametros);
+        return jdbc.queryForObject(escopo + """
+                SELECT COALESCE(SUM(CASE WHEN e.inicio_efetivo >= :dataInicio AND e.inicio_efetivo < :dataFim THEN 1 ELSE 0 END), 0) AS iniciadas,
+                       COALESCE(SUM(CASE WHEN e.inicio_efetivo < :dataFim
+                            AND (e.termino_efetivo IS NULL OR e.termino_efetivo > :dataInicio)
+                            AND (e.termino_efetivo IS NULL OR e.termino_efetivo > e.inicio_efetivo) THEN 1 ELSE 0 END), 0) AS sobrepostas,
+                       COALESCE(SUM(CASE WHEN e.inicio_efetivo < :dataFim AND e.termino_efetivo IS NULL THEN 1 ELSE 0 END), 0) AS sem_termino,
+                       COALESCE(SUM(CASE WHEN e.inicio_efetivo IS NULL OR e.termino_efetivo < e.inicio_efetivo
+                            OR (e.situacao = 'CONCLUIDO' AND e.termino_efetivo IS NULL) THEN 1 ELSE 0 END), 0) AS inconsistentes
+                FROM evento_operacional e JOIN ativos_elegiveis a ON a.id = e.ativo_id
+                WHERE e.categoria = 'INTERRUPCAO_FORNECIMENTO'
+                  AND (e.inicio_efetivo IS NULL OR e.inicio_efetivo < :dataFim)
+                  AND (e.termino_efetivo IS NULL OR e.termino_efetivo >= :dataInicio OR e.inicio_efetivo >= :dataInicio)
+                """, parametros, (rs, linha) -> new InterrupcoesIndicadoresProjection(rs.getLong("iniciadas"),
+                        rs.getLong("sobrepostas"), rs.getLong("sem_termino"), rs.getLong("inconsistentes")));
+    }
+
     private String escopo(Long ativoId, Set<TipoAtivoIndicador> tipos, Long subestacaoId,
             MapSqlParameterSource parametros) {
         var sql = new StringBuilder(ATIVOS_TIPADOS);
