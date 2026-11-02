@@ -215,8 +215,8 @@ Como operador, quero cadastrar medidores inteligentes vinculados aos consumidore
 
 - **Perfil e prioridade:** Operador. Prioridade: Média.
 - **Status:** Em andamento.
-- **Implementação existente:** Cadastro, consultas e instalação de medidores implementados. A V15 acrescenta persistência de consumo por intervalo em kWh, snapshots históricos e consulta de sobreposição, com testes de repositório. Frontend mantém dados simulados.
-- **Trabalho pendente:** Cadastro de fontes para medidores, ingestão e consulta de consumo, integração transacional com comunicação da US23, E2E e frontend. A associação direta simulada ao alimentador diverge do modelo de domínio.
+- **Implementação existente:** Cadastro e instalação de medidores, V15, fontes com identificador gerado, ingestão de consumo em kWh, snapshots históricos e consulta individual implementados. Comunicação e restabelecimento são transacionais, com testes HTTP, rollback e concorrência. Frontend mantém dados simulados.
+- **Trabalho pendente:** Fluxo E2E integrado, consolidação final e frontend. A associação direta simulada ao alimentador diverge do modelo de domínio.
 - **Dependências:** PEN-02; PEN-03; PEN-06; US25; cadastro mínimo do titular em US07; US03 e alimentadores de US02.
 - **Referências no frontend:** [SmartMeters/index.tsx](../frontend/src/pages/SmartMeters/index.tsx#L6) (linhas 6,16,36).
 
@@ -225,7 +225,7 @@ Como operador, quero cadastrar medidores inteligentes vinculados aos consumidore
 - [ ] **US06-CA01:** Permitir medidores em estoque sem titular ou transformador; admitir zero ou vários medidores por consumidor.
 - [ ] **US06-CA02:** Usar a localização do medidor como referência temporária do endereço de fornecimento, sem UnidadeConsumidora.
 - [ ] **US06-CA03:** Quando vinculado, referenciar Transformador e obter Alimentador por ele, sem vínculo cadastral direto Medidor–Alimentador. As condições de instalação serão detalhadas no contrato.
-- [ ] **US06-CA04:** Persistir e consultar cadastro com referências válidas e consumo por intervalo em kWh, fonte e instantes UTC. A V15 e a persistência do consumo estão implementadas; ingestão/consulta HTTP e comunicação permanecem pendentes. Transferências e reinstalações não integram este aceite inicial.
+- [ ] **US06-CA04:** Persistir e consultar cadastro com referências válidas e consumo por intervalo em kWh, fonte e instantes UTC. Persistência, ingestão/consulta HTTP e comunicação implementadas; fluxo E2E e interface pendentes. Transferências e reinstalações não integram este aceite inicial.
 
 **Tarefas:**
 
@@ -238,7 +238,9 @@ Como operador, quero cadastrar medidores inteligentes vinculados aos consumidore
 
 **Contrato de estoque e instalação:** POST criará medidor em estoque, exigindo nome e numeroSerie com trim e limites de 255 e 128 caracteres. Preservar capitalização, zeros e pontuação interna da série; duplicidade normalizada retorna 409, inclusive quando detectada pelo banco. Estado omitido ou nulo assume OPERACIONAL; vínculos, coordenadas, endereço e data de instalação ficam nulos. PATCH /api/medidores/{id}/instalacao exigirá consumidorId e transformadorId positivos existentes, latitude, longitude e dataInstalacao não futura. Coordenadas respeitam limites geográficos e sete casas decimais, sem arredondamento. Endereço opcional com trim e vazio convertido em nulo. Gravação atômica; entrada inválida retorna 400, referência inexistente 404 e medidor já instalado 409. Estoque/instalado não são estados operacionais. Transferências e reinstalações dependem de histórico; leituras e consumo ficam para Monitoramento. POST /api/medidores retorna 201 com Location; GET da coleção e GET /{id} retornam 200, ou 404 para ID inexistente; PATCH /{id}/instalacao retorna 200. O serviço bloqueia o registro durante a instalação e valida ambos os vínculos antes de alterar campos. A resposta inclui os IDs de consumidor, transformador, alimentador e subestação, estes últimos derivados. MedidorInteligenteControllerTest cobre o ciclo cadastral, validações, ausência de alterações nas falhas, duplicidade, sessão, CSRF e CORS do PATCH. O consumo/instante de US06-CA04 permanece para Monitoramento.
 
-**US06-T02 — telemetria de consumo, persistência:** V15, MedicaoConsumoMedidor e repositório implementados. Fonte e snapshots são obrigatórios, com FKs; snapshots são IDs imutáveis no mapeamento JPA. O banco exige consumo não negativo e início anterior ao fim. A consulta de sobreposição abrange fontes distintas do mesmo medidor e permite adjacências. Validação de instalação, composição dos snapshots, bloqueio do medidor e comunicação atômica serão aplicados pelo serviço de ingestão.
+**US06-T02 — telemetria de consumo, persistência:** V15, MedicaoConsumoMedidor e repositório implementados. Fonte e snapshots são obrigatórios, com FKs; snapshots são IDs imutáveis no mapeamento JPA. O banco exige consumo não negativo e início anterior ao fim. A consulta de sobreposição abrange fontes distintas do mesmo medidor e permite adjacências. Validação de instalação, composição dos snapshots, bloqueio do medidor e comunicação atômica estão aplicados pelo serviço de ingestão.
+
+**US06-T02 — telemetria de consumo, API e transação:** Cadastro de fonte recebe origem e gera identificador; ingestão recebe fonteId, período e consumoKwh. Escritas exigem gerente/operador e CSRF. A consulta individual é autenticada e isolada por medidor. O serviço bloqueia medidor/fonte nessa ordem, rejeita períodos anteriores à instalação e sobreposição, preenche snapshots e confirma contato na mesma transação. Testes verificam rollback conjunto e concorrência; E2E integrado permanece pendente.
 
 ### US07 — Cadastrar consumidores titulares
 
@@ -757,7 +759,7 @@ Como operador, quero receber alertas de perda de comunicação com dispositivos,
 
 **US23-T02 — Lote 3 em revisão:** As ingestões de linhas e transformadores bloqueiam a fonte antes de capturar recebidoEm, com precisão de microssegundos. FonteMedicaoService.registrarComunicacaoValida exige uma transação existente (MANDATORY), atualiza ultimaComunicacaoEm e restabelece o episódio ATIVO usando o mesmo recebidoEm UTC. Medição, contato, restabelecimento e alertas elétricos compartilham a transação; falhas posteriores desfazem todas as alterações. Repetir uma ingestão não altera o instante de episódios já restabelecidos. Leituras históricas recebidas agora comprovam comunicação atual; requisições inválidas não atualizam o contato. Os snapshots dos episódios anteriores são preservados, e uma nova ausência após a tolerância permite outro episódio.
 
-**Verificação do Lote 3:** ComunicacaoIngestaoControllerTest cobre contato, recuperação, histórico, recorrência e rejeição de leituras inválidas para ambos os tipos de ativo. AlertaTensaoTransacaoTest e AlertaSobrecargaTransacaoTest verificam o rollback de medição, contato e restabelecimento após falha posterior. ComunicacaoIngestaoConcorrenteTest executa job e ingestão em transações concorrentes nas duas ordens, verificando espera pelo bloqueio, ausência de duplicatas e estado final restabelecido. Comunicação de medidores e integração da interface permanecem fora deste recorte.
+**Verificação do Lote 3:** ComunicacaoIngestaoControllerTest cobre contato, recuperação, histórico, recorrência e rejeição de leituras inválidas para ambos os tipos de ativo. AlertaTensaoTransacaoTest e AlertaSobrecargaTransacaoTest verificam o rollback de medição, contato e restabelecimento após falha posterior. ComunicacaoIngestaoConcorrenteTest executa job e ingestão em transações concorrentes nas duas ordens, verificando espera pelo bloqueio, ausência de duplicatas e estado final restabelecido. A telemetria de medidores reutiliza o mesmo contrato transacional pela US06; fluxo E2E integrado dos medidores e integração da interface permanecem pendentes.
 
 ### US24 — Consultar histórico de alertas por criticidade
 
