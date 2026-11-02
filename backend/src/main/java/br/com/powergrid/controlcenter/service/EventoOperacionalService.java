@@ -1,6 +1,10 @@
 package br.com.powergrid.controlcenter.service;
 
 import java.util.List;
+import java.util.Set;
+import br.com.powergrid.controlcenter.dto.PageResponseDTO;
+import br.com.powergrid.controlcenter.util.ParametrosConsultaMedicao;
+import org.springframework.util.MultiValueMap;
 import java.time.Clock;
 import java.time.OffsetDateTime;
 import java.time.ZoneOffset;
@@ -165,6 +169,43 @@ public class EventoOperacionalService {
     public EventoOperacionalResponseDTO buscarPorId(Long id) {
         return toResponse(repository.findById(id).orElseThrow(() ->
                 new ResponseStatusException(HttpStatus.NOT_FOUND, "Evento não encontrado.")));
+    }
+
+    @Transactional(readOnly = true)
+    public EventoOperacionalResponseDTO obterInterrupcao(Long id) {
+        return toResponse(repository.findByIdAndCategoria(id, EventoOperacional.Categoria.INTERRUPCAO_FORNECIMENTO)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Interrupção não encontrada.")));
+    }
+
+    @Transactional(readOnly = true)
+    public PageResponseDTO<EventoOperacionalResponseDTO> listarInterrupcoes(MultiValueMap<String, String> params) {
+        for (String nome : params.keySet()) {
+            if (!Set.of("page", "size", "sort", "ativoId", "situacao", "dataInicio", "dataFim").contains(nome)) {
+                throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Parâmetro não suportado: " + nome);
+            }
+        }
+        var consulta = ParametrosConsultaMedicao.from(params, "inicioEfetivo");
+        String situacao = ParametrosConsultaMedicao.parametro(params, "situacao");
+        if (situacao != null) {
+            try { SituacaoEventoOperacional.valueOf(situacao); }
+            catch (IllegalArgumentException ex) { throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Situação de interrupção inválida."); }
+        }
+        Long ativoId = filtroAtivoInterrupcao(params);
+        return PageResponseDTO.from(repository.buscarInterrupcoes(ativoId, situacao, consulta.inicio(), consulta.fim(), consulta.pageable())
+                .map(this::toResponse));
+    }
+
+    private Long filtroAtivoInterrupcao(MultiValueMap<String, String> params) {
+        String valor = ParametrosConsultaMedicao.parametro(params, "ativoId");
+        if (valor == null) return null;
+        try {
+            if (!valor.matches("[0-9]+")) throw new NumberFormatException();
+            long id = Long.parseLong(valor);
+            if (id <= 0) throw new NumberFormatException();
+            return id;
+        } catch (NumberFormatException ex) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "ativoId deve ser um inteiro positivo válido.");
+        }
     }
 
     private Usuario usuarioAutenticado() {

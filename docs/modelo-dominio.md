@@ -338,3 +338,8 @@ O histórico de transições mantém o tempo operacional de atendimento separado
 Na transição EM_ANDAMENTO → CONCLUIDO de INTERRUPCAO_FORNECIMENTO, terminoEfetivo é obrigatório no comando, não futuro e maior ou igual ao início físico. O término informado é armazenado em UTC com precisão de microssegundos. Outras categorias mantêm término automático pelo servidor; informar término manual fora da conclusão de interrupções é rejeitado. O instante alteradoEm da transição é sempre gerado pelo servidor, distinguindo a ocorrência física do registro operacional.
 
 O comando mantém autorização, bloqueio pessimista e situação esperada da US18. Estado, término físico e histórico são atômicos. Concorrência confirma somente uma conclusão para a mesma situação esperada; a outra solicitação recebe 409 sem substituir o término confirmado.
+
+
+### Consultas específicas de interrupções
+
+O detalhe de interrupção usa a identidade do evento, restringindo a categoria INTERRUPCAO_FORNECIMENTO. A listagem é paginada no banco e filtra ativo, situação e período sobre o início físico (início inclusivo/fim exclusivo), em ordem inicioEfetivo DESC/id DESC. Início legado ausente fica ao final e não atende filtros temporais. Os dados são apresentados pelo DTO comum de evento, sem duplicação de entidade ou trilha de auditoria. A duração física pode ser obtida pela diferença entre término e início efetivos; o histórico registra separadamente quando cada operação foi confirmada pelo servidor.

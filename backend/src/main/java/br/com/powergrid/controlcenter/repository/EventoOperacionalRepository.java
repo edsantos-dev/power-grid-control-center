@@ -50,4 +50,35 @@ public interface EventoOperacionalRepository extends JpaRepository<EventoOperaci
         }
         return new PageImpl<>(eventos, pagina, total);
     }
+
+    Optional<EventoOperacional> findByIdAndCategoria(Long id, EventoOperacional.Categoria categoria);
+
+    String FILTROS_INTERRUPCAO = " WHERE e.categoria = 'INTERRUPCAO_FORNECIMENTO'"
+            + " AND (CAST(:ativoId AS BIGINT) IS NULL OR e.ativo_id = :ativoId)"
+            + " AND (CAST(:situacao AS VARCHAR(32)) IS NULL OR e.situacao = :situacao)"
+            + " AND (CAST(:dataInicio AS TIMESTAMP WITH TIME ZONE) IS NULL OR e.inicio_efetivo >= :dataInicio)"
+            + " AND (CAST(:dataFim AS TIMESTAMP WITH TIME ZONE) IS NULL OR e.inicio_efetivo < :dataFim)";
+
+    @Query(value = "SELECT e.* FROM evento_operacional e" + FILTROS_INTERRUPCAO
+            + " ORDER BY e.inicio_efetivo DESC NULLS LAST, e.id DESC LIMIT :limite OFFSET :deslocamento", nativeQuery = true)
+    List<EventoOperacional> consultarInterrupcoes(@Param("ativoId") Long ativoId, @Param("situacao") String situacao,
+            @Param("dataInicio") OffsetDateTime dataInicio, @Param("dataFim") OffsetDateTime dataFim,
+            @Param("limite") int limite, @Param("deslocamento") long deslocamento);
+
+    @Query(value = "SELECT COUNT(*) FROM evento_operacional e" + FILTROS_INTERRUPCAO, nativeQuery = true)
+    long contarInterrupcoes(@Param("ativoId") Long ativoId, @Param("situacao") String situacao,
+            @Param("dataInicio") OffsetDateTime dataInicio, @Param("dataFim") OffsetDateTime dataFim);
+
+    @Transactional(readOnly = true)
+    default Page<EventoOperacional> buscarInterrupcoes(Long ativoId, String situacao, OffsetDateTime dataInicio,
+            OffsetDateTime dataFim, Pageable pageable) {
+        if (pageable.isUnpaged()) throw new IllegalArgumentException("A consulta de interrupções exige paginação.");
+        var pagina = PageRequest.of(pageable.getPageNumber(), pageable.getPageSize());
+        long total = contarInterrupcoes(ativoId, situacao, dataInicio, dataFim);
+        List<EventoOperacional> eventos = List.of();
+        if (pagina.getOffset() < total) {
+            eventos = consultarInterrupcoes(ativoId, situacao, dataInicio, dataFim, pagina.getPageSize(), pagina.getOffset());
+        }
+        return new PageImpl<>(eventos, pagina, total);
+    }
 }

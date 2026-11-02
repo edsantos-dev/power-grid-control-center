@@ -421,7 +421,7 @@ POST /api/interrupcoes exige sessão autenticada e CSRF, com o mesmo acesso do c
 
 O serviço cria EventoOperacional de categoria INTERRUPCAO_FORNECIMENTO e situação ABERTO. O registrador é obtido da sessão. O instante físico informado é preservado em UTC com precisão de microssegundos, sem substituição pelo horário do cadastro. Previsões e término efetivo permanecem nulos; campos extras de categoria, situação ou autoria não controlam esses valores. O estado do ativo não é modificado. Sucesso retorna 201, EventoOperacionalResponseDTO e Location para /api/eventos-operacionais/{id}, recurso já consultável.
 
-O POST genérico de eventos mantém a interrupção bloqueada para evitar contornar o contrato específico. Não há nova tabela nem migration. A conclusão recebe o término físico conforme o contrato abaixo. Consultas específicas de interrupções e fluxo E2E permanecem pendentes.
+O POST genérico de eventos mantém a interrupção bloqueada para evitar contornar o contrato específico. Não há nova tabela nem migration. A conclusão recebe o término físico conforme o contrato abaixo. Consultas específicas de interrupções e fluxo E2E estão disponíveis conforme o contrato abaixo.
 
 
 ### Término físico e auditoria de interrupções
@@ -429,3 +429,12 @@ O POST genérico de eventos mantém a interrupção bloqueada para evitar contor
 POST /api/eventos-operacionais/{id}/transicoes aceita o campo opcional terminoEfetivo no DTO compartilhado. Para concluir INTERRUPCAO_FORNECIMENTO, esse campo é obrigatório, não pode estar no futuro e deve ser maior ou igual ao inicioEfetivo. Ausência ou período inválido retorna 400; interrupção legada sem início exige regularização, com 409. O instante informado é convertido para UTC e microssegundos, preservando o início físico existente. Término manual fora da conclusão de interrupções retorna 400. Nas demais categorias, o término continua preenchido pelo relógio UTC do servidor.
 
 A data alteradoEm do histórico sempre vem do servidor, independentemente do término físico informado. É permitido registrar restabelecimento anterior ao início operacional do atendimento, desde que respeite o início físico da ocorrência. As permissões de responsável/gerente, o bloqueio pessimista, a situação esperada e a máquina de estados da US18 permanecem aplicáveis. Estado, término e histórico são persistidos na mesma transação; falha de auditoria desfaz a conclusão. Repetir uma conclusão com situação esperada ultrapassada retorna 409.
+
+
+### Consultas de interrupções
+
+GET /api/interrupcoes/{id} exige sessão e retorna EventoOperacionalResponseDTO somente para INTERRUPCAO_FORNECIMENTO. ID inexistente ou de outra categoria retorna 404; identificador inválido retorna 400. GET /api/interrupcoes permite os três perfis autenticados, retornando PageResponseDTO com page=0/size=20, máximo 100. A ordenação é fixa inicioEfetivo DESC/id DESC, com início nulo legado ao final. Conteúdo e total são consultados no banco com os mesmos filtros; a página não é formada em memória.
+
+Filtros opcionais: ativoId positivo, situacao (ABERTO, EM_ANDAMENTO, CONCLUIDO), dataInicio inclusiva e dataFim exclusiva sobre inicioEfetivo. Datas devem usar ISO 8601 com fuso; início do período deve anteceder o fim. Parâmetros desconhecidos, vazios ou repetidos, sort e paginação inválida retornam 400. Filtros sem correspondência retornam 200 com página vazia; ativoId válido sem ocorrências também retorna página vazia. Registros sem início efetivo não atendem filtros temporais.
+
+InterrupcaoFluxoE2ETest cobre a jornada HTTP autenticada, com CSRF e transações independentes por requisição: cadastro com início físico passado, atendimento, restabelecimento físico informado, detalhe, listagem filtrada e consulta do histórico. As datas físicas permanecem distintas dos instantes de auditoria do atendimento. Não há novos atributos estruturados de causa, consumidores afetados ou fases; a integração com a interface continua pendente.
