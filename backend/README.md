@@ -469,3 +469,14 @@ Com cobertura completa, cada perda é energiaInjetadaMwh × percentualPerdaRefer
 GET /api/alimentadores/{id}/medicoes-energia retorna PageResponseDTO, padrão page=0/size=20, máximo 100 e ordem inicioPeriodo DESC/id DESC. Filtros opcionais dataInicio inclusiva e dataFim exclusiva incidem sobre inicioPeriodo. Sort e parâmetros inválidos, desconhecidos, vazios ou repetidos retornam 400. Alimentador existente sem leituras retorna página vazia; inexistente retorna 404. A fonte é carregada em conjunto para compor os DTOs. A integração do frontend permanece pendente.
 
 PerdaTecnicaFluxoE2ETest cobre configuração, cadastro de fonte, duas ingestões contíguas a 3,5%, alteração para 5%, terceira ingestão e consultas. O cenário de 400 MWh produz estimativa de 15,5 MWh e percentual ponderado de 3,875%, preservando os snapshots; ampliar o período sem novas leituras retorna dados insuficientes. As requisições usam autenticação, CSRF e transações independentes.
+
+
+## Projeções geográficas — US13
+
+O recorte inicial abrange SUBESTACAO, USINA, TRANSFORMADOR e LINHA. BoundingBox e CoordenadaGeografica validam os limites em graus decimais: latitude [-90,90], longitude [-180,180] e mínimos estritamente inferiores aos máximos. Caixas cruzando o antimeridiano não são aceitas neste recorte. A interpretação adotada para a API de mapa é WGS84; sua construção GeoJSON permanece pendente.
+
+AtivoRedeRepository.buscarPontos retorna projeções escalares de identificação, nome, estado, classe e coordenadas, filtradas por tipo, estado e BBOX no banco. Coordenadas ausentes não produzem localização substituta. Alimentadores e medidores ficam fora das camadas iniciais. LinhaTransmissaoRepository.buscarCandidatas projeta também os IDs e coordenadas das duas subestações, omitindo extremidades incompletas ou geograficamente coincidentes. O estado filtrado é o da própria linha. O ponto cadastral herdado pela linha não substitui a geometria de conexão.
+
+O pré-filtro de linhas testa a interseção entre o envelope das extremidades e a BBOX, incluindo bordas. Ele pode retornar falsos positivos geométricos e precisa ser seguido por IntersecaoSegmentoRetangulo.intersecta. O teste exato usa orientação e contenção de segmentos com BigDecimal, sem divisão, epsilon ou conversão para double. Abrange segmentos cruzando a área com ambas as extremidades fora, tangências e coincidência com bordas. A conexão permanece uma representação simplificada entre subestações, sem afirmar o traçado físico.
+
+As projeções não expõem entidades ou associações LAZY ao consumidor. Ambas as consultas têm ordem fixa por ID e permitem avanço por aposId e lotes via Pageable. Isso permite percorrer candidatas sem perder linhas válidas após falsos positivos do pré-filtro. O limite global de Features e a resposta 422 serão aplicados no futuro serviço, após a seleção geométrica correta. Não há migration espacial, PostGIS ou endpoint novo neste incremento.
