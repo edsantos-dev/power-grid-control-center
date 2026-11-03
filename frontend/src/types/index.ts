@@ -508,6 +508,33 @@ export type UsinaRequest = {
 
 export type FiltrosUsina = { nome?: string; tipoGeracao?: TipoGeracao; estadoOperacional?: EstadoOperacional }
 
+export type SituacaoEquipe = 'DISPONIVEL' | 'EM_ATENDIMENTO' | 'FORA_DE_SERVICO'
+
+export type Equipe = {
+  id: number
+  nome: string
+  responsabilidades: string | null
+  especialidades: string | null
+  situacao: SituacaoEquipe
+}
+
+export type EquipeRequest = {
+  nome: string
+  responsabilidades: string | null
+  especialidades: string | null
+}
+
+// Vínculo vigente de um usuário com a equipe
+export type Integrante = {
+  id: number
+  equipeId: number
+  usuarioId: number
+  nome: string
+  perfil: PerfilAcesso
+  inicioVigencia: string
+  fimVigencia: string | null
+}
+
 export type LinhaTransmissao = {
   id: number
   nome: string

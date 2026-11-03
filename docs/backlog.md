@@ -169,7 +169,7 @@ Como técnico de manutenção, quero cadastrar equipes de manutenção e suas re
 
 - **Perfil e prioridade:** Técnico de Manutenção. Prioridade: Média.
 - **Status:** Em andamento.
-- **Implementação existente:** Backend com entidades de equipe e vínculo por vigência, CRUD de equipes, gestão idempotente de integrantes e disponibilidade manual. Consultas paginadas e filtros; escritas restritas a gerente e técnico, protegidas por CSRF. Alterações serializadas por bloqueio na equipe pai. Frontend ainda usa dados simulados, quantidade numérica de membros e responsável textual.
+- **Implementação existente:** Frontend com equipes, integrantes vigentes e situação pela API. Backend com entidades de equipe e vínculo por vigência, CRUD de equipes, gestão idempotente de integrantes e disponibilidade manual. Consultas paginadas e filtros; escritas restritas a gerente e técnico, protegidas por CSRF. Alterações serializadas por bloqueio na equipe pai. Frontend ainda usa dados simulados, quantidade numérica de membros e responsável textual.
 - **Trabalho pendente:** Integração do frontend e aceite completo. Um usuário pode integrar várias equipes; designação simultânea de múltiplas equipes ao mesmo evento e execução granular permanecem adiadas.
 - **Dependências:** PEN-06; US25; regras de integrantes e disponibilidade.
 - **Referências no frontend:** [Equipes/index.tsx](../frontend/src/pages/Equipes/index.tsx#L7) (linhas 7,18,44).
@@ -186,6 +186,8 @@ Como técnico de manutenção, quero cadastrar equipes de manutenção e suas re
 - [x] **US04-T02:** Implementar o recorte de backend com testes pertinentes e documentação. Persistência, CRUD, integrantes, disponibilidade e concorrência implementados.
 - [ ] **US04-T03:** Integrar a interface com testes pertinentes e documentação.
 - [ ] **US04-T04:** Verificar integração/aceite e apresentar resultados e limitações.
+
+**US04-T03 — interface em revisão:** A tela de equipes consome GET /api/equipes com paginação e filtros de nome e situação no servidor, exibindo responsabilidades, especialidades e situação. Gerente e técnico de manutenção podem criar e editar equipes (textos opcionais vazios seguem nulos), alterar a situação por PATCH /situacao e incluir ou remover integrantes; o operador apenas consulta, conforme a autorização do backend. Cada integrante é uma conta de usuário, incluída pelo ID por PUT /integrantes/{usuarioId}, pois não há consulta de usuários, e exibida com nome, perfil e início da vigência; a remoção (DELETE) encerra a vigência sem apagar o histórico. A regra de disponibilidade é a do backend: DISPONIVEL e EM_ATENDIMENTO exigem ao menos um integrante ativo, e as recusas 409, inclusive a remoção do último integrante de equipe ativa, são exibidas no painel. Membros numéricos e responsável textual simulados foram removidos. Equipes.test.tsx cobre US04-CA01–CA03 na interface.
 
 ### US05 — Cadastrar usinas vinculadas à rede
 
