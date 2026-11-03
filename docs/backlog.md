@@ -468,7 +468,7 @@ Como gerente, quero visualizar KPIs de disponibilidade e desempenho da rede, par
 
 - **Perfil e prioridade:** Gerente de Operações. Prioridade: Alta.
 - **Status:** Em andamento.
-- **Implementação existente:** Backend concluído com consultas escalares, fusão temporal por ativo, cálculo, situações de qualidade, DTOs, API exclusiva do gerente e fluxo E2E integrado. O frontend mantém cartões fixos e disponibilidades fictícias.
+- **Implementação existente:** Frontend com indicadores de disponibilidade e desempenho no Dashboard pela API. Backend concluído com consultas escalares, fusão temporal por ativo, cálculo, situações de qualidade, DTOs, API exclusiva do gerente e fluxo E2E integrado. O frontend mantém cartões fixos e disponibilidades fictícias.
 - **Trabalho pendente:** Integração com o frontend e aceite completo da história.
 - **Dependências:** Cadastros, eventos e medições conforme a definição de cada indicador.
 - **Referências no frontend:** [Dashboard/index.tsx](../frontend/src/pages/Dashboard/index.tsx#L45) (linhas 45); [Subestacoes/index.tsx](../frontend/src/pages/Subestacoes/index.tsx#L44) (linhas 44).
@@ -485,6 +485,8 @@ Como gerente, quero visualizar KPIs de disponibilidade e desempenho da rede, par
 - [x] **US14-T02:** Implementar o recorte de backend com testes pertinentes e documentação. Consultas, serviço, fórmulas, situações de qualidade, DTOs e API concluídos, com fluxo E2E integrado e arquitetura documentada.
 - [ ] **US14-T03:** Integrar a interface com testes pertinentes e documentação.
 - [ ] **US14-T04:** Verificar integração/aceite e apresentar resultados e limitações.
+
+**US14-T03 — interface em revisão:** O Dashboard substitui os cartões, o gráfico e os alertas fictícios pelos indicadores de GET /api/indicadores/operacionais, exibidos apenas ao gerente; os demais perfis veem o aviso de acesso, conforme a restrição do backend. A consulta usa por padrão os últimos sete dias por dia local até o instante atual, pois dataFim futura é recusada, com filtros de período, subestação e tipos de ativo. Os cartões mostram disponibilidade estimada com população e tempo observados, tempo interrompido, tempo médio de restabelecimento e interrupções em aberto, além do inventário por tipo e estado operacional. A tela explica a fórmula e diferencia indisponibilidade de dados de indisponibilidade do ativo: COBERTURA_NAO_AFERIDA apresenta o valor como estimativa, SEM_POPULACAO_ATIVA e DADOS_INCONSISTENTES exibem "—" com o motivo e a quantidade de registros inconsistentes, e a média sem restabelecimentos aparece como ausente, não zero. IndicadoresOperacionais.test.tsx cobre US14-CA02/CA03 na interface, incluindo o cenário conhecido de 2 h interrompidas em 10 h observadas (80%).
 
 ### US15 — Consultar histórico de consumo e perdas
 

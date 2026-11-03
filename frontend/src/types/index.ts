@@ -457,6 +457,30 @@ export type ColecaoMapa = {
   metadados: { totalFeatures: number; totalAtivosSemGeometria: number }
 }
 
+export type TipoAtivoIndicador = 'SUBESTACAO' | 'ALIMENTADOR' | 'TRANSFORMADOR' | 'LINHA' | 'USINA'
+
+export type SituacaoDisponibilidade = 'COBERTURA_NAO_AFERIDA' | 'SEM_POPULACAO_ATIVA' | 'DADOS_INCONSISTENTES'
+
+// Tempos em segundos; disponibilidade e tempo médio ficam nulos quando não há base de cálculo
+export type IndicadoresOperacionais = {
+  calculadoEm: string
+  dataInicio: string
+  dataFim: string
+  filtrosAplicados: { ativoId: number | null; tipos: TipoAtivoIndicador[]; subestacaoId: number | null }
+  quantidadeAtivos: { tipoAtivo: TipoAtivoIndicador; estadoOperacional: EstadoOperacional; quantidade: number }[]
+  totalAtivos: number
+  quantidadeIniciadasNoPeriodo: number
+  quantidadeSobrepostasAoPeriodo: number
+  quantidadeSemTerminoFisico: number
+  quantidadeRestabelecimentosNoPeriodo: number
+  quantidadeRegistrosInconsistentes: number
+  tempoInterrompidoSegundos: number
+  tempoMedioRestabelecimentoSegundos: number | null
+  tempoObservadoAtivosSegundos: number
+  disponibilidadeEstimadaPercentual: number | null
+  situacaoDisponibilidade: SituacaoDisponibilidade
+}
+
 export type LinhaTransmissao = {
   id: number
   nome: string
