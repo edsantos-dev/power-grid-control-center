@@ -155,6 +155,29 @@ export type InstalacaoMedidorRequest = {
   enderecoFornecimento: string | null
 }
 
+export type Criticidade = 'BAIXA' | 'MEDIA' | 'ALTA' | 'CRITICA'
+
+export type EscopoAlerta = 'ATIVO' | 'REDE_MONITORADA'
+
+export type SituacaoAlerta = 'ABERTO' | 'RECONHECIDO' | 'RESOLVIDO'
+
+export type Alerta = {
+  id: number
+  tipo: string
+  criticidade: Criticidade
+  escopo: EscopoAlerta
+  situacao: SituacaoAlerta
+  geradoEm: string
+  ativoId: number | null
+}
+
+export type AlertaRequest = {
+  tipo: string
+  criticidade: Criticidade
+  escopo: EscopoAlerta
+  ativoId: number | null
+}
+
 export type LinhaTransmissao = {
   id: number
   nome: string
