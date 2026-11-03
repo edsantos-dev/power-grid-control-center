@@ -481,6 +481,33 @@ export type IndicadoresOperacionais = {
   situacaoDisponibilidade: SituacaoDisponibilidade
 }
 
+export type TipoGeracao = 'HIDRELETRICA' | 'SOLAR' | 'EOLICA' | 'TERMICA'
+
+export type Usina = {
+  id: number
+  nome: string
+  latitude: number
+  longitude: number
+  tipoGeracao: TipoGeracao
+  capacidadeMaximaMw: number
+  subestacaoId: number
+  dataInstalacao: string | null
+  estadoOperacional: EstadoOperacional
+}
+
+export type UsinaRequest = {
+  nome: string
+  latitude: string
+  longitude: string
+  tipoGeracao: TipoGeracao
+  capacidadeMaximaMw: string
+  subestacaoId: number
+  dataInstalacao: string | null
+  estadoOperacional: EstadoOperacional
+}
+
+export type FiltrosUsina = { nome?: string; tipoGeracao?: TipoGeracao; estadoOperacional?: EstadoOperacional }
+
 export type LinhaTransmissao = {
   id: number
   nome: string
