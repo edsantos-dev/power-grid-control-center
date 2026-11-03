@@ -308,6 +308,24 @@ export type InterrupcaoRequest = {
   criticidade: string | null
 }
 
+export type TransicaoEventoRequest = {
+  situacaoDestino: SituacaoEvento
+  situacaoEsperada: SituacaoEvento
+  comentario: string
+  terminoEfetivo: string | null
+}
+
+// Registro imutável: autor e instante vêm do servidor
+export type TransicaoEvento = {
+  id: number
+  eventoId: number
+  usuarioId: number
+  situacaoAnterior: SituacaoEvento
+  situacaoNova: SituacaoEvento
+  alteradoEm: string
+  comentario: string
+}
+
 export type LinhaTransmissao = {
   id: number
   nome: string

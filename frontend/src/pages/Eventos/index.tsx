@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import { Search, Calendar, User, Plus, ZapOff } from 'lucide-react'
+import { Search, Calendar, User, Plus, ZapOff, History } from 'lucide-react'
 import { useAuth } from '../../hooks/useAuth'
 import { extrairErroApi } from '../../services/api'
 import { listarCatalogoAtivos, type AtivoCatalogo } from '../../services/ativos'
@@ -8,7 +8,10 @@ import type { CategoriaEvento, EventoOperacional, SituacaoEvento } from '../../t
 import { formatarDataHora } from '../../utils/formatacao'
 import { CATEGORIA_LABEL, SITUACAO_EVENTO_STYLES, SITUACOES_EVENTO } from './constantes'
 import EventoForm from './EventoForm'
+import HistoricoTransicoes from './HistoricoTransicoes'
 import InterrupcaoForm from './InterrupcaoForm'
+import TransicaoForm from './TransicaoForm'
+import { podeTransicionar, proximaTransicao, type Transicao } from './transicoes'
 
 // O instante de referência é o efetivo quando existe; senão, o previsto
 function instanteDoEvento(evento: EventoOperacional) {
@@ -26,6 +29,8 @@ function Eventos() {
   const [busca, setBusca] = useState('')
   const [formularioAberto, setFormularioAberto] = useState(false)
   const [interrupcaoAberta, setInterrupcaoAberta] = useState(false)
+  const [emTransicao, setEmTransicao] = useState<{ evento: EventoOperacional; transicao: Transicao } | null>(null)
+  const [historico, setHistorico] = useState<EventoOperacional | null>(null)
 
   async function carregar() {
     setCarregando(true)
@@ -59,6 +64,7 @@ function Eventos() {
     setEventos((atuais) => [...atuais.filter((e) => e.id !== salvo.id), salvo])
     setFormularioAberto(false)
     setInterrupcaoAberta(false)
+    setEmTransicao(null)
   }
 
   // A API não garante ordenação: os mais recentes ficam primeiro
@@ -177,12 +183,14 @@ function Eventos() {
                 <th className="pb-3 font-normal">Descrição</th>
                 <th className="pb-3 font-normal">Responsável</th>
                 <th className="pb-3 font-normal">Situação</th>
+                <th className="pb-3 font-normal">Ações</th>
               </tr>
             </thead>
             <tbody>
               {eventosFiltrados.map((e) => {
                 const situacao = SITUACAO_EVENTO_STYLES[e.situacao]
                 const instante = instanteDoEvento(e)
+                const transicao = proximaTransicao(e)
 
                 return (
                   <tr key={e.id} className="border-b border-slate-800/60 align-top last:border-0">
@@ -209,7 +217,34 @@ function Eventos() {
                       </span>
                       <p className="mt-1 text-xs text-slate-500">Registrado por {nomeUsuario(e.registradorUsuarioId).toLowerCase()}</p>
                     </td>
-                    <td className={`py-3 text-xs font-medium ${situacao.text}`}>{situacao.label}</td>
+                    <td className={`py-3 pr-4 text-xs font-medium ${situacao.text}`}>
+                      {situacao.label}
+                      {e.terminoEfetivo && (
+                        <p className="mt-1 font-normal text-slate-500">Término {formatarDataHora(e.terminoEfetivo)}</p>
+                      )}
+                    </td>
+                    <td className="py-3">
+                      <div className="flex flex-wrap gap-1.5">
+                        {transicao && podeTransicionar(e, usuario) && (
+                          <button
+                            type="button"
+                            onClick={() => setEmTransicao({ evento: e, transicao })}
+                            aria-label={`${transicao.rotulo} ${e.descricao}`}
+                            className="rounded-lg border border-slate-700 px-2.5 py-1 text-xs text-slate-300 transition hover:bg-slate-800 hover:text-white"
+                          >
+                            {transicao.rotulo}
+                          </button>
+                        )}
+                        <button
+                          type="button"
+                          onClick={() => setHistorico(e)}
+                          aria-label={`Histórico de ${e.descricao}`}
+                          className="rounded-lg p-1.5 text-slate-400 transition hover:bg-slate-800 hover:text-white"
+                        >
+                          <History className="h-4 w-4" />
+                        </button>
+                      </div>
+                    </td>
                   </tr>
                 )
               })}
@@ -238,6 +273,18 @@ function Eventos() {
           )}
         </div>
       </div>
+
+      {emTransicao && (
+        <TransicaoForm
+          evento={emTransicao.evento}
+          transicao={emTransicao.transicao}
+          aoFechar={() => setEmTransicao(null)}
+          aoSalvar={handleSalvar}
+          aoDesatualizar={carregar}
+        />
+      )}
+
+      {historico && <HistoricoTransicoes evento={historico} aoFechar={() => setHistorico(null)} />}
 
       {interrupcaoAberta && (
         <InterrupcaoForm ativos={ativos} aoFechar={() => setInterrupcaoAberta(false)} aoSalvar={handleSalvar} />

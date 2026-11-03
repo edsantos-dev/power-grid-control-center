@@ -565,8 +565,8 @@ Como técnico de manutenção, quero atualizar a situação de um evento operaci
 
 - **Perfil e prioridade:** Técnico de Manutenção. Prioridade: Alta.
 - **Status:** Em andamento.
-- **Implementação existente:** Cadastro e consultas da US16; V12, histórico, serviço transacional e endpoints de transições em revisão. O frontend possui estados e contagens estáticos.
-- **Trabalho pendente:** Revisão do backend, integração da interface e aceite funcional.
+- **Implementação existente:** Frontend com transições Iniciar/Concluir e histórico de alterações pela API. Cadastro e consultas da US16; V12, histórico, serviço transacional e endpoints de transições em revisão. O frontend possui estados e contagens estáticos.
+- **Trabalho pendente:** Revisão do backend e da integração; aceite funcional.
 - **Dependências:** US16; US25; transições e permissões.
 - **Referências no frontend:** [Eventos/index.tsx](../frontend/src/pages/Eventos/index.tsx#L6) (linhas 6,45,166).
 
@@ -600,6 +600,8 @@ Como técnico de manutenção, quero atualizar a situação de um evento operaci
 **Consultas do histórico:** GET /api/eventos-operacionais/{id}/transicoes retorna PageResponseDTO, padrão page=0/size=20, máximo 100 e ordem fixa alteradoEm DESC/id DESC. Sort e parâmetros não suportados são rejeitados com 400. GET /api/eventos-operacionais/{id}/transicoes/{transicaoId} valida o vínculo com o evento e retorna 404 para histórico de outro evento. As consultas exigem sessão, seguindo o acesso às consultas existentes de eventos. O DTO expõe ID do histórico, evento, usuário, estados anterior/novo, instante UTC e comentário.
 
 **Verificação Web:** TransacaoEventoControllerTest cobre o fluxo completo, Location, validações, autoria, CSRF, perfis, conflitos, consultas e paginação isolada por evento. TransacaoEventoConcorrenciaWebTest dispara duas requisições HTTP com a mesma situação esperada, confirmando uma resposta 201, uma 409 e um único registro de histórico. Integração da interface e aceite funcional continuam pendentes.
+
+**US18-T03 — interface em revisão:** Cada evento oferece "Iniciar" (ABERTO → EM_ANDAMENTO) ou "Concluir" (EM_ANDAMENTO → CONCLUIDO), exibidos apenas ao gerente ou ao operador/técnico responsável, conforme a regra do serviço. A transição exige comentário de até 1.000 caracteres e envia a situação esperada; quando o servidor responde 409 por divergência, a mensagem é exibida e a lista é recarregada. Na conclusão de interrupção, o término efetivo é informado em horário local, bloqueado no cliente quando futuro ou anterior ao início e enviado em UTC; nas demais categorias, início e término efetivos são registrados pelo servidor. Após a transição, o evento é consultado novamente e a lista mostra a nova situação e o término. O histórico de cada evento usa GET /transicoes com paginação incremental, exibindo estados anterior e novo, autor, instante e comentário. Transicoes.test.tsx cobre US18-CA01–CA03 na interface; autorização por perfil e o conflito de situação foram verificados no navegador.
 
 ### US19 — Consultar histórico de manutenção por ativo
 
