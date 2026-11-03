@@ -285,8 +285,8 @@ Como operador, quero visualizar em tempo real a tensão e a corrente das linhas 
 
 - **Perfil e prioridade:** Operador. Prioridade: Alta.
 - **Status:** Em andamento.
-- **Implementação existente:** Valores fixos no frontend. Persistência de FonteMedicao e MedicaoLinha, migration V4 e API de ingestão com testes em revisão.
-- **Trabalho pendente:** Revisão do cadastro de fontes e consulta paginada; simulador, política de atraso e integração de monitoramento pendentes.
+- **Implementação existente:** Frontend com monitoramento de tensão e corrente por linha pela API. Valores fixos no frontend. Persistência de FonteMedicao e MedicaoLinha, migration V4 e API de ingestão com testes em revisão.
+- **Trabalho pendente:** Aprovação da cadência e da política de atraso propostas na interface; simulador e aceite funcional.
 - **Dependências:** PEN-06; US25; US02; fonte de medições ou simulador.
 - **Referências no frontend:** [Linhas/index.tsx](../frontend/src/pages/Linhas/index.tsx#L11) (linhas 11,17); [Monitoramento/index.tsx](../frontend/src/pages/Monitoramento/index.tsx#L13) (linhas 13,134).
 
@@ -314,6 +314,8 @@ Como operador, quero visualizar em tempo real a tensão e a corrente das linhas 
 GET /api/linhas-transmissao/{linhaId}/medicoes retorna PageResponseDTO com content, page, size, totalElements, totalPages, first e last. Padrões page=0 e size=20; máximo 100. Parâmetros inválidos, vazios ou repetidos e qualquer sort retornam 400. Ordem fixa medidoEm DESC, id DESC. Filtros opcionais dataInicio/dataFim usam instante da medição, início inclusivo e fim exclusivo, com comparação em UTC. FontesConsultasControllerTest cobre cadastro, duplicidade, paginação, isolamento, limites temporais e segurança.
 
 A entrega atende ao recorte de backend de US08-T02. Integração com a interface, cadência de atualização, classificação de atraso e aceite funcional de US08-CA01–CA03 continuam pendentes; a história não está concluída.
+
+**US08-T03 — interface em revisão:** A tela de monitoramento consulta as linhas e, para cada uma, as 20 medições mais recentes de GET /api/linhas-transmissao/{id}/medicoes; a falha de uma linha mostra "Indisponível" sem esconder as demais. Tensão (kV) e corrente (A) usam a leitura mais recente que contém cada grandeza, pois leituras parciais não apagam a outra, e exibem valor, unidade, idade, origem real/simulada e, na tensão, a situação Normal/Subtensão/Sobretensão pela mesma faixa inclusiva de 95% a 105% da US22. Ausência de leitura aparece como "Sem leitura", nunca como zero. **Proposta a aprovar (US08-CA02/CA03):** atualização automática a cada 30 s, que pode ser pausada, e leitura atrasada quando o medidoEm passa de 300 s, o mesmo padrão da tolerância de comunicação da US23. A linha selecionada exibe a série das últimas 100 leituras em gráficos separados por grandeza, um eixo por unidade, com lacunas onde a grandeza não foi medida, tooltip e tabela de dados. Monitoramento.test.tsx cobre US08-CA01–CA03 na interface. Frequência, fator de potência e perdas simulados foram removidos desta tela e voltam com US10 e US12.
 
 ### US09 — Monitorar potência ativa e reativa
 

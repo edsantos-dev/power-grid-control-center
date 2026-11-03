@@ -338,6 +338,26 @@ export type FiltrosManutencao = {
   dataFim?: string
 }
 
+export type SituacaoFatorPotencia = 'CALCULADO' | 'DADOS_INSUFICIENTES' | 'POTENCIA_APARENTE_NULA'
+
+// Leituras podem ser parciais: grandezas não medidas chegam nulas, nunca como zero
+export type MedicaoLinha = {
+  id: number
+  linhaId: number
+  fonteId: number
+  origem: 'REAL' | 'SIMULADA'
+  medidoEm: string
+  recebidoEm: string
+  tensaoKv: number | null
+  correnteA: number | null
+  potenciaAtivaMw: number | null
+  potenciaReativaMvar: number | null
+  subestacaoReferenciaId: number | null
+  frequenciaHz: number | null
+  fatorPotencia: number | null
+  situacaoFatorPotencia: SituacaoFatorPotencia
+}
+
 export type LinhaTransmissao = {
   id: number
   nome: string

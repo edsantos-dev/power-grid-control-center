@@ -1,235 +1,204 @@
-import { Activity, Zap, Gauge, TrendingDown } from 'lucide-react'
-import {
-  LineChart,
-  Line,
-  XAxis,
-  YAxis,
-  CartesianGrid,
-  Tooltip,
-  ResponsiveContainer,
-  Legend,
-} from 'recharts'
+import { useCallback, useEffect, useState } from 'react'
+import { RefreshCw } from 'lucide-react'
+import { extrairErroApi } from '../../services/api'
+import { listarLinhas, listarMedicoesLinha } from '../../services/linhas'
+import type { LinhaTransmissao, MedicaoLinha } from '../../types'
+import CelulaLeitura from './CelulaLeitura'
+import GraficoSerie from './GraficoSerie'
+import { CADENCIA_MS, GRANDEZAS_LINHA, ultimaLeitura } from './monitoramento'
 
-const eletricasData = [
-  { hora: '00h', tensao: 131, frequencia: 60.02 },
-  { hora: '04h', tensao: 129, frequencia: 59.97 },
-  { hora: '08h', tensao: 134, frequencia: 60.05 },
-  { hora: '12h', tensao: 136, frequencia: 59.95 },
-  { hora: '16h', tensao: 133, frequencia: 60.01 },
-  { hora: '20h', tensao: 135, frequencia: 59.98 },
-]
-
-const potenciaData = [
-  { hora: '00h', ativa: 620, reativa: 140 },
-  { hora: '04h', ativa: 540, reativa: 120 },
-  { hora: '08h', ativa: 780, reativa: 180 },
-  { hora: '12h', ativa: 910, reativa: 210 },
-  { hora: '16h', ativa: 860, reativa: 195 },
-  { hora: '20h', ativa: 940, reativa: 220 },
-]
-
-const subestacoes = [
-  { id: 'SE-01', nome: 'Subestação Norte', carga: 72, status: 'operacional' },
-  { id: 'SE-02', nome: 'Subestação Central', carga: 91, status: 'atencao' },
-  { id: 'SE-03', nome: 'Subestação Sul', carga: 58, status: 'operacional' },
-  { id: 'SE-04', nome: 'Subestação Leste', carga: 0, status: 'manutencao' },
-  { id: 'SE-05', nome: 'Subestação Oeste', carga: 0, status: 'critico' },
-]
-
-const alimentadores = [
-  { id: 'AL-101', nome: 'Alimentador Norte-1', fluxo: 34.2, perdas: 3.1, status: 'operacional' },
-  { id: 'AL-102', nome: 'Alimentador Central-1', fluxo: 48.7, perdas: 5.8, status: 'atencao' },
-  { id: 'AL-103', nome: 'Alimentador Sul-1', fluxo: 29.5, perdas: 2.4, status: 'operacional' },
-  { id: 'AL-104', nome: 'Alimentador Leste-1', fluxo: 12.1, perdas: 4.0, status: 'operacional' },
-]
-
-const statusStyles = {
-  operacional: { dot: 'bg-green-500', text: 'text-green-400', label: 'Operacional' },
-  atencao: { dot: 'bg-yellow-500', text: 'text-yellow-400', label: 'Atenção' },
-  critico: { dot: 'bg-red-500', text: 'text-red-400', label: 'Crítico' },
-  manutencao: { dot: 'bg-slate-500', text: 'text-slate-400', label: 'Manutenção' },
-}
+type Medicoes = { estado: 'pronta'; lista: MedicaoLinha[] } | { estado: 'erro' }
 
 function Monitoramento() {
+  const [linhas, setLinhas] = useState<LinhaTransmissao[]>([])
+  const [medicoes, setMedicoes] = useState<Record<number, Medicoes>>({})
+  const [serie, setSerie] = useState<MedicaoLinha[]>([])
+  const [linhaSelecionada, setLinhaSelecionada] = useState<number | null>(null)
+  const [carregando, setCarregando] = useState(true)
+  const [erro, setErro] = useState('')
+  const [atualizadoEm, setAtualizadoEm] = useState<number>(() => Date.now())
+  const [automatico, setAutomatico] = useState(true)
+
+  // Cada linha consulta suas leituras recentes; a falha de uma não esconde as demais
+  const atualizar = useCallback(async () => {
+    try {
+      const lista = await listarLinhas()
+      const resultados = await Promise.allSettled(lista.map((l) => listarMedicoesLinha(l.id)))
+      setLinhas([...lista].sort((a, b) => a.id - b.id))
+      setMedicoes(
+        Object.fromEntries(
+          lista.map((l, i) => {
+            const resultado = resultados[i]
+            return [l.id, resultado.status === 'fulfilled' ? { estado: 'pronta', lista: resultado.value } : { estado: 'erro' }]
+          })
+        )
+      )
+      setErro('')
+    } catch (error) {
+      setErro(extrairErroApi(error).mensagem)
+    } finally {
+      setAtualizadoEm(Date.now())
+      setCarregando(false)
+    }
+  }, [])
+
+  useEffect(() => {
+    atualizar()
+  }, [atualizar])
+
+  useEffect(() => {
+    if (!automatico) return
+    const intervalo = setInterval(atualizar, CADENCIA_MS)
+    return () => clearInterval(intervalo)
+  }, [automatico, atualizar])
+
+  const linhaGrafico = linhaSelecionada ?? linhas[0]?.id ?? null
+
+  // A série do gráfico acompanha a mesma cadência das leituras
+  useEffect(() => {
+    if (linhaGrafico === null) return
+    let ativo = true
+
+    listarMedicoesLinha(linhaGrafico, 100)
+      .then((lista) => ativo && setSerie([...lista].reverse()))
+      .catch(() => ativo && setSerie([]))
+
+    return () => {
+      ativo = false
+    }
+  }, [linhaGrafico, atualizadoEm])
+
+  const linhaDoGrafico = linhas.find((l) => l.id === linhaGrafico)
+
   return (
     <div>
-      <div className="mb-8">
-        <h2 className="text-3xl font-bold text-white">
-          Monitoramento
-        </h2>
+      <div className="mb-8 flex flex-wrap items-start justify-between gap-4">
+        <div>
+          <h2 className="text-3xl font-bold text-white">
+            Monitoramento
+          </h2>
 
-        <p className="mt-2 text-slate-400">
-          Variáveis elétricas e status operacional da rede em tempo real.
-        </p>
-      </div>
-
-      <div className="grid gap-6 md:grid-cols-2 xl:grid-cols-4">
-        <div className="rounded-xl border border-slate-800 bg-slate-900 p-6 transition hover:border-slate-700">
-          <div className="flex items-center justify-between">
-            <p className="text-sm text-slate-400">Potência Ativa</p>
-            <Zap className="h-4 w-4 text-blue-400" />
-          </div>
-
-          <p className="mt-2 text-3xl font-bold text-white">
-            842.6 <span className="text-lg font-normal text-slate-400">MW</span>
+          <p className="mt-2 text-slate-400">
+            Leituras mais recentes da rede, com origem, instante e indicação de atraso.
           </p>
         </div>
 
-        <div className="rounded-xl border border-slate-800 bg-slate-900 p-6 transition hover:border-slate-700">
-          <div className="flex items-center justify-between">
-            <p className="text-sm text-slate-400">Frequência da Rede</p>
-            <Activity className="h-4 w-4 text-green-400" />
+        <div className="flex flex-col items-end gap-2 text-xs text-slate-400">
+          <div className="flex items-center gap-3">
+            <label className="flex items-center gap-2">
+              <input type="checkbox" checked={automatico} onChange={(e) => setAutomatico(e.target.checked)} />
+              Atualizar a cada {CADENCIA_MS / 1000} s
+            </label>
+
+            <button
+              type="button"
+              onClick={atualizar}
+              className="flex items-center gap-1.5 rounded-lg border border-slate-700 px-2.5 py-1.5 text-slate-300 transition hover:bg-slate-800"
+            >
+              <RefreshCw className="h-3.5 w-3.5" />
+              Atualizar agora
+            </button>
           </div>
 
-          <p className="mt-2 text-3xl font-bold text-white">
-            59.98 <span className="text-lg font-normal text-slate-400">Hz</span>
-          </p>
-        </div>
-
-        <div className="rounded-xl border border-slate-800 bg-slate-900 p-6 transition hover:border-slate-700">
-          <div className="flex items-center justify-between">
-            <p className="text-sm text-slate-400">Fator de Potência</p>
-            <Gauge className="h-4 w-4 text-blue-400" />
-          </div>
-
-          <p className="mt-2 text-3xl font-bold text-white">
-            0.96
-          </p>
-        </div>
-
-        <div className="rounded-xl border border-slate-800 bg-slate-900 p-6 transition hover:border-slate-700">
-          <div className="flex items-center justify-between">
-            <p className="text-sm text-slate-400">Perdas na Distribuição</p>
-            <TrendingDown className="h-4 w-4 text-yellow-400" />
-          </div>
-
-          <p className="mt-2 text-3xl font-bold text-yellow-400">
-            4.3%
+          <p role="status">
+            Atualizado às {new Date(atualizadoEm).toLocaleTimeString('pt-BR')} · leituras com mais de 5 min são marcadas como atrasadas
           </p>
         </div>
       </div>
 
-      <div className="mt-6 grid gap-6 xl:grid-cols-2">
-        <div className="rounded-xl border border-slate-800 bg-slate-900 p-6">
-          <h3 className="text-lg font-semibold text-white">
-            Tensão e Frequência (24h)
-          </h3>
-
-          <div className="mt-6 h-64">
-            <ResponsiveContainer width="100%" height="100%">
-              <LineChart data={eletricasData}>
-                <CartesianGrid strokeDasharray="3 3" stroke="#1e293b" />
-                <XAxis dataKey="hora" stroke="#64748b" fontSize={12} />
-                <YAxis yAxisId="left" stroke="#64748b" fontSize={12} />
-                <YAxis yAxisId="right" orientation="right" domain={[59.8, 60.2]} stroke="#64748b" fontSize={12} />
-                <Tooltip
-                  contentStyle={{
-                    backgroundColor: '#0f172a',
-                    border: '1px solid #1e293b',
-                    borderRadius: '8px',
-                    color: '#fff',
-                  }}
-                />
-                <Legend wrapperStyle={{ fontSize: '12px', color: '#94a3b8' }} />
-                <Line yAxisId="left" type="monotone" dataKey="tensao" name="Tensão (kV)" stroke="#3b82f6" strokeWidth={2} dot={false} />
-                <Line yAxisId="right" type="monotone" dataKey="frequencia" name="Frequência (Hz)" stroke="#22c55e" strokeWidth={2} dot={false} />
-              </LineChart>
-            </ResponsiveContainer>
-          </div>
-        </div>
-
-        <div className="rounded-xl border border-slate-800 bg-slate-900 p-6">
-          <h3 className="text-lg font-semibold text-white">
-            Potência Ativa e Reativa (24h)
-          </h3>
-
-          <div className="mt-6 h-64">
-            <ResponsiveContainer width="100%" height="100%">
-              <LineChart data={potenciaData}>
-                <CartesianGrid strokeDasharray="3 3" stroke="#1e293b" />
-                <XAxis dataKey="hora" stroke="#64748b" fontSize={12} />
-                <YAxis stroke="#64748b" fontSize={12} />
-                <Tooltip
-                  contentStyle={{
-                    backgroundColor: '#0f172a',
-                    border: '1px solid #1e293b',
-                    borderRadius: '8px',
-                    color: '#fff',
-                  }}
-                />
-                <Legend wrapperStyle={{ fontSize: '12px', color: '#94a3b8' }} />
-                <Line type="monotone" dataKey="ativa" name="P. Ativa (MW)" stroke="#3b82f6" strokeWidth={2} dot={false} />
-                <Line type="monotone" dataKey="reativa" name="P. Reativa (MVAr)" stroke="#a855f7" strokeWidth={2} dot={false} />
-              </LineChart>
-            </ResponsiveContainer>
-          </div>
-        </div>
-      </div>
-
-      <div className="mt-6 rounded-xl border border-slate-800 bg-slate-900 p-6">
-        <h3 className="text-lg font-semibold text-white">
-          Status das Subestações
+      <section className="rounded-xl border border-slate-800 bg-slate-900 p-6" aria-labelledby="titulo-linhas">
+        <h3 id="titulo-linhas" className="text-lg font-semibold text-white">
+          Linhas de transmissão
         </h3>
 
         <div className="mt-4 overflow-x-auto">
           <table className="w-full text-sm">
             <thead>
               <tr className="border-b border-slate-800 text-left text-slate-400">
-                <th className="pb-3 font-normal">Subestação</th>
-                <th className="pb-3 font-normal">Status</th>
-                <th className="pb-3 font-normal">Carga</th>
+                <th className="pb-3 font-normal">Linha</th>
+                {GRANDEZAS_LINHA.map((g) => (
+                  <th key={g.campo} className="pb-3 font-normal">{g.rotulo}</th>
+                ))}
               </tr>
             </thead>
             <tbody>
-              {subestacoes.map((s) => {
-                const style = statusStyles[s.status as keyof typeof statusStyles]
+              {linhas.map((linha) => {
+                const estado = medicoes[linha.id]
 
                 return (
-                  <tr key={s.id} className="border-b border-slate-800/60 last:border-0">
-                    <td className="py-3 text-slate-200">{s.nome}</td>
-                    <td className="py-3">
-                      <span className="flex items-center gap-2">
-                        <span className={`h-2 w-2 rounded-full ${style.dot}`} />
-                        <span className={style.text}>{style.label}</span>
-                      </span>
+                  <tr
+                    key={linha.id}
+                    aria-selected={linha.id === linhaGrafico}
+                    className={`border-b border-slate-800/60 align-top last:border-0 ${linha.id === linhaGrafico ? 'bg-slate-800/40' : ''}`}
+                  >
+                    <td className="py-3 pr-4">
+                      <button type="button" onClick={() => setLinhaSelecionada(linha.id)} className="text-left text-slate-200 hover:underline">
+                        {linha.nome}
+                      </button>
+                      <p className="mt-1 text-xs text-slate-500">Operação {linha.tensaoOperacaoKv} kV</p>
                     </td>
-                    <td className="py-3 text-slate-300">{s.carga}%</td>
+
+                    {GRANDEZAS_LINHA.map((g) => (
+                      <td key={g.campo} className="py-3 pr-4">
+                        {!estado ? (
+                          <span className="text-xs text-slate-500">...</span>
+                        ) : estado.estado === 'erro' ? (
+                          <span className="text-xs text-slate-500">Indisponível</span>
+                        ) : (
+                          <CelulaLeitura
+                            leitura={ultimaLeitura(estado.lista, g.campo)}
+                            unidade={g.unidade}
+                            agora={atualizadoEm}
+                            referenciaKv={g.campo === 'tensaoKv' ? linha.tensaoOperacaoKv : undefined}
+                          />
+                        )}
+                      </td>
+                    ))}
                   </tr>
                 )
               })}
             </tbody>
           </table>
+
+          {carregando && <p className="py-10 text-center text-sm text-slate-500">Carregando leituras...</p>}
+
+          {!carregando && erro && (
+            <div className="flex flex-col items-center gap-3 py-10">
+              <p className="text-sm text-red-400">{erro}</p>
+              <button
+                type="button"
+                onClick={atualizar}
+                className="rounded-lg border border-slate-700 px-3 py-1.5 text-sm text-slate-300 transition hover:bg-slate-800"
+              >
+                Tentar novamente
+              </button>
+            </div>
+          )}
+
+          {!carregando && !erro && linhas.length === 0 && (
+            <p className="py-10 text-center text-sm text-slate-500">Nenhuma linha de transmissão cadastrada.</p>
+          )}
         </div>
-      </div>
+      </section>
 
-      <div className="mt-6 rounded-xl border border-slate-800 bg-slate-900 p-6">
-        <h3 className="text-lg font-semibold text-white">
-          Fluxo de Potência - Alimentadores
-        </h3>
+      {linhaDoGrafico && (
+        <section className="mt-6" aria-label={`Série de ${linhaDoGrafico.nome}`}>
+          <h3 className="mb-3 text-lg font-semibold text-white">
+            {linhaDoGrafico.nome} <span className="text-sm font-normal text-slate-500">· últimas {serie.length} leituras</span>
+          </h3>
 
-        <div className="mt-4 grid gap-3 sm:grid-cols-2">
-          {alimentadores.map((f) => {
-            const style = statusStyles[f.status as keyof typeof statusStyles]
-
-            return (
-              <div key={f.id} className="flex items-center justify-between rounded-lg border border-slate-800 p-4">
-                <div>
-                  <p className="text-sm text-slate-200">{f.nome}</p>
-                  <p className="mt-1 text-xs text-slate-500">Perdas: {f.perdas}%</p>
-                </div>
-
-                <div className="text-right">
-                  <p className="font-semibold text-white">{f.fluxo} MW</p>
-                  <span className={`mt-1 flex items-center justify-end gap-1.5 text-xs ${style.text}`}>
-                    <span className={`h-1.5 w-1.5 rounded-full ${style.dot}`} />
-                    {style.label}
-                  </span>
-                </div>
-              </div>
-            )
-          })}
-        </div>
-      </div>
+          <div className="grid gap-4 lg:grid-cols-2">
+            {GRANDEZAS_LINHA.map((g) => (
+              <GraficoSerie
+                key={g.campo}
+                titulo={g.rotulo}
+                unidade={g.unidade}
+                pontos={serie.map((m) => ({ instante: m.medidoEm, valor: m[g.campo] }))}
+              />
+            ))}
+          </div>
+        </section>
+      )}
     </div>
   )
 }
