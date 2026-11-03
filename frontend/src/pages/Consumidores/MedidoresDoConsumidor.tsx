@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
-import { ArrowRight, MapPin } from 'lucide-react'
 import Modal from '../../components/Modal'
+import { CadeiaRede, Fornecimento } from '../../components/medidores'
 import { listarAlimentadores } from '../../services/alimentadores'
 import { extrairErroApi } from '../../services/api'
 import { listarMedidoresDoConsumidor } from '../../services/consumidores'
@@ -9,38 +9,16 @@ import { listarTransformadores } from '../../services/transformadores'
 import type { Consumidor, Medidor } from '../../types'
 import { ESTADO_STYLES } from '../../utils/constants'
 import { formatarData } from '../../utils/formatacao'
+import { nomesPorId, type NomesRede } from '../../utils/rede'
 
 type Props = {
   consumidor: Consumidor
   aoFechar: () => void
 }
 
-type Nomes = Record<'transformadores' | 'alimentadores' | 'subestacoes', Map<number, string>>
-
-function porId(lista: { id: number; nome: string }[]) {
-  return new Map(lista.map((item) => [item.id, item.nome]))
-}
-
-function Fornecimento({ medidor }: { medidor: Medidor }) {
-  if (medidor.enderecoFornecimento) {
-    return <span>{medidor.enderecoFornecimento}</span>
-  }
-
-  if (medidor.latitude !== null && medidor.longitude !== null) {
-    return (
-      <span className="flex items-center gap-1.5">
-        <MapPin className="h-3.5 w-3.5 text-slate-500" />
-        {medidor.latitude}, {medidor.longitude}
-      </span>
-    )
-  }
-
-  return <span className="text-slate-500">Não informado</span>
-}
-
 function MedidoresDoConsumidor({ consumidor, aoFechar }: Props) {
   const [medidores, setMedidores] = useState<Medidor[]>([])
-  const [nomes, setNomes] = useState<Nomes | null>(null)
+  const [nomes, setNomes] = useState<NomesRede | null>(null)
   const [carregando, setCarregando] = useState(true)
   const [erro, setErro] = useState('')
   const [tentativa, setTentativa] = useState(0)
@@ -60,9 +38,9 @@ function MedidoresDoConsumidor({ consumidor, aoFechar }: Props) {
         if (!ativo) return
         setMedidores(lista)
         setNomes({
-          transformadores: porId(transformadores),
-          alimentadores: porId(alimentadores),
-          subestacoes: porId(subestacoes),
+          transformadores: nomesPorId(transformadores),
+          alimentadores: nomesPorId(alimentadores),
+          subestacoes: nomesPorId(subestacoes),
         })
       })
       .catch((error) => ativo && setErro(extrairErroApi(error).mensagem))
@@ -73,10 +51,6 @@ function MedidoresDoConsumidor({ consumidor, aoFechar }: Props) {
       ativo = false
     }
   }, [consumidor.id, tentativa])
-
-  function nome(tipo: keyof Nomes, id: number) {
-    return nomes?.[tipo].get(id) ?? `#${id}`
-  }
 
   return (
     <Modal titulo={`Medidores de ${consumidor.nomeRazaoSocial}`} aoFechar={aoFechar} largura="max-w-4xl">
@@ -132,17 +106,7 @@ function MedidoresDoConsumidor({ consumidor, aoFechar }: Props) {
                       <Fornecimento medidor={m} />
                     </td>
                     <td className="py-3 pr-4 text-slate-400">
-                      {m.transformadorId === null ? (
-                        <span className="text-slate-500">Sem transformador</span>
-                      ) : (
-                        <span className="flex flex-wrap items-center gap-1.5">
-                          {nome('transformadores', m.transformadorId)}
-                          <ArrowRight aria-label="alimentado por" className="h-3.5 w-3.5 text-slate-500" />
-                          {m.alimentadorId !== null && nome('alimentadores', m.alimentadorId)}
-                          <ArrowRight aria-label="na subestação" className="h-3.5 w-3.5 text-slate-500" />
-                          {m.subestacaoId !== null && nome('subestacoes', m.subestacaoId)}
-                        </span>
-                      )}
+                      <CadeiaRede medidor={m} nomes={nomes} />
                     </td>
                     <td className="py-3 text-slate-300">{m.dataInstalacao ? formatarData(m.dataInstalacao) : '—'}</td>
                     <td className="py-3">
