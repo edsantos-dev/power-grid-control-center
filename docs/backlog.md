@@ -782,7 +782,7 @@ Como gerente, quero visualizar o histórico de alertas gerados por criticidade, 
 
 - **Perfil e prioridade:** Gerente de Operações. Prioridade: Baixa.
 - **Status:** Em andamento.
-- **Implementação existente:** Frontend com filtro por nível em array local. V11, criticidades persistidas, projeção unificada e consulta Web paginada em revisão.
+- **Implementação existente:** Frontend com aba de histórico das quatro origens pela API. Frontend com filtro por nível em array local. V11, criticidades persistidas, projeção unificada e consulta Web paginada em revisão.
 - **Trabalho pendente:** Revisão do backend, integração da interface e aceite funcional.
 - **Dependências:** US20; persistência e histórico de alertas.
 - **Referências no frontend:** [Alertas/index.tsx](../frontend/src/pages/Alertas/index.tsx#L17) (linhas 17,39).
@@ -811,6 +811,8 @@ Como gerente, quero visualizar o histórico de alertas gerados por criticidade, 
 **Contrato de apresentação:** AlertaDashboardResponseDTO preserva os campos estruturados da view e acrescenta descricao. Números na descrição usam pt-BR, mínimo de duas e máximo de oito casas decimais, preservando as casas relevantes dos snapshots; os campos técnicos continuam BigDecimal. Mensagem genérica ausente permanece nula. Reconhecimento não é convertido em resolução; datas ausentes permanecem nulas e ficam ao final na listagem sem filtro temporal. Todos os instantes enviados no DTO são UTC.
 
 **Verificação integrada:** AlertaDashboardControllerTest gera alertas pelas regras e serviços de origem, verifica paginação com tipos misturados, desempates, datas nulas, filtros isolados/combinados, limites temporais, descrições, precisão, reconhecimento, restabelecimento e acesso por perfil. Não foram criadas ações de alteração pela projeção. A integração do frontend e o aceite da história permanecem pendentes.
+
+**US24-T03 — interface em revisão:** A tela de alertas ganhou as abas "Ativos" e "Histórico". O histórico consome GET /api/alertas-dashboard com paginação global do backend, preservando a ordem fixa, e filtros de criticidade, origem, escopo, situação na origem e período. O período é escolhido por dia local e enviado em UTC, com início inclusivo e fim exclusivo no dia seguinte ao último selecionado; período invertido é bloqueado antes da consulta. A contagem por criticidade usa o totalElements de consultas com size=1 e os demais filtros aplicados; os cartões também filtram. Cada linha usa a identidade composta tipo/idOrigem e mostra instante (ou "Sem data"), origem, criticidade, ativo ou rede monitorada, a descrição do backend e a situação original com o instante de reconhecimento ou restabelecimento, sem converter reconhecimento em resolução. Sem correspondência, a tela exibe estado vazio. HistoricoAlertas.test.tsx cobre US24-CA01–CA03 na interface; o fluxo foi verificado no navegador com alertas reais das quatro origens.
 
 ### US25 — Autenticar e restringir acesso por perfil
 

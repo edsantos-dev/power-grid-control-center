@@ -12,6 +12,7 @@ vi.mock('../../services/ativos')
 vi.mock('./AlertasSobrecarga', () => ({ default: () => null }))
 vi.mock('./AlertasTensao', () => ({ default: () => null }))
 vi.mock('./AlertasComunicacao', () => ({ default: () => null }))
+vi.mock('./HistoricoAlertas', () => ({ default: () => <p>Histórico simulado</p> }))
 
 const alerta = (dados: Partial<Alerta>): Alerta => ({
   id: 1,

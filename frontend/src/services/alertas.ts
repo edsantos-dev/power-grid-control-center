@@ -7,6 +7,8 @@ import type {
   AlertaComunicacao,
   AvaliacaoComunicacao,
   StatusComunicacao,
+  AlertaHistorico,
+  FiltrosHistoricoAlertas,
   PageResponse,
   StatusAlertaAutomatico,
   TipoAlertaTensao,
@@ -60,6 +62,13 @@ export async function listarAlertasComunicacao(page: number, status?: StatusComu
   const { data } = await api.get<PageResponse<AlertaComunicacao>>('/api/alertas-comunicacao', {
     params: { page, size: 20, ...(status && { status }) },
   })
+  return data
+}
+
+// Une as quatro origens com paginação global e ordem fixa: ocorridoEm, tipo e id decrescentes
+export async function listarHistoricoAlertas(page: number, filtros: FiltrosHistoricoAlertas, size = 20) {
+  const params = Object.fromEntries(Object.entries({ page, size, ...filtros }).filter(([, valor]) => valor !== undefined))
+  const { data } = await api.get<PageResponse<AlertaHistorico>>('/api/alertas-dashboard', { params })
   return data
 }
 
