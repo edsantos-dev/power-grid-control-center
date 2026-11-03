@@ -33,6 +33,14 @@ export function inicioDoDiaSeguinteLocal(data: string) {
   return new Date(ano, mes - 1, dia + 1).toISOString()
 }
 
+export function formatarDuracao(segundos: number) {
+  const minutos = Math.round(segundos / 60)
+  if (minutos < 60) return `${minutos} min`
+  const horas = Math.floor(minutos / 60)
+  const resto = minutos % 60
+  return resto ? `${horas} h ${resto} min` : `${horas} h`
+}
+
 // A data não tem fuso: converter com new Date pode exibir o dia anterior
 export function formatarData(data: string) {
   return data.split('-').reverse().join('/')
