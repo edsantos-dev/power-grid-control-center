@@ -101,11 +101,11 @@ describe('registro de evento programado', () => {
     await userEvent.click(await screen.findByRole('button', { name: 'Registrar evento programado' }))
   }
 
-  it('oferece apenas manobra e desligamento programado', async () => {
+  it('oferece as categorias programadas aceitas pelo backend', async () => {
     await abrir()
 
     const opcoes = within(screen.getByLabelText('Categoria')).getAllByRole('option').map((o) => o.textContent)
-    expect(opcoes).toEqual(['Selecione', 'Manobra', 'Desligamento programado'])
+    expect(opcoes).toEqual(['Selecione', 'Manobra', 'Desligamento programado', 'Manutenção'])
   })
 
   it('exige campos e rejeita termino antes do inicio sem chamar a API', async () => {

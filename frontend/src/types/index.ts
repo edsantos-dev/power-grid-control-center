@@ -326,6 +326,18 @@ export type TransicaoEvento = {
   comentario: string
 }
 
+export type ManutencaoHistorico = {
+  evento: EventoOperacional
+  ultimaTransicao: TransicaoEvento | null
+}
+
+export type FiltrosManutencao = {
+  situacao?: SituacaoEvento
+  responsavelUsuarioId?: number
+  dataInicio?: string
+  dataFim?: string
+}
+
 export type LinhaTransmissao = {
   id: number
   nome: string

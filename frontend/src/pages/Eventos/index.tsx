@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import { Search, Calendar, User, Plus, ZapOff, History } from 'lucide-react'
+import { Search, Calendar, User, Plus, ZapOff, History, Wrench } from 'lucide-react'
 import { useAuth } from '../../hooks/useAuth'
 import { extrairErroApi } from '../../services/api'
 import { listarCatalogoAtivos, type AtivoCatalogo } from '../../services/ativos'
@@ -8,6 +8,7 @@ import type { CategoriaEvento, EventoOperacional, SituacaoEvento } from '../../t
 import { formatarDataHora } from '../../utils/formatacao'
 import { CATEGORIA_LABEL, SITUACAO_EVENTO_STYLES, SITUACOES_EVENTO } from './constantes'
 import EventoForm from './EventoForm'
+import HistoricoManutencao from './HistoricoManutencao'
 import HistoricoTransicoes from './HistoricoTransicoes'
 import InterrupcaoForm from './InterrupcaoForm'
 import TransicaoForm from './TransicaoForm'
@@ -31,6 +32,7 @@ function Eventos() {
   const [interrupcaoAberta, setInterrupcaoAberta] = useState(false)
   const [emTransicao, setEmTransicao] = useState<{ evento: EventoOperacional; transicao: Transicao } | null>(null)
   const [historico, setHistorico] = useState<EventoOperacional | null>(null)
+  const [manutencaoAberta, setManutencaoAberta] = useState(false)
 
   async function carregar() {
     setCarregando(true)
@@ -97,6 +99,15 @@ function Eventos() {
         </div>
 
         <div className="flex flex-wrap gap-2">
+          <button
+            type="button"
+            onClick={() => setManutencaoAberta(true)}
+            className="flex items-center gap-2 rounded-lg border border-slate-700 px-4 py-2 text-sm font-semibold text-slate-300 transition hover:bg-slate-800"
+          >
+            <Wrench className="h-4 w-4" />
+            Manutenções por ativo
+          </button>
+
           <button
             type="button"
             onClick={() => setInterrupcaoAberta(true)}
@@ -284,6 +295,11 @@ function Eventos() {
         />
       )}
 
+      {manutencaoAberta && (
+        <HistoricoManutencao ativos={ativos} aoFechar={() => setManutencaoAberta(false)} aoVerTransicoes={setHistorico} />
+      )}
+
+      {/* Depois do histórico de manutenção, para abrir sobre ele */}
       {historico && <HistoricoTransicoes evento={historico} aoFechar={() => setHistorico(null)} />}
 
       {interrupcaoAberta && (
@@ -293,7 +309,7 @@ function Eventos() {
       {formularioAberto && (
         <EventoForm
           ativos={ativos}
-          categorias={['MANOBRA', 'DESLIGAMENTO_PROGRAMADO']}
+          categorias={['MANOBRA', 'DESLIGAMENTO_PROGRAMADO', 'MANUTENCAO']}
           aoFechar={() => setFormularioAberto(false)}
           aoSalvar={handleSalvar}
         />
