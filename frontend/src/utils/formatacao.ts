@@ -16,6 +16,11 @@ export function inicioDoDiaLocal(data: string) {
   return new Date(ano, mes - 1, dia).toISOString()
 }
 
+// Interpreta o valor de um input datetime-local no fuso do navegador e devolve o instante em UTC
+export function instanteDeDataHoraLocal(valor: string) {
+  return new Date(valor).toISOString()
+}
+
 // A data não tem fuso: converter com new Date pode exibir o dia anterior
 export function formatarData(data: string) {
   return data.split('-').reverse().join('/')
