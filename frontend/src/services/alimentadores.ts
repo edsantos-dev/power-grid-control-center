@@ -1,5 +1,12 @@
 import api from './api'
-import type { Alimentador, AlimentadorRequest, PerdaTecnica } from '../types'
+import type {
+  Alimentador,
+  AlimentadorRequest,
+  GranularidadeHistorico,
+  HistoricoConsumoMedido,
+  HistoricoEnergia,
+  PerdaTecnica,
+} from '../types'
 
 const ROTA = '/api/alimentadores'
 
@@ -21,6 +28,17 @@ export async function atualizarAlimentador(id: number, dados: AlimentadorRequest
 // Cálculo sob demanda: exige período completo, com início inclusivo e fim exclusivo
 export async function calcularPerdasTecnicas(id: number, dataInicio: string, dataFim: string) {
   const { data } = await api.get<PerdaTecnica>(`${ROTA}/${id}/perdas-tecnicas`, { params: { dataInicio, dataFim } })
+  return data
+}
+
+// Restritos ao gerente; o calendário DIA/MES é em UTC e o fim não pode ser futuro
+export async function consultarHistoricoEnergia(id: number, dataInicio: string, dataFim: string, granularidade: GranularidadeHistorico) {
+  const { data } = await api.get<HistoricoEnergia>(`${ROTA}/${id}/historico-energia`, { params: { dataInicio, dataFim, granularidade } })
+  return data
+}
+
+export async function consultarHistoricoConsumo(id: number, dataInicio: string, dataFim: string, granularidade: GranularidadeHistorico) {
+  const { data } = await api.get<HistoricoConsumoMedido>(`${ROTA}/${id}/historico-consumo-medido`, { params: { dataInicio, dataFim, granularidade } })
   return data
 }
 
