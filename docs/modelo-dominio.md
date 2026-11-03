@@ -500,3 +500,15 @@ O consumo por intervalo foi escolhido para manter a ingestão independente de le
 MedicaoConsumoFluxoE2ETest cadastra subestação, alimentador, transformador, titular e medidor por HTTP, instala o medidor e provisiona uma fonte SIMULADA. As escritas usam sessão e CSRF e confirmam transações independentes. A avaliação manual da US23, após ultrapassar a tolerância de 300 segundos, gera um alerta ATIVO. A ingestão seguinte registra 150,5 kWh, copia os quatro IDs da topologia original e restabelece o alerta. A consulta individual e a leitura da base verificam snapshots, ultimaComunicacaoEm e restabelecidoEm, usando o mesmo recebidoEm UTC.
 
 O backend de telemetria está concluído. A série temporal agregada de consumo dos medidores na US15 será um complemento próprio; as séries existentes de energia injetada e perdas não são substituídas. Integração visual, troca e reinstalação permanecem pendentes nos respectivos escopos.
+
+## Histórico agregado de consumo medido — US15
+
+O histórico de consumo utiliza MedicaoConsumoMedidor e o alimentadorId gravado no snapshot. O filtro histórico não navega pelo transformador ou pelo alimentador atual do medidor, preservando a associação da leitura quando cadastros mudam. A identificação do equipamento é obtida pela fonte da leitura; as APIs de fonte não reatribuem o ativo.
+
+ConsumoMedidoHistoricoProjection contém medidorId, inicioPeriodo, fimPeriodo e consumoKwh. MedicaoConsumoMedidorRepository.buscarParaHistorico seleciona leituras com inicioPeriodo < dataFim e fimPeriodo > dataInicio, respeitando a janela semiaberta. Intervalos apenas adjacentes são excluídos; invasões parciais são retornadas com os limites originais, sem recorte de energia. A ordem é medidorId ASC, inicioPeriodo ASC e id da leitura ASC. A consulta escalar não carrega entidades ou associações LAZY nem remove leituras coincidentes de fontes diferentes.
+
+O contrato do motor prevê cobertura primeiro por medidor e ponto DIA/MES em UTC, somando equipamentos distintos somente após validar suas coberturas. Fontes simultâneas do mesmo equipamento precisam ter sobreposições detectadas; equipamentos distintos podem consumir simultaneamente. Leituras que cruzam fronteiras não serão rateadas, e pontos insuficientes terão total nulo.
+
+A população será a dos medidores observados nas leituras que intersectam o período, com coberturaCadastral=NAO_AFERIDA. Isso não comprova a presença de todos os medidores historicamente instalados. O consumo será somado em kWh antes da conversão exata para MWh, preservando até nove casas decimais. O contrato prevê no máximo 366 pontos, acesso exclusivo de GERENTE_OPERACOES e endpoint separado das séries de energia injetada e perdas.
+
+A projeção e a consulta estão implementadas, com testes de snapshot, interseção e ausência de N+1. Motor de cobertura, conversão, DTOs, API e fluxo E2E permanecem pendentes. Não há nova entidade persistente, migration ou índice neste recorte; eventual índice depende da análise do plano de execução.
