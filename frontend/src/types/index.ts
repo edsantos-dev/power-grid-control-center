@@ -430,6 +430,33 @@ export type HistoricoConsumoMedido = {
   pontos: PontoConsumoMedido[]
 }
 
+export type TipoAtivoMapa = 'USINA' | 'SUBESTACAO' | 'TRANSFORMADOR' | 'LINHA'
+
+export type AreaMapa = { minLat: number; maxLat: number; minLng: number; maxLng: number }
+
+// GeoJSON: coordenadas em [longitude, latitude]
+export type FeatureMapa = {
+  type: 'Feature'
+  id: string
+  geometry: { type: 'Point'; coordinates: [number, number] } | { type: 'LineString'; coordinates: [number, number][] }
+  properties: {
+    ativoId: number
+    tipoAtivo: TipoAtivoMapa
+    nome: string
+    estadoOperacional: EstadoOperacional
+    detalheUri: string
+    subestacaoOrigemId?: number
+    subestacaoDestinoId?: number
+    tipoRepresentacao?: 'CONEXAO_SIMPLIFICADA'
+  }
+}
+
+export type ColecaoMapa = {
+  type: 'FeatureCollection'
+  features: FeatureMapa[]
+  metadados: { totalFeatures: number; totalAtivosSemGeometria: number }
+}
+
 export type LinhaTransmissao = {
   id: number
   nome: string

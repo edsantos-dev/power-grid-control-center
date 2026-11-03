@@ -442,7 +442,7 @@ Como operador, quero visualizar o mapa geográfico dos ativos da rede, para loca
 
 - **Perfil e prioridade:** Operador. Prioridade: Alta.
 - **Status:** Em andamento.
-- **Implementação existente:** Backend concluído com projeções e álgebra de interseção, API GeoJSON, filtros BBOX/camada/estado, metadados, limite sem truncamento com 422 e fluxo E2E integrado. Frontend ainda sem mapa; Dashboard tem KPIs/gráficos.
+- **Implementação existente:** Frontend com mapa geográfico de ativos no Dashboard pela API GeoJSON. Backend concluído com projeções e álgebra de interseção, API GeoJSON, filtros BBOX/camada/estado, metadados, limite sem truncamento com 422 e fluxo E2E integrado. Frontend ainda sem mapa; Dashboard tem KPIs/gráficos.
 - **Trabalho pendente:** Integração do mapa no frontend e aceite completo. Dependência Leaflet não comprova funcionalidade.
 - **Dependências:** US01; US02; coordenadas e traçados dos demais cadastros.
 - **Referências no frontend:** [Dashboard/index.tsx](../frontend/src/pages/Dashboard/index.tsx#L32) (linhas 32).
@@ -459,6 +459,8 @@ Como operador, quero visualizar o mapa geográfico dos ativos da rede, para loca
 - [x] **US13-T02:** Implementar o recorte de backend com testes pertinentes e documentação. Projeções, álgebra, GeoJSON, API, metadados e limites implementados, com fluxo E2E integrado e arquitetura documentada.
 - [ ] **US13-T03:** Integrar a interface com testes pertinentes e documentação.
 - [ ] **US13-T04:** Verificar integração/aceite e apresentar resultados e limitações.
+
+**US13-T03 — interface em revisão:** O Dashboard exibe o "Mapa de ativos" com react-leaflet sobre tiles escuros do CARTO/OpenStreetMap. A primeira consulta a GET /api/mapa/ativos cobre o mundo e enquadra os ativos; depois, cada movimento do mapa consulta a área visível (BBOX limitada aos intervalos geográficos, com espera de 250 ms após o arraste) e as camadas marcadas. Subestações, transformadores e usinas são pontos coloridos por tipo com os slots 1-3 da paleta de referência, validados contra a superfície escura; linhas são traços neutros tracejados, identificados como conexão simplificada entre as subestações, sem traçado real. Selecionar um ponto ou linha identifica tipo, ID, nome, estado, detalheUri e o link para o cadastro correspondente. A tela informa quantos ativos estão na área e quantos ficaram fora por falta de coordenadas, sem inventar localização; acima de 1.000 itens, o 422 do backend vira orientação para aproximar o mapa, sem truncar. Foi adicionado @types/leaflet 1.9.22 para tipar as props do react-leaflet. MapaAtivos.test.tsx cobre US13-CA01–CA03 na interface.
 
 ### US14 — Visualizar KPIs de disponibilidade e desempenho
 
