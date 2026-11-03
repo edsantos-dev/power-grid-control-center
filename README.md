@@ -144,6 +144,6 @@ As Sprints registram o planejamento de cada período. O backlog contém o estado
 |------|--------|--------|
 | Eduardo Alan dos Santos | Gerente de Projeto \ Back-end |
 | Felipe Augusto Graniska| Documentação |
-| Lucas Wessendorf de Araujo | Back-end |
+| Lucas Wessendorf de Araujo | Fullstack |
 | Victor Gabriel Alves Carneiro | Front-end |
 | Vinicius Roth Roque | Teste |
