@@ -1,4 +1,5 @@
 import { AlertTriangle, ArrowUpRight } from 'lucide-react'
+import MapaAtivos from './MapaAtivos'
 import {
   LineChart,
   Line,
@@ -40,6 +41,10 @@ function Dashboard() {
         <p className="mt-2 text-slate-400">
           Visão geral da operação da rede elétrica.
         </p>
+      </div>
+
+      <div className="mb-6">
+        <MapaAtivos />
       </div>
 
       <div className="grid gap-6 md:grid-cols-2 xl:grid-cols-4">
