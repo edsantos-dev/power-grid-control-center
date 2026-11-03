@@ -14,7 +14,7 @@ import type {
   TipoAlertaHistorico,
 } from '../../types'
 import { CRITICIDADE_STYLES, CRITICIDADES } from '../../utils/constants'
-import { formatarDataHora, inicioDoDiaLocal } from '../../utils/formatacao'
+import { formatarDataHora, inicioDoDiaLocal, inicioDoDiaSeguinteLocal } from '../../utils/formatacao'
 
 type Props = {
   ativos: AtivoCatalogo[]
@@ -49,12 +49,6 @@ const STATUS_LABEL: Record<StatusOrigemAlerta, string> = {
 const opcoes = <K extends string>(rotulos: Record<K, string>) =>
   (Object.keys(rotulos) as K[]).map((valor) => ({ valor, label: rotulos[valor] }))
 
-function diaSeguinte(data: string) {
-  const [ano, mes, dia] = data.split('-').map(Number)
-  const seguinte = new Date(ano, mes - 1, dia + 1)
-  return `${seguinte.getFullYear()}-${String(seguinte.getMonth() + 1).padStart(2, '0')}-${String(seguinte.getDate()).padStart(2, '0')}`
-}
-
 // O período é por dia local: início inclusivo e fim exclusivo no dia seguinte ao último selecionado
 function paraFiltros(valores: Valores): FiltrosHistoricoAlertas {
   return {
@@ -63,7 +57,7 @@ function paraFiltros(valores: Valores): FiltrosHistoricoAlertas {
     escopo: valores.escopo || undefined,
     statusOrigem: valores.statusOrigem || undefined,
     dataInicio: valores.de ? inicioDoDiaLocal(valores.de) : undefined,
-    dataFim: valores.ate ? inicioDoDiaLocal(diaSeguinte(valores.ate)) : undefined,
+    dataFim: valores.ate ? inicioDoDiaSeguinteLocal(valores.ate) : undefined,
   }
 }
 
