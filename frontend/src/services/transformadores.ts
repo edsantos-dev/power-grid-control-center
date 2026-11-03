@@ -18,6 +18,12 @@ export async function atualizarTransformador(id: number, dados: TransformadorReq
   return data
 }
 
+// Ordem fixa do backend: medidoEm e id decrescentes; size máximo de 100
+export async function listarMedicoesTransformador(id: number, size = 20) {
+  const { data } = await api.get<PageResponse<MedicaoTransformador>>(`${ROTA}/${id}/medicoes`, { params: { page: 0, size } })
+  return data.content
+}
+
 // A API ordena por medidoEm decrescente, então a primeira leitura é a mais recente
 export async function consultarUltimaMedicao(id: number): Promise<MedicaoTransformador | null> {
   const { data } = await api.get<PageResponse<MedicaoTransformador>>(`${ROTA}/${id}/medicoes`, {

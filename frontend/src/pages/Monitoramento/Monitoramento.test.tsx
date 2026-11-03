@@ -9,6 +9,7 @@ import { avaliarTensao, CADENCIA_MS, estaAtrasada, ultimaLeitura, ultimoFatorPot
 
 vi.mock('../../services/linhas')
 vi.mock('../../services/subestacoes')
+vi.mock('./CargaTransformadores', () => ({ default: () => null }))
 vi.mock('./GraficoSerie', () => ({
   default: ({ titulo, pontos }: { titulo: string; pontos: unknown[] }) => <p>{`Gráfico ${titulo}: ${pontos.length}`}</p>,
 }))
@@ -197,8 +198,8 @@ describe('monitoramento de linhas', () => {
 
     const serie = await screen.findByRole('region', { name: 'Série de LT Leste' })
     expect(serie).toHaveTextContent('Gráfico Tensão: 1')
-    expect(serie).toHaveTextContent('Gráfico Potência ativa: 1')
-    expect(serie).toHaveTextContent('Gráfico Potência reativa: 1')
+    expect(serie).not.toHaveTextContent('Gráfico Corrente')
+    expect(serie).toHaveTextContent('Sem leituras no período: corrente, potência ativa, potência reativa, frequência, fator de potência.')
     expect(linhasApi.listarMedicoesLinha).toHaveBeenCalledWith(2, 100)
   })
 })

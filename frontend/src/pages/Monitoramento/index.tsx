@@ -4,6 +4,7 @@ import { extrairErroApi } from '../../services/api'
 import { listarLinhas, listarMedicoesLinha } from '../../services/linhas'
 import { listarSubestacoes } from '../../services/subestacoes'
 import type { LinhaTransmissao, MedicaoLinha, Subestacao } from '../../types'
+import CargaTransformadores from './CargaTransformadores'
 import CelulaLeitura from './CelulaLeitura'
 import GraficoSerie from './GraficoSerie'
 import {
@@ -91,6 +92,9 @@ function Monitoramento() {
   }, [linhaGrafico, atualizadoEm])
 
   const linhaDoGrafico = linhas.find((l) => l.id === linhaGrafico)
+  // Só grandezas medidas no período ganham gráfico; as demais são listadas numa nota
+  const grandezasComDados = GRANDEZAS_LINHA.filter((g) => serie.some((m) => m[g.campo] !== null))
+  const grandezasSemDados = GRANDEZAS_LINHA.filter((g) => !grandezasComDados.includes(g))
 
   return (
     <div>
@@ -229,8 +233,14 @@ function Monitoramento() {
             {linhaDoGrafico.nome} <span className="text-sm font-normal text-slate-500">· últimas {serie.length} leituras</span>
           </h3>
 
+          {grandezasComDados.length === 0 && (
+            <p className="rounded-xl border border-slate-800 bg-slate-900 py-10 text-center text-sm text-slate-500">
+              Nenhuma leitura registrada para esta linha.
+            </p>
+          )}
+
           <div className="grid gap-4 lg:grid-cols-2">
-            {GRANDEZAS_LINHA.map((g) => (
+            {grandezasComDados.map((g) => (
               <GraficoSerie
                 key={g.campo}
                 titulo={g.rotulo}
@@ -239,8 +249,16 @@ function Monitoramento() {
               />
             ))}
           </div>
+
+          {grandezasComDados.length > 0 && grandezasSemDados.length > 0 && (
+            <p className="mt-3 text-xs text-slate-500">
+              Sem leituras no período: {grandezasSemDados.map((g) => g.rotulo.toLowerCase()).join(', ')}.
+            </p>
+          )}
         </section>
       )}
+
+      <CargaTransformadores atualizadoEm={atualizadoEm} />
     </div>
   )
 }

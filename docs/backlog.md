@@ -383,8 +383,8 @@ Como operador, quero visualizar a carga dos transformadores em tempo real, para 
 
 - **Perfil e prioridade:** Operador. Prioridade: Alta.
 - **Status:** Em andamento.
-- **Implementação existente:** Percentuais fixos no frontend. V7, fontes polimórficas, persistência e API de medições de transformadores em revisão.
-- **Trabalho pendente:** Revisão do backend, integração, atualização da interface e política de dados ausentes/atrasados.
+- **Implementação existente:** Frontend com monitoramento da carga dos transformadores pela API. Percentuais fixos no frontend. V7, fontes polimórficas, persistência e API de medições de transformadores em revisão.
+- **Trabalho pendente:** Revisão do backend e da integração; aprovação da cadência e da política de atraso propostas na US08; agrupamento por medidores (US11-CA01) e aceite funcional.
 - **Dependências:** US03; US06 se o cálculo utilizar medidores; infraestrutura de medições.
 - **Referências no frontend:** [Transformadores/index.tsx](../frontend/src/pages/Transformadores/index.tsx#L11) (linhas 11,20,46,147).
 
@@ -407,6 +407,8 @@ Como operador, quero visualizar a carga dos transformadores em tempo real, para 
 **Compatibilidade:** Os serviços e consultas de linhas usam o novo vínculo sem alterar seus contratos HTTP. FonteMedicaoRepository permite consulta por ativo. MedicaoTransformadorRepositoryTest cobre integridade, sobrecarga e preservação do snapshot; FontesV7MigrationTest verifica a atualização de uma base V6 com fonte e leitura existentes. A API de linhas rejeita fonte vinculada a transformador. O banco garante existência do ativo, não sua compatibilidade com o tipo de medição; os serviços validam o vínculo ao ativo tipado da rota.
 
 **US11-T02 — Lote 2 em revisão:** POST /api/transformadores/{id}/fontes cadastra fonte com identificador único e origem. POST /api/transformadores/{id}/medicoes exige fonteId, medidoEm e potenciaAparenteMva não negativa com precisão 13,6. O serviço valida ativo/fonte, tolerância temporal e captura capacidadeMva no snapshot. GET consulta com os mesmos filtros, paginação e ordenação das linhas, compartilhando ParametrosConsultaMedicao. A carga é derivada por S*100/capacidadeReferencia com seis casas HALF_EVEN, sem limite de 100%. MedicaoTransformadorControllerTest cobre sobrecarga, arredondamento, snapshot, vínculos, validações e segurança. Integração React e aceite funcional continuam pendentes.
+
+**US11-T03 — interface em revisão:** O monitoramento ganhou a seção "Carga dos transformadores", que consulta as medições de cada transformador em GET /api/transformadores/{id}/medicoes na mesma cadência da US08. A carga mais recente mostra o percentual calculado pelo servidor sem limite de 100%, a potência aparente medida, a capacidade de referência registrada na própria medição (que pode diferir da capacidade cadastrada atual), o instante, a origem e o atraso. A situação usa o mesmo limiar estrito de 100% da US21: exatamente 100% fica "Dentro da capacidade" e acima disso "Sobrecarga", com ícone e rótulo. Sem medição, a tela exibe "Sem medição", e não 0%. O transformador selecionado exibe a série das últimas 100 cargas com linha de referência no limiar. A tela explica o método: potência aparente ÷ capacidade de referência. CargaTransformadores.test.tsx cobre US11-CA02–CA04 na interface. O agrupamento por medidores de US11-CA01 não integra este recorte, que usa medições do próprio transformador.
 
 ### US12 — Acompanhar perdas técnicas
 
