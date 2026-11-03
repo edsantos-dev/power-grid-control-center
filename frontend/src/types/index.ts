@@ -62,6 +62,51 @@ export type AlimentadorRequest = {
   estadoOperacional: EstadoOperacional
 }
 
+export type PageResponse<T> = {
+  content: T[]
+  page: number
+  size: number
+  totalElements: number
+  totalPages: number
+  first: boolean
+  last: boolean
+}
+
+export type Transformador = {
+  id: number
+  nome: string
+  latitude: number
+  longitude: number
+  capacidadeMva: number
+  alimentadorId: number
+  subestacaoId: number
+  dataInstalacao: string
+  estadoOperacional: EstadoOperacional
+}
+
+// O cliente não envia subestacaoId: o backend deriva a subestação pelo alimentador
+export type TransformadorRequest = {
+  nome: string
+  latitude: string
+  longitude: string
+  capacidadeMva: string
+  alimentadorId: number
+  dataInstalacao: string
+  estadoOperacional: EstadoOperacional
+}
+
+export type MedicaoTransformador = {
+  id: number
+  transformadorId: number
+  fonteId: number
+  origem: 'REAL' | 'SIMULADA'
+  medidoEm: string
+  recebidoEm: string
+  potenciaAparenteMva: number
+  capacidadeReferenciaMva: number
+  cargaPercentual: number
+}
+
 export type LinhaTransmissao = {
   id: number
   nome: string
