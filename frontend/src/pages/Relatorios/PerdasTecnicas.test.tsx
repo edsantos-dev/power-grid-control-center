@@ -44,8 +44,8 @@ function renderizar(perfil: PerfilAcesso = 'OPERADOR') {
 }
 
 async function preencherPeriodo() {
-  await screen.findByRole('option', { name: 'AL Centro' })
-  fireEvent.change(screen.getByLabelText('Alimentador'), { target: { value: '10' } })
+  await screen.findAllByRole('option', { name: 'AL Centro' })
+  fireEvent.change(screen.getByLabelText('Alimentador', { selector: '#perdas-alimentador' }), { target: { value: '10' } })
   fireEvent.change(screen.getByLabelText('De'), { target: { value: '2026-11-01' } })
   fireEvent.change(screen.getByLabelText('Até'), { target: { value: '2026-11-01' } })
 }

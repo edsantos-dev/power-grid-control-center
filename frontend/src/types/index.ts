@@ -386,6 +386,50 @@ export type PerdaTecnica = {
   medicoesConsideradas: MedicaoEnergia[]
 }
 
+export type GranularidadeHistorico = 'DIA' | 'MES'
+
+// Pontos com dados insuficientes trazem os totais nulos, sem rateio entre períodos
+export type PontoHistoricoEnergia = {
+  inicioPeriodo: string
+  fimPeriodo: string
+  energiaInjetadaMwh: number | null
+  perdaEstimadaMwh: number | null
+  percentualPerdaPonderado: number | null
+  quantidadeLeituras: number
+  situacao: SituacaoPerdaTecnica
+}
+
+export type HistoricoEnergia = {
+  alimentadorId: number
+  dataInicio: string
+  dataFim: string
+  granularidade: GranularidadeHistorico
+  fusoHorario: string
+  possuiDados: boolean
+  pontos: PontoHistoricoEnergia[]
+}
+
+export type PontoConsumoMedido = {
+  inicioPeriodo: string
+  fimPeriodo: string
+  consumoMedidoMwh: number | null
+  quantidadeLeituras: number
+  quantidadeMedidoresComCoberturaCompleta: number
+  situacao: 'OK' | 'DADOS_INSUFICIENTES' | 'SEM_CONSUMO'
+}
+
+export type HistoricoConsumoMedido = {
+  alimentadorId: number
+  dataInicio: string
+  dataFim: string
+  granularidade: GranularidadeHistorico
+  fusoHorario: string
+  possuiDados: boolean
+  quantidadeMedidoresConsiderados: number
+  coberturaCadastral: string
+  pontos: PontoConsumoMedido[]
+}
+
 export type LinhaTransmissao = {
   id: number
   nome: string
