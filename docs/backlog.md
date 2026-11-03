@@ -193,8 +193,8 @@ Como gerente, quero cadastrar as usinas geradoras vinculadas à rede, para ter c
 
 - **Perfil e prioridade:** Gerente de Operações. Prioridade: Média.
 - **Status:** Em andamento.
-- **Implementação existente:** Backend com V13, entidade JOINED e API de criação, edição, detalhe e consulta paginada. Filtros por nome, tipo, estado e subestação; escritas exclusivas do gerente, com sessão e CSRF. Precisão e referências validadas antes de salvar. Frontend ainda possui listagem, filtros e somatórios simulados.
-- **Trabalho pendente:** Integração com o frontend e aceite completo. Geração instantânea e exclusão/inativação não integram o cadastro estrutural.
+- **Implementação existente:** Frontend com consulta paginada, cadastro e edição de usinas pela API. Backend com V13, entidade JOINED e API de criação, edição, detalhe e consulta paginada. Filtros por nome, tipo, estado e subestação; escritas exclusivas do gerente, com sessão e CSRF. Precisão e referências validadas antes de salvar. Frontend ainda possui listagem, filtros e somatórios simulados.
+- **Trabalho pendente:** Revisão da integração e aceite completo. Geração instantânea e exclusão/inativação não integram o cadastro estrutural.
 - **Dependências:** PEN-06; US25; vínculos com a rede definidos em US02.
 - **Referências no frontend:** [Usinas/index.tsx](../frontend/src/pages/Usinas/index.tsx#L7) (linhas 7,17,44,50).
 
@@ -210,6 +210,8 @@ Como gerente, quero cadastrar as usinas geradoras vinculadas à rede, para ter c
 - [x] **US05-T02:** Implementar o recorte de backend com testes pertinentes e documentação. Migration, persistência, DTOs, Service e endpoints implementados.
 - [ ] **US05-T03:** Integrar a interface com testes pertinentes e documentação.
 - [ ] **US05-T04:** Verificar integração/aceite e apresentar resultados e limitações.
+
+**US05-T03 — interface em revisão:** A tela de usinas consome GET /api/usinas com paginação e filtros de nome, tipo de geração e status aplicados no servidor, na ordem por ID do backend. Cada usina mostra tipo, capacidade máxima nominal em MW, subestação de conexão pelo nome, localização, data de instalação e status, com a coluna "Geração observada" indicando "Sem medição", para não confundir capacidade nominal com geração. Cadastro e edição (POST/PUT) aparecem apenas para o gerente, conforme a autorização do backend; o formulário exige tipo, capacidade positiva com precisão 13,6, subestação, coordenadas válidas e envia a data opcional como nula. Recusas 400/404 são exibidas. Região, geração atual e somatórios simulados foram removidos. O catálogo de ativos (services/ativos.ts) passou a incluir as usinas, que antes apareciam como "Ativo #id" em alertas e eventos. Usinas.test.tsx cobre US05-CA01–CA03 na interface.
 
 ### US06 — Cadastrar medidores vinculados a consumidores
 

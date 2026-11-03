@@ -3,8 +3,9 @@ import { listarLinhas } from './linhas'
 import { listarMedidores } from './medidores'
 import { listarSubestacoes } from './subestacoes'
 import { listarTransformadores } from './transformadores'
+import { listarTodasUsinas } from './usinas'
 
-export type TipoAtivo = 'Subestação' | 'Alimentador' | 'Linha' | 'Transformador' | 'Medidor'
+export type TipoAtivo = 'Subestação' | 'Alimentador' | 'Linha' | 'Transformador' | 'Medidor' | 'Usina'
 
 export type AtivoCatalogo = {
   id: number
@@ -18,6 +19,7 @@ const fontes: [TipoAtivo, () => Promise<{ id: number; nome: string }[]>][] = [
   ['Linha', listarLinhas],
   ['Transformador', listarTransformadores],
   ['Medidor', listarMedidores],
+  ['Usina', listarTodasUsinas],
 ]
 
 // Os ativos compartilham o ID de AtivoRede, então um único mapa identifica qualquer tipo.
