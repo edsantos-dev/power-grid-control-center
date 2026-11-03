@@ -499,4 +499,32 @@ O consumo por intervalo foi escolhido para manter a ingestão independente de le
 
 MedicaoConsumoFluxoE2ETest cadastra subestação, alimentador, transformador, titular e medidor por HTTP, instala o medidor e provisiona uma fonte SIMULADA. As escritas usam sessão e CSRF e confirmam transações independentes. A avaliação manual da US23, após ultrapassar a tolerância de 300 segundos, gera um alerta ATIVO. A ingestão seguinte registra 150,5 kWh, copia os quatro IDs da topologia original e restabelece o alerta. A consulta individual e a leitura da base verificam snapshots, ultimaComunicacaoEm e restabelecidoEm, usando o mesmo recebidoEm UTC.
 
-O backend de telemetria está concluído. A série temporal agregada de consumo dos medidores na US15 será um complemento próprio; as séries existentes de energia injetada e perdas não são substituídas. Integração visual, troca e reinstalação permanecem pendentes nos respectivos escopos.
+O backend de telemetria está concluído. A série temporal agregada de consumo dos medidores está implementada na US15 em contrato próprio; as séries existentes de energia injetada e perdas não são substituídas. Integração visual, troca e reinstalação permanecem pendentes nos respectivos escopos.
+
+## Histórico agregado de consumo medido — US15
+
+O histórico de consumo utiliza MedicaoConsumoMedidor e o alimentadorId gravado no snapshot. O filtro histórico não navega pelo transformador ou pelo alimentador atual do medidor, preservando a associação da leitura quando cadastros mudam. A identificação do equipamento é obtida pela fonte da leitura; as APIs de fonte não reatribuem o ativo.
+
+ConsumoMedidoHistoricoProjection contém medidorId, inicioPeriodo, fimPeriodo e consumoKwh. MedicaoConsumoMedidorRepository.buscarParaHistorico seleciona leituras com inicioPeriodo < dataFim e fimPeriodo > dataInicio, respeitando a janela semiaberta. Intervalos apenas adjacentes são excluídos; invasões parciais são retornadas com os limites originais, sem recorte de energia. A ordem é medidorId ASC, inicioPeriodo ASC e id da leitura ASC. A consulta escalar não carrega entidades ou associações LAZY nem remove leituras coincidentes de fontes diferentes.
+
+HistoricoConsumoMedidoService verifica cobertura primeiro por medidor e ponto DIA/MES em UTC, somando equipamentos distintos somente após validar suas coberturas. Fontes do mesmo equipamento compõem uma única linha temporal; sobreposições invalidam sua cobertura. Equipamentos distintos podem consumir simultaneamente. Leituras que cruzam fronteiras não são rateadas: os pontos atravessados ficam insuficientes, mesmo que existam outras leituras contidas. Os pontos inicial e final são recortados à janela solicitada.
+
+A população é fixa para toda a janela: todos os medidores observados nas leituras que intersectam o período. Cada ponto exige cobertura integral de todos esses equipamentos. A tag coberturaCadastral=NAO_AFERIDA é permanente neste contrato, pois as leituras observadas não comprovam a presença de todos os medidores historicamente instalados. Medidores cadastrados sem nenhuma leitura não são incluídos por inferência, e não há reconstrução de vigências de instalação. Um ponto OK atesta cobertura temporal da população observada, não um censo cadastral completo.
+
+O consumo é somado em kWh sem arredondamento intermediário e convertido para MWh dividindo por 1.000. O resultado usa nove casas decimais com HALF_EVEN. Cobertura integral com soma zero resulta em SEM_CONSUMO; ausência de população, lacunas ou sobreposições resultam em DADOS_INSUFICIENTES com consumoMedidoMwh nulo. QuantidadeLeituras conta leituras integralmente contidas, mesmo em pontos incompletos; leituras que cruzam fronteiras não entram nessa contagem. QuantidadeMedidoresComCoberturaCompleta informa quantos equipamentos satisfizeram a cobertura no ponto. PossuiDados indica existência de leituras intersectando a janela, sem implicar cobertura completa.
+
+GET /api/alimentadores/{id}/historico-consumo-medido é exclusivo de GERENTE_OPERACOES, separado das séries de energia injetada e perdas. Exige dataInicio e dataFim com fuso, início anterior ao fim, fim não futuro e granularidade DIA ou MES. O calendário UTC é crescente e limitado a 366 pontos. Parâmetros ausentes, desconhecidos, repetidos ou inválidos retornam 400; alimentador inexistente retorna 404. Não há paginação ou ordenação personalizada. Existência do alimentador e leitura das projeções compartilham transação somente leitura com REPEATABLE_READ.
+
+O backend está concluído para energia injetada, perdas estimadas e consumo medido. Os testes de repositório cobrem snapshot, interseção e ausência de N+1; os testes Web cobrem calendário, cobertura por equipamento, conversão, validações e perfis. Não há nova entidade persistente, migration ou índice neste recorte; eventual índice depende da análise do plano de execução. A integração visual permanece pendente.
+
+### Cenário integrado de consumo medido
+
+HistoricoConsumoMedidoFluxoE2ETest cadastra subestação, alimentador, transformador, titular e dois medidores por HTTP, instala os equipamentos e provisiona uma fonte SIMULADA para cada um. A autenticação é por sessão, com CSRF nas escritas, e cada requisição confirma sua própria transação. As cinco ingestões preservam os quatro IDs de snapshot; a consulta usa uma janela de três dias em UTC.
+
+| Dia | Medidor A (kWh) | Medidor B (kWh) | Consumo agregado (MWh) | Cobertura temporal completa | Situação |
+| --- | --- | --- | --- | --- | --- |
+| 1 | 100 | 50 | 0,150000000 | 2 medidores | OK |
+| 2 | 120 | 80 | 0,200000000 | 2 medidores | OK |
+| 3 | 90 | sem leitura | nulo | 1 medidor | DADOS_INSUFICIENTES |
+
+A população observada permanece em dois medidores durante os três dias. Os 90 kWh do terceiro dia são preservados na leitura individual, mas não são publicados como total completo do alimentador. A resposta mantém coberturaCadastral=NAO_AFERIDA, independentemente do resultado temporal de cada ponto.
