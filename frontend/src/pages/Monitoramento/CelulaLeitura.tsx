@@ -8,6 +8,8 @@ type Props = {
   agora: number
   // Tensão de operação da linha, quando a célula deve avaliar a faixa normal
   referenciaKv?: number
+  // Informação de escopo, como o terminal de referência das potências
+  nota?: string
 }
 
 const SITUACAO_TENSAO = {
@@ -17,7 +19,7 @@ const SITUACAO_TENSAO = {
 }
 
 // Ausência de leitura nunca é exibida como zero
-function CelulaLeitura({ leitura, unidade, agora, referenciaKv }: Props) {
+function CelulaLeitura({ leitura, unidade, agora, referenciaKv, nota }: Props) {
   if (!leitura) {
     return <span className="text-xs text-slate-500">Sem leitura</span>
   }
@@ -37,6 +39,8 @@ function CelulaLeitura({ leitura, unidade, agora, referenciaKv }: Props) {
           {situacao.rotulo}
         </p>
       )}
+
+      {nota && <p className="mt-0.5 text-xs text-slate-400">{nota}</p>}
 
       <p className="mt-0.5 text-xs text-slate-500">
         {descreverIdade(leitura.medidoEm, agora)} · {leitura.origem === 'SIMULADA' ? 'Simulada' : 'Real'}

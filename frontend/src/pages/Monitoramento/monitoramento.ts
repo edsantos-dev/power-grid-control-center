@@ -11,19 +11,30 @@ export type Grandeza = {
   campo: CampoNumerico
   rotulo: string
   unidade: string
+  // Potências têm sinal relativo ao terminal de referência da fonte
+  comTerminal?: boolean
 }
 
 export const GRANDEZAS_LINHA: Grandeza[] = [
   { campo: 'tensaoKv', rotulo: 'Tensão', unidade: 'kV' },
   { campo: 'correnteA', rotulo: 'Corrente', unidade: 'A' },
+  { campo: 'potenciaAtivaMw', rotulo: 'Potência ativa', unidade: 'MW', comTerminal: true },
+  { campo: 'potenciaReativaMvar', rotulo: 'Potência reativa', unidade: 'MVAr', comTerminal: true },
 ]
 
-export type Leitura = { valor: number; medidoEm: string; origem: MedicaoLinha['origem'] }
+export type Leitura = {
+  valor: number
+  medidoEm: string
+  origem: MedicaoLinha['origem']
+  subestacaoReferenciaId: number | null
+}
 
 // As medições chegam da mais recente para a mais antiga; uma leitura parcial não apaga a grandeza
 export function ultimaLeitura(medicoes: MedicaoLinha[], campo: CampoNumerico): Leitura | null {
   const medicao = medicoes.find((m) => m[campo] !== null)
-  return medicao ? { valor: medicao[campo] as number, medidoEm: medicao.medidoEm, origem: medicao.origem } : null
+  return medicao
+    ? { valor: medicao[campo] as number, medidoEm: medicao.medidoEm, origem: medicao.origem, subestacaoReferenciaId: medicao.subestacaoReferenciaId }
+    : null
 }
 
 export function estaAtrasada(medidoEm: string, agora: number) {

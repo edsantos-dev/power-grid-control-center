@@ -2,11 +2,13 @@ import { act, render, screen, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import * as linhasApi from '../../services/linhas'
-import type { LinhaTransmissao, MedicaoLinha } from '../../types'
+import * as subestacoesApi from '../../services/subestacoes'
+import type { LinhaTransmissao, MedicaoLinha, Subestacao } from '../../types'
 import Monitoramento from '.'
 import { avaliarTensao, CADENCIA_MS, estaAtrasada, ultimaLeitura } from './monitoramento'
 
 vi.mock('../../services/linhas')
+vi.mock('../../services/subestacoes')
 vi.mock('./GraficoSerie', () => ({
   default: ({ titulo, pontos }: { titulo: string; pontos: unknown[] }) => <p>{`Gráfico ${titulo}: ${pontos.length}`}</p>,
 }))
@@ -49,7 +51,7 @@ describe('regras de leitura', () => {
   it('usa a leitura mais recente que contem a grandeza', () => {
     const lista = [medicao({ id: 3, correnteA: 400 }), medicao({ id: 2, tensaoKv: 137, medidoEm: minutosAtras(2) })]
 
-    expect(ultimaLeitura(lista, 'tensaoKv')).toEqual({ valor: 137, medidoEm: minutosAtras(2), origem: 'SIMULADA' })
+    expect(ultimaLeitura(lista, 'tensaoKv')).toEqual({ valor: 137, medidoEm: minutosAtras(2), origem: 'SIMULADA', subestacaoReferenciaId: null })
     expect(ultimaLeitura(lista, 'correnteA')?.valor).toBe(400)
     expect(ultimaLeitura([medicao({ tensaoKv: 0 })], 'tensaoKv')?.valor).toBe(0)
     expect(ultimaLeitura(lista, 'frequenciaHz')).toBeNull()
@@ -74,9 +76,10 @@ describe('monitoramento de linhas', () => {
     vi.useFakeTimers({ shouldAdvanceTime: true })
     vi.setSystemTime(AGORA)
     vi.mocked(linhasApi.listarLinhas).mockResolvedValue([linha(1, 'LT Norte-Sul'), linha(2, 'LT Leste')])
+    vi.mocked(subestacoesApi.listarSubestacoes).mockResolvedValue([{ id: 1, nome: 'SE Norte' } as Subestacao])
     vi.mocked(linhasApi.listarMedicoesLinha).mockImplementation(async (id: number) =>
       id === 1
-        ? [medicao({ tensaoKv: 120, correnteA: 0 })]
+        ? [medicao({ tensaoKv: 120, correnteA: 0, potenciaAtivaMw: -35.5, potenciaReativaMvar: 4.2, subestacaoReferenciaId: 1 })]
         : [medicao({ linhaId: 2, tensaoKv: 138, medidoEm: minutosAtras(12), origem: 'REAL' })]
     )
   })
@@ -102,8 +105,28 @@ describe('monitoramento de linhas', () => {
     const leste = await linhaDaTabela('LT Leste')
     expect(within(leste).getByText('Normal')).toBeInTheDocument()
     expect(within(leste).getByText('Atrasada')).toBeInTheDocument()
-    expect(within(leste).getByText('Sem leitura')).toBeInTheDocument()
+    expect(within(leste).getAllByText('Sem leitura')).toHaveLength(3)
     expect(leste).toHaveTextContent('há 12 min · Real')
+  })
+
+  it('exibe potencias com sinal, unidade e terminal de referencia', async () => {
+    vi.mocked(linhasApi.listarMedicoesLinha).mockImplementation(async (id: number) =>
+      id === 1
+        ? [medicao({ potenciaAtivaMw: -35.5, potenciaReativaMvar: 4.2, subestacaoReferenciaId: 1 })]
+        : [medicao({ potenciaAtivaMw: 0, subestacaoReferenciaId: null })]
+    )
+
+    render(<Monitoramento />)
+
+    const norteSul = await linhaDaTabela('LT Norte-Sul')
+    expect(await within(norteSul).findAllByText('Referência: SE Norte')).toHaveLength(2)
+    expect(norteSul).toHaveTextContent('-35,5 MW')
+    expect(norteSul).toHaveTextContent('4,2 MVAr')
+
+    const leste = await linhaDaTabela('LT Leste')
+    expect(leste).toHaveTextContent('0 MW')
+    expect(within(leste).getByText('Sem terminal de referência')).toBeInTheDocument()
+    expect(screen.getByText(/Potências positivas indicam fluxo entrando na linha/)).toBeInTheDocument()
   })
 
   it('mantem as demais linhas quando uma consulta falha', async () => {
@@ -114,7 +137,7 @@ describe('monitoramento de linhas', () => {
 
     render(<Monitoramento />)
 
-    expect((await within(await linhaDaTabela('LT Leste')).findAllByText('Indisponível')).length).toBe(2)
+    expect((await within(await linhaDaTabela('LT Leste')).findAllByText('Indisponível')).length).toBe(4)
     expect(within(await linhaDaTabela('LT Norte-Sul')).getByText('Normal')).toBeInTheDocument()
   })
 
@@ -140,7 +163,10 @@ describe('monitoramento de linhas', () => {
     render(<Monitoramento />)
     await userEvent.click(await screen.findByRole('button', { name: 'LT Leste' }))
 
-    expect(await screen.findByRole('region', { name: 'Série de LT Leste' })).toHaveTextContent('Gráfico Tensão: 1')
+    const serie = await screen.findByRole('region', { name: 'Série de LT Leste' })
+    expect(serie).toHaveTextContent('Gráfico Tensão: 1')
+    expect(serie).toHaveTextContent('Gráfico Potência ativa: 1')
+    expect(serie).toHaveTextContent('Gráfico Potência reativa: 1')
     expect(linhasApi.listarMedicoesLinha).toHaveBeenCalledWith(2, 100)
   })
 })
