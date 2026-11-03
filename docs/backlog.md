@@ -505,8 +505,8 @@ Como operador, quero registrar eventos operacionais como manobras e desligamento
 
 - **Perfil e prioridade:** Operador. Prioridade: Alta.
 - **Status:** Em andamento.
-- **Implementação existente:** Frontend com tabela, busca e filtro local. Backend com entidade, repositório, criação e consultas de eventos; associações obrigatórias com ativo, registrador e responsável.
-- **Trabalho pendente:** Revisão do backend, integração com frontend e aceite funcional.
+- **Implementação existente:** Frontend com listagem dos eventos e registro de manobra e desligamento programado pela API. Frontend com tabela, busca e filtro local. Backend com entidade, repositório, criação e consultas de eventos; associações obrigatórias com ativo, registrador e responsável.
+- **Trabalho pendente:** Revisão do backend e da integração; aceite funcional. A API não possui consulta de usuários: o responsável é o usuário atual ou um ID informado.
 - **Dependências:** PEN-06; US25; ao menos US01 para o ativo; contratos de datas e situação.
 - **Referências no frontend:** [Eventos/index.tsx](../frontend/src/pages/Eventos/index.tsx#L8) (linhas 8,21,51).
 
@@ -530,6 +530,8 @@ Como operador, quero registrar eventos operacionais como manobras e desligamento
 **US16-T02 — persistência e API em revisão:** Relacionamentos ManyToOne LAZY, sem cascata; datas previstas e efetivas mapeadas com fuso. EventoOperacionalRepositoryTest cobre vínculos polimórficos, obrigatoriedade, referências inexistentes e períodos previstos/efetivos. Designação de equipe permanece sem mapeamento Java neste recorte. A V1 permanece inalterada.
 
 **Contrato de criação:** MANOBRA, DESLIGAMENTO_PROGRAMADO ou MANUTENCAO; ativoId, responsavelUsuarioId, descrição não vazia e inicioPrevisto obrigatórios. IDs positivos e existentes. Registrador obtido da sessão, nunca do DTO. Situação inicial ABERTO; datas efetivas e equipe nulas. TerminoPrevisto opcional e maior ou igual a inicioPrevisto; datas com fuso e previsões passadas permitidas. Criticidade opcional, até 32 caracteres, sem catálogo presumido. Registrador e responsável podem coincidir, sem restrição adicional de perfil do responsável. Entrada inválida retorna 400; referências inexistentes, 404. POST /api/eventos-operacionais retorna 201 com Location; GET da coleção e GET /{id} retornam 200, ou 404 para evento inexistente. O serviço obtém o registrador pelo SecurityContextHolder. O DTO não permite atribuir registrador, situação ou datas efetivas. EventoOperacionalControllerTest cobre US16-CA01–CA07 no recorte de backend, incluindo autoria, CSRF, categorias permitidas, vínculos e validações temporais.
+
+**US16-T03 — interface em revisão:** A tela de eventos consome GET /api/eventos-operacionais e ordena no cliente do mais recente ao mais antigo pelo início efetivo ou, na ausência, pelo previsto, indicando qual dos dois é exibido. Cada evento mostra data e hora, ativo pelo catálogo, categoria, descrição, criticidade textual, situação, responsável e registrador ("Você" ou o ID do usuário). Há filtros por categoria e situação e busca por descrição ou ativo. O registro programado oferece MANOBRA e DESLIGAMENTO_PROGRAMADO, exige ativo, descrição e início previsto, rejeita término previsto anterior ao início e envia os instantes do datetime-local em UTC. O responsável é o usuário atual por padrão ou um ID informado, pois a API não lista usuários; o registrador não é enviado e vem da sessão. Recusas 400/404 do backend são exibidas. Títulos, equipes textuais e criticidades simuladas foram removidos. Eventos.test.tsx cobre US16-CA01–CA07 na interface.
 
 ### US17 — Registrar interrupções de fornecimento
 

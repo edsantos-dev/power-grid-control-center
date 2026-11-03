@@ -263,6 +263,42 @@ export type FiltrosHistoricoAlertas = {
   dataFim?: string
 }
 
+export type CategoriaEvento =
+  | 'MANOBRA'
+  | 'DESLIGAMENTO_PROGRAMADO'
+  | 'INTERRUPCAO_FORNECIMENTO'
+  | 'SOBRECARGA'
+  | 'FALHA_EQUIPAMENTO'
+  | 'MANUTENCAO'
+
+export type SituacaoEvento = 'ABERTO' | 'EM_ANDAMENTO' | 'CONCLUIDO'
+
+export type EventoOperacional = {
+  id: number
+  ativoId: number
+  categoria: CategoriaEvento
+  descricao: string
+  criticidade: string | null
+  situacao: SituacaoEvento
+  registradorUsuarioId: number
+  responsavelUsuarioId: number
+  inicioPrevisto: string | null
+  terminoPrevisto: string | null
+  inicioEfetivo: string | null
+  terminoEfetivo: string | null
+}
+
+// O registrador vem da sessão e a situação inicial é definida pelo servidor
+export type EventoOperacionalRequest = {
+  ativoId: number
+  categoria: CategoriaEvento
+  descricao: string
+  responsavelUsuarioId: number
+  inicioPrevisto: string
+  terminoPrevisto: string | null
+  criticidade: string | null
+}
+
 export type LinhaTransmissao = {
   id: number
   nome: string
