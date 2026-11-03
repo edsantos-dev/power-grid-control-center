@@ -1,5 +1,5 @@
 import type { FormEvent, ReactNode } from 'react'
-import { X } from 'lucide-react'
+import Modal from './Modal'
 
 type FormularioModalProps = {
   titulo: string
@@ -35,26 +35,7 @@ const classeCampo =
 
 export function FormularioModal({ titulo, erro, enviando, aoFechar, aoEnviar, children }: FormularioModalProps) {
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center overflow-y-auto bg-slate-950/80 p-4">
-      <div
-        role="dialog"
-        aria-modal="true"
-        aria-label={titulo}
-        className="w-full max-w-2xl rounded-xl border border-slate-800 bg-slate-900 p-6"
-      >
-        <div className="mb-6 flex items-center justify-between">
-          <h3 className="text-xl font-bold text-white">{titulo}</h3>
-
-          <button
-            type="button"
-            onClick={aoFechar}
-            aria-label="Fechar"
-            className="rounded-lg p-1 text-slate-400 transition hover:bg-slate-800 hover:text-white"
-          >
-            <X className="h-5 w-5" />
-          </button>
-        </div>
-
+    <Modal titulo={titulo} aoFechar={aoFechar}>
         <form onSubmit={aoEnviar} noValidate>
           <div className="grid gap-4 sm:grid-cols-2">
             {children}
@@ -82,8 +63,7 @@ export function FormularioModal({ titulo, erro, enviando, aoFechar, aoEnviar, ch
             </button>
           </div>
         </form>
-      </div>
-    </div>
+    </Modal>
   )
 }
 

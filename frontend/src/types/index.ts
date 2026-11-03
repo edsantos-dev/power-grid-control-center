@@ -107,6 +107,39 @@ export type MedicaoTransformador = {
   cargaPercentual: number
 }
 
+export type TipoPessoa = 'PF' | 'PJ'
+
+export type Consumidor = {
+  id: number
+  nomeRazaoSocial: string
+  tipoPessoa: TipoPessoa
+  documento: string
+  enderecoCorrespondencia: string | null
+}
+
+export type ConsumidorRequest = {
+  nomeRazaoSocial: string
+  tipoPessoa: TipoPessoa
+  documento: string
+  enderecoCorrespondencia: string | null
+}
+
+// Transformador, alimentador e subestação são nulos para medidor em estoque
+export type Medidor = {
+  id: number
+  nome: string
+  numeroSerie: string
+  estadoOperacional: EstadoOperacional
+  latitude: number | null
+  longitude: number | null
+  dataInstalacao: string | null
+  enderecoFornecimento: string | null
+  consumidorId: number | null
+  transformadorId: number | null
+  alimentadorId: number | null
+  subestacaoId: number | null
+}
+
 export type LinhaTransmissao = {
   id: number
   nome: string
