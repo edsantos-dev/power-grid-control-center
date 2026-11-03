@@ -103,7 +103,7 @@ As chaves primárias compartilhadas dos ativos permitem o mapeamento JPA com her
 
 Situações iniciais de eventos, equipes e alertas não possuem defaults. Campos cuja obrigatoriedade permanece em aberto aceitam NULL na estrutura inicial; isso não define as regras dos futuros comandos de cadastro.
 
-A V3 define as extremidades das linhas por subestacao_origem_id e subestacao_destino_id, ambos NOT NULL e com FKs para subestacao.id. Um CHECK impede origem e destino iguais. O mapeamento de LinhaTransmissao utiliza herança JOINED e associações LAZY, sem cascata. Medições de linhas usam a V4. Histórico de alterações e detalhes específicos de interrupção/manutenção terão migrations próprias antes das funcionalidades correspondentes. A designação atual de equipe não constitui histórico de atendimento.
+A V3 define as extremidades das linhas por subestacao_origem_id e subestacao_destino_id, ambos NOT NULL e com FKs para subestacao.id. Um CHECK impede origem e destino iguais. O mapeamento de LinhaTransmissao utiliza herança JOINED e associações LAZY, sem cascata. Medições de linhas usam a V4. Histórico de alterações e detalhes específicos de interrupção/manutenção terão migrations próprias antes das funcionalidades correspondentes. O vínculo atual de equipe é complementado pelo histórico de designações da V16; esses registros não comprovam executores de manutenção.
 
 ## Medições e indicadores
 
@@ -186,7 +186,7 @@ Três associações possuem significados distintos:
 | Associação | Finalidade |
 |---|---|
 | VinculoEquipe | Identificar usuários integrantes da equipe e a vigência do vínculo |
-| DesignacaoEquipeEvento | Registrar a equipe designada para atender um evento |
+| HistoricoDesignacaoEquipe | Auditar inclusão, substituição e retirada da equipe designada ao evento |
 | ParticipacaoManutencao | Registrar quem efetivamente executou a manutenção |
 
 Participar de uma equipe não comprova participação em todos os seus serviços. A composição atual da equipe não substitui o registro dos executores de uma manutenção passada.
@@ -528,3 +528,25 @@ HistoricoConsumoMedidoFluxoE2ETest cadastra subestação, alimentador, transform
 | 3 | 90 | sem leitura | nulo | 1 medidor | DADOS_INSUFICIENTES |
 
 A população observada permanece em dois medidores durante os três dias. Os 90 kWh do terceiro dia são preservados na leitura individual, mas não são publicados como total completo do alimentador. A resposta mantém coberturaCadastral=NAO_AFERIDA, independentemente do resultado temporal de cada ponto.
+
+## Designação de equipe ao evento operacional
+
+A designação pertence a EventoOperacional, inclusive para interrupções e manutenções. O campo equipeDesignada é opcional e referencia EquipeManutencao sem cascata. Uma equipe pode constar em vários eventos e cada evento mantém no máximo uma equipe atual. O responsável individual e o registrador permanecem independentes da equipe; integrantes atuais não são inferidos como executores.
+
+A V16 mantém a FK equipe_designada_id da V1, acrescenta versao_designacao INTEGER NOT NULL DEFAULT 0 e cria historico_designacao_equipe. Eventos legados preservam seu vínculo e recebem versão zero, sem histórico retroativo. Cada registro de histórico possui identidade BIGINT, evento obrigatório, equipes anterior/nova opcionais, usuário autor obrigatório, registrado_em com fuso, comentário de até 1.000 caracteres e versão. A versão é não negativa e única por evento no histórico. O mapeamento do histórico é imutável para atualização no Hibernate e seu repositório não expõe exclusão. Não há proteção contra alteração por SQL direto.
+
+A versão é controlada pelo serviço, sem @Version do Hibernate e sem interferir nas transições operacionais da US18. O serviço bloqueia o evento antes da equipe de destino, confere autorização, versão e situação, e permite alterações em ABERTO ou EM_ANDAMENTO. Situações legadas desconhecidas ou nulas exigem regularização. Mesma equipe e versão corrente retornam sem alteração; versão antiga retorna 409, mesmo quando a equipe solicitada já é a atual. Mudanças incrementam a versão, inclusive retirada e retorno a uma equipe anterior. O limite inteiro é validado antes do incremento.
+
+Uma nova associação exige DISPONIVEL ou EM_ATENDIMENTO e ao menos um vínculo de integrante aberto, verificados sob o mesmo bloqueio usado pela US04. Retirada não exige disponibilidade da equipe anterior. A equipe anterior não é bloqueada, pois não recebe alteração de situação, composição ou reserva. O evento, a versão e o histórico compartilham a mesma transação; falhas no histórico desfazem todas as alterações. Instantes são obtidos do relógio UTC e normalizados para microssegundos. A designação não altera situação ou datas operacionais, não reserva capacidade nem exige equipe para iniciar/concluir eventos.
+
+### Contrato HTTP do despacho
+
+PUT /api/eventos-operacionais/{id}/equipe-designada recebe DesignacaoEquipeRequestDTO: equipeId positivo opcional (nulo ou ausente para retirada), versaoDesignacaoEsperada inteira não negativa obrigatória e comentario não branco de até 1.000 caracteres. Valores fracionários ou textuais não são convertidos silenciosamente para IDs/versões. O ID do autor é obtido da sessão e conferido pelo serviço. A API permite gerente e operador; operador precisa ser o responsável. Técnico tem acesso às consultas, mas não ao PUT de despacho. Essa restrição da API é distinta da gestão de equipes e da regra de transições da US18.
+
+O retorno é EventoOperacionalResponseDTO com equipeDesignadaId e versaoDesignacao, também disponíveis nas consultas existentes de eventos, interrupções e manutenção por ativo. Não são serializadas entidades JPA ou credenciais. Equipe atual nula é mantida explicitamente. Contrato inválido retorna 400, falta de autorização 403, evento/equipe ausente 404 e impedimento operacional ou versão divergente 409. Escrita exige sessão e CSRF.
+
+GET /api/eventos-operacionais/{id}/designacoes permite todos os perfis autenticados. A resposta paginada contém id, eventoOperacionalId, equipeAnteriorId, equipeNovaId, usuarioId, registradoEm UTC, comentario e versaoDesignacao. Os padrões são page=0 e size=20, máximo 100, com ordenação fixa registradoEm DESC/id DESC; sort e parâmetros adicionais são rejeitados. Evento inexistente retorna 404; evento existente sem auditoria retorna página vazia. Contagem e conteúdo usam leitura REPEATABLE_READ; deslocamentos além do total retornam página vazia sem converter offset para int. A seleção pertence exclusivamente ao evento informado e não incorpora transições de situação.
+
+### Fluxo integrado de despacho
+
+DesignacaoEquipeFluxoE2ETest cadastra subestação e evento de manutenção, cria Alfa/Beta, inclui integrantes e as coloca DISPONIVEL por HTTP. Cada requisição confirma sua própria transação, com sessão e CSRF. O evento começa sem equipe e na versão zero; designar Alfa produz versão 1, substituir por Beta produz versão 2 e retirar a equipe produz versão 3. O histórico retorna retirada, substituição e inclusão, preservando pares de equipe, autor, comentário e instantes. A paginação é conferida em duas páginas; o histórico da US18 permanece vazio e o evento continua ABERTO. A integração visual de despacho permanece pendente.

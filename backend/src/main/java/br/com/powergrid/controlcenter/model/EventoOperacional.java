@@ -49,6 +49,13 @@ public class EventoOperacional {
     @JoinColumn(name = "responsavel_usuario_id", nullable = false)
     private Usuario responsavelUsuario;
 
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "equipe_designada_id")
+    private EquipeManutencao equipeDesignada;
+
+    @Column(name = "versao_designacao", nullable = false)
+    private Integer versaoDesignacao = 0;
+
     @Column(name = "inicio_previsto")
     private OffsetDateTime inicioPrevisto;
 

@@ -70,7 +70,8 @@ public class ManutencaoService {
     private EventoOperacionalResponseDTO evento(EventoOperacional e) {
         return new EventoOperacionalResponseDTO(e.getId(), e.getAtivo().getId(), e.getCategoria(), e.getDescricao(),
                 e.getCriticidade(), e.getSituacao(), e.getRegistradorUsuario().getId(), e.getResponsavelUsuario().getId(),
-                utc(e.getInicioPrevisto()), utc(e.getTerminoPrevisto()), utc(e.getInicioEfetivo()), utc(e.getTerminoEfetivo()));
+                utc(e.getInicioPrevisto()), utc(e.getTerminoPrevisto()), utc(e.getInicioEfetivo()), utc(e.getTerminoEfetivo()),
+                e.getEquipeDesignada() == null ? null : e.getEquipeDesignada().getId(), e.getVersaoDesignacao());
     }
 
     private HistoricoEventoResponseDTO historico(HistoricoEventoOperacional h) {

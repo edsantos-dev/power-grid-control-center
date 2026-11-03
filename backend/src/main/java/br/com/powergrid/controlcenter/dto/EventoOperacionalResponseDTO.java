@@ -8,5 +8,6 @@ public record EventoOperacionalResponseDTO(
         String criticidade, String situacao,
         Long registradorUsuarioId, Long responsavelUsuarioId,
         OffsetDateTime inicioPrevisto, OffsetDateTime terminoPrevisto,
-        OffsetDateTime inicioEfetivo, OffsetDateTime terminoEfetivo) {
+        OffsetDateTime inicioEfetivo, OffsetDateTime terminoEfetivo,
+        Long equipeDesignadaId, Integer versaoDesignacao) {
 }

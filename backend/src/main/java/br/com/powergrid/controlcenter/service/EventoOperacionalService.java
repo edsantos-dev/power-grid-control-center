@@ -223,6 +223,7 @@ public class EventoOperacionalService {
                 evento.getCategoria(), evento.getDescricao(), evento.getCriticidade(), evento.getSituacao(),
                 evento.getRegistradorUsuario().getId(), evento.getResponsavelUsuario().getId(),
                 evento.getInicioPrevisto(), evento.getTerminoPrevisto(),
-                evento.getInicioEfetivo(), evento.getTerminoEfetivo());
+                evento.getInicioEfetivo(), evento.getTerminoEfetivo(),
+                evento.getEquipeDesignada() == null ? null : evento.getEquipeDesignada().getId(), evento.getVersaoDesignacao());
     }
 }
