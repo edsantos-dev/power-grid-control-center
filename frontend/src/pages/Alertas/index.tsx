@@ -8,6 +8,7 @@ import { CRITICIDADE_STYLES, CRITICIDADES, SITUACAO_ALERTA_LABEL } from '../../u
 import { formatarDataHora } from '../../utils/formatacao'
 import AlertaForm from './AlertaForm'
 import AlertasSobrecarga from './AlertasSobrecarga'
+import AlertasTensao from './AlertasTensao'
 
 const icones: Record<Criticidade, typeof AlertTriangle> = {
   CRITICA: AlertTriangle,
@@ -78,7 +79,7 @@ function Alertas() {
           </h2>
 
           <p className="mt-2 text-slate-400">
-            Alertas ativos, da maior para a menor criticidade, e alertas automáticos de sobrecarga.
+            Alertas ativos, da maior para a menor criticidade, e alertas automáticos de sobrecarga e tensão.
           </p>
         </div>
 
@@ -203,6 +204,7 @@ function Alertas() {
       </div>
 
       <AlertasSobrecarga ativos={ativos} />
+      <AlertasTensao ativos={ativos} />
 
       {formularioAberto && (
         <AlertaForm ativos={ativos} aoFechar={() => setFormularioAberto(false)} aoSalvar={handleSalvar} />

@@ -192,6 +192,23 @@ export type AlertaSobrecarga = {
   reconhecidoPorUsuarioId: number | null
 }
 
+export type TipoAlertaTensao = 'SUBTENSAO' | 'SOBRETENSAO'
+
+export type AlertaTensao = {
+  id: number
+  ativoId: number
+  medicaoId: number
+  tipo: TipoAlertaTensao
+  tensaoMedidaKv: number
+  tensaoReferenciaKv: number
+  limiteInferiorKv: number
+  limiteSuperiorKv: number
+  status: StatusAlertaAutomatico
+  geradoEm: string
+  reconhecidoEm: string | null
+  reconhecidoPorUsuarioId: number | null
+}
+
 export type LinhaTransmissao = {
   id: number
   nome: string

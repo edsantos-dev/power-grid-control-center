@@ -1,5 +1,13 @@
 import api from './api'
-import type { Alerta, AlertaRequest, AlertaSobrecarga, PageResponse, StatusAlertaAutomatico } from '../types'
+import type {
+  Alerta,
+  AlertaRequest,
+  AlertaSobrecarga,
+  AlertaTensao,
+  PageResponse,
+  StatusAlertaAutomatico,
+  TipoAlertaTensao,
+} from '../types'
 
 const ROTA = '/api/alertas'
 
@@ -27,5 +35,19 @@ export async function listarAlertasSobrecarga(page: number, status?: StatusAlert
 // O autor e o instante vêm da sessão; repetir o reconhecimento preserva o primeiro registro
 export async function reconhecerAlertaSobrecarga(id: number) {
   const { data } = await api.patch<AlertaSobrecarga>(`${ROTA_SOBRECARGA}/${id}/reconhecimento`)
+  return data
+}
+
+const ROTA_TENSAO = '/api/alertas-tensao'
+
+export async function listarAlertasTensao(page: number, status?: StatusAlertaAutomatico, tipo?: TipoAlertaTensao) {
+  const { data } = await api.get<PageResponse<AlertaTensao>>(ROTA_TENSAO, {
+    params: { page, size: 20, ...(status && { status }), ...(tipo && { tipo }) },
+  })
+  return data
+}
+
+export async function reconhecerAlertaTensao(id: number) {
+  const { data } = await api.patch<AlertaTensao>(`${ROTA_TENSAO}/${id}/reconhecimento`)
   return data
 }

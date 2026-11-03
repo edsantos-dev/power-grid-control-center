@@ -10,6 +10,7 @@ import Alertas from '.'
 vi.mock('../../services/alertas')
 vi.mock('../../services/ativos')
 vi.mock('./AlertasSobrecarga', () => ({ default: () => null }))
+vi.mock('./AlertasTensao', () => ({ default: () => null }))
 
 const alerta = (dados: Partial<Alerta>): Alerta => ({
   id: 1,
