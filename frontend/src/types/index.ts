@@ -299,6 +299,15 @@ export type EventoOperacionalRequest = {
   criticidade: string | null
 }
 
+// Categoria e situação inicial são fixadas pelo servidor
+export type InterrupcaoRequest = {
+  ativoId: number
+  descricao: string
+  responsavelUsuarioId: number
+  inicioEfetivo: string
+  criticidade: string | null
+}
+
 export type LinhaTransmissao = {
   id: number
   nome: string

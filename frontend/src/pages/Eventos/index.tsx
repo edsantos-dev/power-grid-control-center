@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import { Search, Calendar, User, Plus } from 'lucide-react'
+import { Search, Calendar, User, Plus, ZapOff } from 'lucide-react'
 import { useAuth } from '../../hooks/useAuth'
 import { extrairErroApi } from '../../services/api'
 import { listarCatalogoAtivos, type AtivoCatalogo } from '../../services/ativos'
@@ -8,6 +8,7 @@ import type { CategoriaEvento, EventoOperacional, SituacaoEvento } from '../../t
 import { formatarDataHora } from '../../utils/formatacao'
 import { CATEGORIA_LABEL, SITUACAO_EVENTO_STYLES, SITUACOES_EVENTO } from './constantes'
 import EventoForm from './EventoForm'
+import InterrupcaoForm from './InterrupcaoForm'
 
 // O instante de referência é o efetivo quando existe; senão, o previsto
 function instanteDoEvento(evento: EventoOperacional) {
@@ -24,6 +25,7 @@ function Eventos() {
   const [filtroSituacao, setFiltroSituacao] = useState<SituacaoEvento | 'todos'>('todos')
   const [busca, setBusca] = useState('')
   const [formularioAberto, setFormularioAberto] = useState(false)
+  const [interrupcaoAberta, setInterrupcaoAberta] = useState(false)
 
   async function carregar() {
     setCarregando(true)
@@ -56,6 +58,7 @@ function Eventos() {
   function handleSalvar(salvo: EventoOperacional) {
     setEventos((atuais) => [...atuais.filter((e) => e.id !== salvo.id), salvo])
     setFormularioAberto(false)
+    setInterrupcaoAberta(false)
   }
 
   // A API não garante ordenação: os mais recentes ficam primeiro
@@ -87,14 +90,25 @@ function Eventos() {
           </p>
         </div>
 
-        <button
-          type="button"
-          onClick={() => setFormularioAberto(true)}
-          className="flex items-center gap-2 rounded-lg bg-blue-600 px-4 py-2 text-sm font-semibold text-white transition hover:bg-blue-500"
-        >
-          <Plus className="h-4 w-4" />
-          Registrar evento programado
-        </button>
+        <div className="flex flex-wrap gap-2">
+          <button
+            type="button"
+            onClick={() => setInterrupcaoAberta(true)}
+            className="flex items-center gap-2 rounded-lg border border-red-500/50 px-4 py-2 text-sm font-semibold text-red-300 transition hover:bg-red-500/10"
+          >
+            <ZapOff className="h-4 w-4" />
+            Registrar interrupção
+          </button>
+
+          <button
+            type="button"
+            onClick={() => setFormularioAberto(true)}
+            className="flex items-center gap-2 rounded-lg bg-blue-600 px-4 py-2 text-sm font-semibold text-white transition hover:bg-blue-500"
+          >
+            <Plus className="h-4 w-4" />
+            Registrar evento programado
+          </button>
+        </div>
       </div>
 
       <div className="grid gap-6 md:grid-cols-2 xl:grid-cols-4">
@@ -224,6 +238,10 @@ function Eventos() {
           )}
         </div>
       </div>
+
+      {interrupcaoAberta && (
+        <InterrupcaoForm ativos={ativos} aoFechar={() => setInterrupcaoAberta(false)} aoSalvar={handleSalvar} />
+      )}
 
       {formularioAberto && (
         <EventoForm

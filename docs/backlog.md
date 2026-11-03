@@ -540,7 +540,7 @@ Como operador, quero registrar interrupções de fornecimento com data, horário
 - **Perfil e prioridade:** Operador. Prioridade: Alta.
 - **Status:** Em andamento.
 - **Implementação existente:** POST /api/interrupcoes com autoria pela sessão, ativo/responsável persistentes e início físico obrigatório, não futuro. Categoria fixa INTERRUPCAO_FORNECIMENTO e situação ABERTO. Conclusão com término físico informado e auditoria pelo servidor, preservando autorização, transação e concorrência da US18. Detalhe restrito por categoria e consulta paginada com filtros por ativo, situação e período físico. Fluxo HTTP E2E integrado; frontend ainda simulado.
-- **Trabalho pendente:** Integração com o frontend e aceite completo.
+- **Trabalho pendente:** Revisão da integração com o frontend e aceite completo.
 - **Dependências:** Infraestrutura de eventos de US16; US25.
 - **Referências no frontend:** [Eventos/index.tsx](../frontend/src/pages/Eventos/index.tsx#L23) (linhas 23,55).
 
@@ -556,6 +556,8 @@ Como operador, quero registrar interrupções de fornecimento com data, horário
 - [x] **US17-T02:** Implementar o recorte de backend com testes pertinentes e documentação. Cadastro específico, conclusão física, consultas e fluxo HTTP E2E implementados.
 - [ ] **US17-T03:** Integrar a interface com testes pertinentes e documentação.
 - [ ] **US17-T04:** Verificar integração/aceite e apresentar resultados e limitações.
+
+**US17-T03 — interface em revisão:** A tela de eventos oferece "Registrar interrupção", separado do registro programado, que usa POST /api/interrupcoes com ativo envolvido, descrição, responsável (usuário atual ou ID) e início físico obrigatório. O início é informado em horário local, enviado em UTC e bloqueado no cliente quando futuro; o backend continua sendo a regra oficial e suas recusas 400/404 são exibidas. A interrupção aparece na lista de eventos com a categoria "Interrupção de fornecimento", o início efetivo e a situação ABERTO definidos pelo servidor. O término é informado na conclusão, integrada pela US18. InterrupcaoForm.test.tsx cobre US17-CA01–CA03 na interface.
 
 ### US18 — Atualizar situação de evento
 
