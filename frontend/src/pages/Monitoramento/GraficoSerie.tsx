@@ -19,11 +19,18 @@ function GraficoSerie({ titulo, unidade, pontos }: Props) {
   const comValor = pontos.filter((p) => p.valor !== null)
   // Eixo em tempo real: intervalos irregulares entre leituras ficam proporcionais
   const dados = pontos.map((p) => ({ tempo: new Date(p.instante).getTime(), valor: p.valor }))
+  // Um ponto entre lacunas não forma segmento; recebe marcador para não sumir do gráfico
+  const isolado = (i: number) => dados[i]?.valor !== null && (dados[i - 1]?.valor ?? null) === null && (dados[i + 1]?.valor ?? null) === null
+
+  function Marcador({ cx, cy, index }: { cx?: number; cy?: number; index?: number }) {
+    if (index === undefined || cx === undefined || cy === undefined || !isolado(index)) return <g key={index} />
+    return <circle key={index} cx={cx} cy={cy} r={4} fill={COR_SERIE} stroke="#0f172a" strokeWidth={2} />
+  }
 
   return (
     <figure className="rounded-xl border border-slate-800 bg-slate-900 p-4">
       <figcaption className="mb-3 text-sm font-medium text-slate-200">
-        {titulo} <span className="text-slate-500">({unidade})</span>
+        {titulo} {unidade && <span className="text-slate-500">({unidade})</span>}
       </figcaption>
 
       {comValor.length === 0 ? (
@@ -41,10 +48,10 @@ function GraficoSerie({ titulo, unidade, pontos }: Props) {
                 labelStyle={{ color: '#cbd5e1' }}
                 itemStyle={{ color: '#e2e8f0' }}
                 labelFormatter={(tempo) => formatarDataHora(new Date(Number(tempo)).toISOString())}
-                formatter={(valor) => [`${formatarNumero(Number(valor))} ${unidade}`, titulo]}
+                formatter={(valor) => [`${formatarNumero(Number(valor))} ${unidade}`.trim(), titulo]}
               />
               {/* Segmentos retos entre leituras; pontos sem a grandeza ficam como lacuna */}
-              <Line type="linear" dataKey="valor" stroke={COR_SERIE} strokeWidth={2} dot={false} activeDot={{ r: 4 }} connectNulls={false} isAnimationActive={false} />
+              <Line type="linear" dataKey="valor" stroke={COR_SERIE} strokeWidth={2} dot={(props) => <Marcador {...props} />} activeDot={{ r: 4 }} connectNulls={false} isAnimationActive={false} />
             </LineChart>
           </ResponsiveContainer>
         </div>
@@ -57,7 +64,7 @@ function GraficoSerie({ titulo, unidade, pontos }: Props) {
             <thead>
               <tr className="text-left text-slate-500">
                 <th className="font-normal">Medido em</th>
-                <th className="font-normal">{titulo} ({unidade})</th>
+                <th className="font-normal">{titulo}{unidade && ` (${unidade})`}</th>
               </tr>
             </thead>
             <tbody>

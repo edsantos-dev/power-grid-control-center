@@ -20,7 +20,29 @@ export const GRANDEZAS_LINHA: Grandeza[] = [
   { campo: 'correnteA', rotulo: 'Corrente', unidade: 'A' },
   { campo: 'potenciaAtivaMw', rotulo: 'Potência ativa', unidade: 'MW', comTerminal: true },
   { campo: 'potenciaReativaMvar', rotulo: 'Potência reativa', unidade: 'MVAr', comTerminal: true },
+  { campo: 'frequenciaHz', rotulo: 'Frequência', unidade: 'Hz' },
+  { campo: 'fatorPotencia', rotulo: 'Fator de potência', unidade: '' },
 ]
+
+// Referência didática do contrato; valores fora dela são aceitos e apenas exibidos
+export const FREQUENCIA_NOMINAL_HZ = 60
+
+export type ResultadoFatorPotencia =
+  | { tipo: 'calculado'; leitura: Leitura }
+  | { tipo: 'indefinido'; medidoEm: string; origem: MedicaoLinha['origem'] }
+
+// O fator é calculado pelo servidor com P e Q da mesma leitura; sem P ou Q não há cálculo
+export function ultimoFatorPotencia(medicoes: MedicaoLinha[]): ResultadoFatorPotencia | null {
+  const medicao = medicoes.find((m) => m.situacaoFatorPotencia !== 'DADOS_INSUFICIENTES')
+  if (!medicao) return null
+  if (medicao.situacaoFatorPotencia === 'POTENCIA_APARENTE_NULA' || medicao.fatorPotencia === null) {
+    return { tipo: 'indefinido', medidoEm: medicao.medidoEm, origem: medicao.origem }
+  }
+  return {
+    tipo: 'calculado',
+    leitura: { valor: medicao.fatorPotencia, medidoEm: medicao.medidoEm, origem: medicao.origem, subestacaoReferenciaId: medicao.subestacaoReferenciaId },
+  }
+}
 
 export type Leitura = {
   valor: number

@@ -5,7 +5,7 @@ import * as linhasApi from '../../services/linhas'
 import * as subestacoesApi from '../../services/subestacoes'
 import type { LinhaTransmissao, MedicaoLinha, Subestacao } from '../../types'
 import Monitoramento from '.'
-import { avaliarTensao, CADENCIA_MS, estaAtrasada, ultimaLeitura } from './monitoramento'
+import { avaliarTensao, CADENCIA_MS, estaAtrasada, ultimaLeitura, ultimoFatorPotencia } from './monitoramento'
 
 vi.mock('../../services/linhas')
 vi.mock('../../services/subestacoes')
@@ -62,6 +62,18 @@ describe('regras de leitura', () => {
     expect(estaAtrasada(new Date(AGORA - 300_001).toISOString(), AGORA)).toBe(true)
   })
 
+  it('usa o fator de potencia calculado pelo servidor e nao inventa valor', () => {
+    const calculado = medicao({ id: 2, fatorPotencia: 0.992278, situacaoFatorPotencia: 'CALCULADO', medidoEm: minutosAtras(3) })
+    const semPQ = medicao({ id: 3, frequenciaHz: 60.02 })
+
+    expect(ultimoFatorPotencia([semPQ, calculado])).toEqual({
+      tipo: 'calculado',
+      leitura: { valor: 0.992278, medidoEm: minutosAtras(3), origem: 'SIMULADA', subestacaoReferenciaId: null },
+    })
+    expect(ultimoFatorPotencia([medicao({ situacaoFatorPotencia: 'POTENCIA_APARENTE_NULA' }), calculado])?.tipo).toBe('indefinido')
+    expect(ultimoFatorPotencia([semPQ])).toBeNull()
+  })
+
   it('avalia a faixa de tensao com fronteiras inclusivas', () => {
     expect(avaliarTensao(138, 138)).toBe('NORMAL')
     expect(avaliarTensao(131.1, 138)).toBe('SUBTENSAO')
@@ -105,7 +117,7 @@ describe('monitoramento de linhas', () => {
     const leste = await linhaDaTabela('LT Leste')
     expect(within(leste).getByText('Normal')).toBeInTheDocument()
     expect(within(leste).getByText('Atrasada')).toBeInTheDocument()
-    expect(within(leste).getAllByText('Sem leitura')).toHaveLength(3)
+    expect(within(leste).getAllByText('Sem leitura')).toHaveLength(5)
     expect(leste).toHaveTextContent('há 12 min · Real')
   })
 
@@ -129,6 +141,26 @@ describe('monitoramento de linhas', () => {
     expect(screen.getByText(/Potências positivas indicam fluxo entrando na linha/)).toBeInTheDocument()
   })
 
+  it('exibe frequencia com referencia nominal e fator de potencia calculado ou indefinido', async () => {
+    vi.mocked(linhasApi.listarMedicoesLinha).mockImplementation(async (id: number) =>
+      id === 1
+        ? [medicao({ frequenciaHz: 59.94 }), medicao({ id: 2, potenciaAtivaMw: 40, potenciaReativaMvar: 5, fatorPotencia: 0.992278, situacaoFatorPotencia: 'CALCULADO' })]
+        : [medicao({ potenciaAtivaMw: 0, potenciaReativaMvar: 0, situacaoFatorPotencia: 'POTENCIA_APARENTE_NULA' })]
+    )
+
+    render(<Monitoramento />)
+
+    const norteSul = await linhaDaTabela('LT Norte-Sul')
+    expect(await within(norteSul).findByText('Nominal 60 Hz')).toBeInTheDocument()
+    expect(norteSul).toHaveTextContent('59,94 Hz')
+    expect(norteSul).toHaveTextContent('0,992278')
+    expect(within(norteSul).getByText('Calculado de P e Q')).toBeInTheDocument()
+
+    const leste = await linhaDaTabela('LT Leste')
+    expect(within(leste).getByText('Indefinido')).toBeInTheDocument()
+    expect(within(leste).getByText('P e Q iguais a zero')).toBeInTheDocument()
+  })
+
   it('mantem as demais linhas quando uma consulta falha', async () => {
     vi.mocked(linhasApi.listarMedicoesLinha).mockImplementation(async (id: number) => {
       if (id === 2) throw new Error('rede')
@@ -137,7 +169,7 @@ describe('monitoramento de linhas', () => {
 
     render(<Monitoramento />)
 
-    expect((await within(await linhaDaTabela('LT Leste')).findAllByText('Indisponível')).length).toBe(4)
+    expect((await within(await linhaDaTabela('LT Leste')).findAllByText('Indisponível')).length).toBe(6)
     expect(within(await linhaDaTabela('LT Norte-Sul')).getByText('Normal')).toBeInTheDocument()
   })
 
