@@ -678,8 +678,8 @@ Como operador, quero receber alertas automáticos de sobrecarga em transformador
 
 - **Perfil e prioridade:** Operador. Prioridade: Alta.
 - **Status:** Em andamento.
-- **Implementação existente:** Frontend com alertas estáticos. V8 e persistência de AlertaSobrecarga em revisão; ingestão ainda não gera o alerta automaticamente.
-- **Trabalho pendente:** Revisão do backend, integração da interface e aceite funcional.
+- **Implementação existente:** Frontend com consulta e reconhecimento dos alertas de sobrecarga pela API. V8, persistência, geração na ingestão, consultas e reconhecimento de AlertaSobrecarga em revisão.
+- **Trabalho pendente:** Revisão do backend e da integração; aceite funcional. Repetição e recuperação dependem de política ainda não definida.
 - **Dependências:** US11; US20; medições e limites de detecção.
 - **Referências no frontend:** [Alertas/index.tsx](../frontend/src/pages/Alertas/index.tsx#L18) (linhas 18); [Transformadores/index.tsx](../frontend/src/pages/Transformadores/index.tsx#L20) (linhas 20).
 
@@ -703,6 +703,8 @@ Como operador, quero receber alertas automáticos de sobrecarga em transformador
 **API de sobrecarga:** GET /api/alertas-sobrecarga retorna PageResponseDTO, padrões 0/20, máximo 100, ordem geradoEm DESC/id DESC e rejeição de sort. Filtros opcionais ativoId positivo, status ATIVO/RECONHECIDO e período de geração com início inclusivo/fim exclusivo. GET /{id} retorna detalhe ou 404. Ambas exigem sessão. AlertaSobrecargaService.avaliarEGerar usa propagação MANDATORY e recebe o percentual produzido pela ingestão; falha na gravação do alerta desfaz a medição. AlertaSobrecargaControllerTest cobre consultas e filtros; MedicaoTransformadorControllerTest cobre limiar e vínculos; AlertaSobrecargaTransacaoTest verifica rollback sem transação externa no teste.
 
 **US21-T02 — Lote 3 em revisão:** Reconhecimento transacional com bloqueio pessimista do alerta. ATIVO recebe usuário da sessão HTTP e instante UTC com precisão de microssegundos. RECONHECIDO retorna 200 preservando o primeiro autor e horário, inclusive após repetição por outro usuário. Alerta inexistente retorna 404. Sessão e CSRF são obrigatórios; IDs ou horários enviados no corpo não definem a autoria. AlertaSobrecargaControllerTest cobre persistência, repetição, sessão e CSRF; AlertaSobrecargaReconhecimentoConcorrenteTest verifica duas transações disputando o mesmo alerta. A interface e o aceite funcional da história continuam pendentes.
+
+**US21-T03 — interface em revisão:** A tela de alertas inclui a seção "Sobrecarga em transformadores", que consome GET /api/alertas-sobrecarga na ordem do backend, com filtro de status aplicado no servidor e paginação incremental de 20 itens. Cada alerta mostra o transformador pelo catálogo de ativos, a carga sem limite de 100%, o limiar aplicado, o instante e a medição de origem. A ação Reconhecer usa PATCH /{id}/reconhecimento; autor e instante vêm da sessão e são exibidos como "você" para o usuário atual ou pelo ID do usuário, pois não há consulta de usuários. Falhas no reconhecimento são exibidas no próprio alerta. AlertasSobrecarga.test.tsx cobre a apresentação de US21-CA01/CA03, o reconhecimento, o filtro e a paginação. Os alertas de sobrecarga não entram na lista genérica de US20, conforme o contrato que evita duplicatas.
 
 ### US22 — Gerar alertas de tensão anormal
 

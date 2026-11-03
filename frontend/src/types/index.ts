@@ -178,6 +178,20 @@ export type AlertaRequest = {
   ativoId: number | null
 }
 
+export type StatusAlertaAutomatico = 'ATIVO' | 'RECONHECIDO'
+
+export type AlertaSobrecarga = {
+  id: number
+  ativoId: number
+  medicaoId: number
+  cargaPercentual: number
+  limiarPercentual: number
+  status: StatusAlertaAutomatico
+  geradoEm: string
+  reconhecidoEm: string | null
+  reconhecidoPorUsuarioId: number | null
+}
+
 export type LinhaTransmissao = {
   id: number
   nome: string
