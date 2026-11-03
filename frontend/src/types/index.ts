@@ -209,6 +209,28 @@ export type AlertaTensao = {
   reconhecidoPorUsuarioId: number | null
 }
 
+export type StatusComunicacao = 'ATIVO' | 'RESTABELECIDO'
+
+export type AlertaComunicacao = {
+  id: number
+  fonteId: number
+  ativoId: number
+  monitoradaDesde: string
+  ultimaComunicacaoEm: string | null
+  toleranciaSegundos: number
+  detectadoEm: string
+  status: StatusComunicacao
+  restabelecidoEm: string | null
+}
+
+export type AvaliacaoComunicacao = {
+  avaliadoEm: string
+  toleranciaSegundos: number
+  fontesAvaliadas: number
+  alertasCriados: number
+  alertasAtivosExistentes: number
+}
+
 export type LinhaTransmissao = {
   id: number
   nome: string
