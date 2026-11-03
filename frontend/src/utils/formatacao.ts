@@ -21,6 +21,12 @@ export function instanteDeDataHoraLocal(valor: string) {
   return new Date(valor).toISOString()
 }
 
+// Valor atual no formato de um input datetime-local, no fuso do navegador
+export function dataHoraLocalAtual(agora = new Date()) {
+  const dois = (valor: number) => String(valor).padStart(2, '0')
+  return `${agora.getFullYear()}-${dois(agora.getMonth() + 1)}-${dois(agora.getDate())}T${dois(agora.getHours())}:${dois(agora.getMinutes())}`
+}
+
 // A data não tem fuso: converter com new Date pode exibir o dia anterior
 export function formatarData(data: string) {
   return data.split('-').reverse().join('/')

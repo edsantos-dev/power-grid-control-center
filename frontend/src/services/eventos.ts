@@ -1,5 +1,5 @@
 import api from './api'
-import type { EventoOperacional, EventoOperacionalRequest } from '../types'
+import type { EventoOperacional, EventoOperacionalRequest, InterrupcaoRequest } from '../types'
 
 const ROTA = '/api/eventos-operacionais'
 
@@ -11,5 +11,11 @@ export async function listarEventos() {
 
 export async function criarEvento(dados: EventoOperacionalRequest) {
   const { data } = await api.post<EventoOperacional>(ROTA, dados)
+  return data
+}
+
+// Perda efetiva de fornecimento: o início físico é obrigatório e não pode ser futuro
+export async function registrarInterrupcao(dados: InterrupcaoRequest) {
+  const { data } = await api.post<EventoOperacional>('/api/interrupcoes', dados)
   return data
 }
