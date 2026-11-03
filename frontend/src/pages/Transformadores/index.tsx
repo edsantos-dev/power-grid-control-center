@@ -1,60 +1,155 @@
-import { useState } from 'react'
-import { Search, MapPin, Gauge } from 'lucide-react'
+import { useEffect, useState } from 'react'
+import { Search, Pencil, Plus, Building2, Gauge } from 'lucide-react'
+import { listarAlimentadores } from '../../services/alimentadores'
+import { extrairErroApi } from '../../services/api'
+import { listarSubestacoes } from '../../services/subestacoes'
+import { consultarUltimaMedicao, listarTransformadores } from '../../services/transformadores'
+import type { Alimentador, EstadoOperacional, MedicaoTransformador, Subestacao, Transformador } from '../../types'
+import { ESTADO_STYLES } from '../../utils/constants'
+import { formatarData, formatarDataHora, formatarNumero, formatarPercentual } from '../../utils/formatacao'
+import TransformadorForm from './TransformadorForm'
 
-type StatusTransformador = 'operacional' | 'atencao' | 'falha' | 'manutencao'
+type Carga =
+  | { estado: 'carregando' }
+  | { estado: 'erro' }
+  | { estado: 'pronta'; medicao: MedicaoTransformador | null }
 
-interface Transformador {
-  id: string
-  nome: string
-  subestacao: string
-  potenciaNominal: number
-  cargaAtual: number
-  temperatura: number
-  status: StatusTransformador
-}
+function CelulaCarga({ carga }: { carga: Carga | undefined }) {
+  if (!carga || carga.estado === 'carregando') {
+    return <span className="text-slate-500">...</span>
+  }
 
-const transformadores: Transformador[] = [
-  { id: 'T-01', nome: 'Transformador T-01', subestacao: 'Subestação Norte', potenciaNominal: 100, cargaAtual: 72, temperatura: 58, status: 'operacional' },
-  { id: 'T-02', nome: 'Transformador T-02', subestacao: 'Subestação Central', potenciaNominal: 80, cargaAtual: 91, temperatura: 74, status: 'atencao' },
-  { id: 'T-03', nome: 'Transformador T-03', subestacao: 'Subestação Sul', potenciaNominal: 60, cargaAtual: 58, temperatura: 52, status: 'operacional' },
-  { id: 'T-14', nome: 'Transformador T-14', subestacao: 'Subestação Leste', potenciaNominal: 45, cargaAtual: 108, temperatura: 89, status: 'atencao' },
-  { id: 'T-05', nome: 'Transformador T-05', subestacao: 'Subestação Oeste', potenciaNominal: 100, cargaAtual: 0, temperatura: 24, status: 'falha' },
-  { id: 'T-06', nome: 'Transformador T-06', subestacao: 'Subestação Vale Verde', potenciaNominal: 60, cargaAtual: 64, temperatura: 55, status: 'operacional' },
-  { id: 'T-07', nome: 'Transformador T-07', subestacao: 'Subestação Porto Alto', potenciaNominal: 80, cargaAtual: 0, temperatura: 22, status: 'manutencao' },
-]
+  if (carga.estado === 'erro') {
+    return <span className="text-slate-500">Indisponível</span>
+  }
 
-const statusStyles: Record<StatusTransformador, { dot: string; text: string; label: string }> = {
-  operacional: { dot: 'bg-green-500', text: 'text-green-400', label: 'Operacional' },
-  atencao: { dot: 'bg-yellow-500', text: 'text-yellow-400', label: 'Atenção' },
-  falha: { dot: 'bg-red-500', text: 'text-red-400', label: 'Falha' },
-  manutencao: { dot: 'bg-slate-500', text: 'text-slate-400', label: 'Manutenção' },
-}
+  if (!carga.medicao) {
+    return <span className="text-slate-500">Sem medição</span>
+  }
 
-function Transformadores() {
-  const [filtroStatus, setFiltroStatus] = useState<StatusTransformador | 'todos'>('todos')
-  const [busca, setBusca] = useState('')
-
-  const transformadoresFiltrados = transformadores.filter((t) => {
-    const passaStatus = filtroStatus === 'todos' || t.status === filtroStatus
-    const passaBusca = t.nome.toLowerCase().includes(busca.toLowerCase()) || t.subestacao.toLowerCase().includes(busca.toLowerCase())
-    return passaStatus && passaBusca
-  })
-
-  const totalOperacionais = transformadores.filter((t) => t.status === 'operacional').length
-  const totalAtencao = transformadores.filter((t) => t.status === 'atencao').length
-  const totalFalha = transformadores.filter((t) => t.status === 'falha').length
-  const cargaMedia = (transformadores.reduce((acc, t) => acc + t.cargaAtual, 0) / transformadores.length).toFixed(0)
+  const { cargaPercentual, medidoEm, origem } = carga.medicao
+  const cor = cargaPercentual > 100 ? 'text-red-400' : cargaPercentual >= 90 ? 'text-yellow-400' : 'text-slate-300'
 
   return (
     <div>
-      <div className="mb-8">
-        <h2 className="text-3xl font-bold text-white">
-          Transformadores
-        </h2>
+      <span className={`flex items-center gap-1.5 ${cor}`}>
+        <Gauge className="h-3.5 w-3.5" />
+        {formatarPercentual(cargaPercentual)}
+      </span>
+      <p className="mt-1 text-xs text-slate-500">
+        {formatarDataHora(medidoEm)} · {origem === 'SIMULADA' ? 'Simulada' : 'Real'}
+      </p>
+    </div>
+  )
+}
 
-        <p className="mt-2 text-slate-400">
-          Cadastro e monitoramento dos transformadores da rede elétrica.
-        </p>
+function Transformadores() {
+  const [transformadores, setTransformadores] = useState<Transformador[]>([])
+  const [alimentadores, setAlimentadores] = useState<Alimentador[]>([])
+  const [subestacoes, setSubestacoes] = useState<Subestacao[]>([])
+  const [cargas, setCargas] = useState<Record<number, Carga>>({})
+  const [carregando, setCarregando] = useState(true)
+  const [erro, setErro] = useState('')
+  const [filtroStatus, setFiltroStatus] = useState<EstadoOperacional | 'todos'>('todos')
+  const [busca, setBusca] = useState('')
+  const [formularioAberto, setFormularioAberto] = useState(false)
+  const [emEdicao, setEmEdicao] = useState<Transformador | null>(null)
+
+  // Cada transformador consulta sua última medição sem bloquear o cadastro
+  function carregarCarga(id: number) {
+    setCargas((atuais) => ({ ...atuais, [id]: { estado: 'carregando' } }))
+
+    consultarUltimaMedicao(id)
+      .then((medicao) => setCargas((atuais) => ({ ...atuais, [id]: { estado: 'pronta', medicao } })))
+      .catch(() => setCargas((atuais) => ({ ...atuais, [id]: { estado: 'erro' } })))
+  }
+
+  async function carregar() {
+    setCarregando(true)
+    setErro('')
+
+    try {
+      const [listaTransformadores, listaAlimentadores, listaSubestacoes] = await Promise.all([
+        listarTransformadores(),
+        listarAlimentadores(),
+        listarSubestacoes(),
+      ])
+      setTransformadores(listaTransformadores)
+      setAlimentadores(listaAlimentadores)
+      setSubestacoes(listaSubestacoes)
+      listaTransformadores.forEach((t) => carregarCarga(t.id))
+    } catch (error) {
+      setErro(extrairErroApi(error).mensagem)
+    } finally {
+      setCarregando(false)
+    }
+  }
+
+  useEffect(() => {
+    carregar()
+  }, [])
+
+  function nomeAlimentador(id: number) {
+    return alimentadores.find((a) => a.id === id)?.nome ?? `Alimentador #${id}`
+  }
+
+  function nomeSubestacao(id: number) {
+    return subestacoes.find((s) => s.id === id)?.nome ?? `Subestação #${id}`
+  }
+
+  function abrirFormulario(transformador: Transformador | null) {
+    setEmEdicao(transformador)
+    setFormularioAberto(true)
+  }
+
+  function handleSalvar(salvo: Transformador) {
+    setTransformadores((atuais) => [...atuais.filter((t) => t.id !== salvo.id), salvo])
+    setFormularioAberto(false)
+
+    if (!cargas[salvo.id]) {
+      carregarCarga(salvo.id)
+    }
+  }
+
+  // A API não garante ordenação da listagem
+  const transformadoresFiltrados = transformadores
+    .filter((t) => {
+      const termo = busca.toLowerCase()
+      const passaStatus = filtroStatus === 'todos' || t.estadoOperacional === filtroStatus
+      const passaBusca =
+        t.nome.toLowerCase().includes(termo) ||
+        nomeAlimentador(t.alimentadorId).toLowerCase().includes(termo) ||
+        nomeSubestacao(t.subestacaoId).toLowerCase().includes(termo)
+      return passaStatus && passaBusca
+    })
+    .sort((a, b) => a.id - b.id)
+
+  const totalOperacionais = transformadores.filter((t) => t.estadoOperacional === 'OPERACIONAL').length
+  const totalManutencao = transformadores.filter((t) => t.estadoOperacional === 'MANUTENCAO').length
+  const totalFalha = transformadores.filter((t) => t.estadoOperacional === 'FALHA').length
+  const capacidadeTotal = transformadores.reduce((acc, t) => acc + t.capacidadeMva, 0)
+
+  return (
+    <div>
+      <div className="mb-8 flex flex-wrap items-start justify-between gap-4">
+        <div>
+          <h2 className="text-3xl font-bold text-white">
+            Transformadores
+          </h2>
+
+          <p className="mt-2 text-slate-400">
+            Cadastro dos transformadores e carga da última medição.
+          </p>
+        </div>
+
+        <button
+          type="button"
+          onClick={() => abrirFormulario(null)}
+          className="flex items-center gap-2 rounded-lg bg-blue-600 px-4 py-2 text-sm font-semibold text-white transition hover:bg-blue-500"
+        >
+          <Plus className="h-4 w-4" />
+          Novo transformador
+        </button>
       </div>
 
       <div className="grid gap-6 md:grid-cols-2 xl:grid-cols-4">
@@ -65,20 +160,18 @@ function Transformadores() {
         </div>
 
         <div className="rounded-xl border border-slate-800 bg-slate-900 p-6 transition hover:border-slate-700">
-          <p className="text-sm text-slate-400">Em atenção</p>
-          <p className="mt-2 text-3xl font-bold text-yellow-400">{totalAtencao}</p>
-          <p className="mt-2 text-sm text-yellow-400">Sobrecarga / temperatura</p>
+          <p className="text-sm text-slate-400">Em manutenção</p>
+          <p className="mt-2 text-3xl font-bold text-slate-300">{totalManutencao}</p>
         </div>
 
         <div className="rounded-xl border border-slate-800 bg-slate-900 p-6 transition hover:border-slate-700">
           <p className="text-sm text-slate-400">Em falha</p>
           <p className="mt-2 text-3xl font-bold text-red-500">{totalFalha}</p>
-          <p className="mt-2 text-sm text-red-400">Ação necessária</p>
         </div>
 
         <div className="rounded-xl border border-slate-800 bg-slate-900 p-6 transition hover:border-slate-700">
-          <p className="text-sm text-slate-400">Carga Média</p>
-          <p className="mt-2 text-3xl font-bold text-white">{cargaMedia}%</p>
+          <p className="text-sm text-slate-400">Capacidade cadastrada</p>
+          <p className="mt-2 text-3xl font-bold text-white">{formatarNumero(capacidadeTotal)} MVA</p>
         </div>
       </div>
 
@@ -90,13 +183,13 @@ function Transformadores() {
               type="text"
               value={busca}
               onChange={(e) => setBusca(e.target.value)}
-              placeholder="Buscar transformador ou subestação..."
+              placeholder="Buscar transformador, alimentador ou subestação..."
               className="w-full rounded-lg border border-slate-800 bg-slate-950 py-2 pl-9 pr-3 text-sm text-slate-200 placeholder:text-slate-500 focus:border-slate-600 focus:outline-none"
             />
           </div>
 
           <div className="flex flex-wrap gap-2">
-            {(['todos', 'operacional', 'atencao', 'falha', 'manutencao'] as const).map((status) => (
+            {(['todos', 'OPERACIONAL', 'FALHA', 'MANUTENCAO'] as const).map((status) => (
               <button
                 key={status}
                 onClick={() => setFiltroStatus(status)}
@@ -106,7 +199,7 @@ function Transformadores() {
                     : 'border-slate-800 text-slate-400 hover:border-slate-700'
                 }`}
               >
-                {status === 'todos' ? 'Todos' : statusStyles[status].label}
+                {status === 'todos' ? 'Todos' : ESTADO_STYLES[status].label}
               </button>
             ))}
           </div>
@@ -117,42 +210,52 @@ function Transformadores() {
             <thead>
               <tr className="border-b border-slate-800 text-left text-slate-400">
                 <th className="pb-3 font-normal">Transformador</th>
+                <th className="pb-3 font-normal">Alimentador</th>
                 <th className="pb-3 font-normal">Subestação</th>
-                <th className="pb-3 font-normal">Potência</th>
+                <th className="pb-3 font-normal">Capacidade (MVA)</th>
                 <th className="pb-3 font-normal">Carga</th>
-                <th className="pb-3 font-normal">Temperatura</th>
+                <th className="pb-3 font-normal">Instalação</th>
                 <th className="pb-3 font-normal">Status</th>
+                <th className="pb-3 font-normal">Ações</th>
               </tr>
             </thead>
             <tbody>
               {transformadoresFiltrados.map((t) => {
-                const status = statusStyles[t.status]
+                const status = ESTADO_STYLES[t.estadoOperacional]
 
                 return (
                   <tr key={t.id} className="border-b border-slate-800/60 last:border-0">
                     <td className="py-3 pr-4">
                       <p className="text-slate-200">{t.nome}</p>
-                      <p className="mt-1 text-xs text-slate-500">{t.id}</p>
+                      <p className="mt-1 text-xs text-slate-500">#{t.id}</p>
                     </td>
-                    <td className="py-3 text-slate-400">
+                    <td className="py-3 pr-4 text-slate-400">{nomeAlimentador(t.alimentadorId)}</td>
+                    <td className="py-3 pr-4 text-slate-400">
                       <span className="flex items-center gap-1.5">
-                        <MapPin className="h-3.5 w-3.5 text-slate-500" />
-                        {t.subestacao}
+                        <Building2 className="h-3.5 w-3.5 text-slate-500" />
+                        {nomeSubestacao(t.subestacaoId)}
                       </span>
                     </td>
-                    <td className="py-3 text-slate-300">{t.potenciaNominal} MVA</td>
-                    <td className="py-3 text-slate-300">
-                      <span className="flex items-center gap-1.5">
-                        <Gauge className="h-3.5 w-3.5 text-blue-400" />
-                        {t.cargaAtual}%
-                      </span>
+                    <td className="py-3 text-slate-300">{formatarNumero(t.capacidadeMva)}</td>
+                    <td className="py-3 pr-4">
+                      <CelulaCarga carga={cargas[t.id]} />
                     </td>
-                    <td className="py-3 text-slate-300">{t.temperatura}°C</td>
+                    <td className="py-3 text-slate-300">{formatarData(t.dataInstalacao)}</td>
                     <td className="py-3">
                       <span className={`flex items-center gap-1.5 text-xs font-medium ${status.text}`}>
                         <span className={`h-1.5 w-1.5 rounded-full ${status.dot}`} />
                         {status.label}
                       </span>
+                    </td>
+                    <td className="py-3">
+                      <button
+                        type="button"
+                        onClick={() => abrirFormulario(t)}
+                        aria-label={`Editar ${t.nome}`}
+                        className="rounded-lg p-1.5 text-slate-400 transition hover:bg-slate-800 hover:text-white"
+                      >
+                        <Pencil className="h-4 w-4" />
+                      </button>
                     </td>
                   </tr>
                 )
@@ -160,13 +263,40 @@ function Transformadores() {
             </tbody>
           </table>
 
-          {transformadoresFiltrados.length === 0 && (
+          {carregando && (
+            <p className="py-10 text-center text-sm text-slate-500">Carregando transformadores...</p>
+          )}
+
+          {!carregando && erro && (
+            <div className="flex flex-col items-center gap-3 py-10">
+              <p className="text-sm text-red-400">{erro}</p>
+              <button
+                type="button"
+                onClick={carregar}
+                className="rounded-lg border border-slate-700 px-3 py-1.5 text-sm text-slate-300 transition hover:bg-slate-800"
+              >
+                Tentar novamente
+              </button>
+            </div>
+          )}
+
+          {!carregando && !erro && transformadoresFiltrados.length === 0 && (
             <div className="flex flex-col items-center gap-2 py-10 text-slate-500">
               <p className="text-sm">Nenhum transformador encontrado.</p>
             </div>
           )}
         </div>
       </div>
+
+      {formularioAberto && (
+        <TransformadorForm
+          transformador={emEdicao}
+          alimentadores={alimentadores}
+          subestacoes={subestacoes}
+          aoFechar={() => setFormularioAberto(false)}
+          aoSalvar={handleSalvar}
+        />
+      )}
     </div>
   )
 }
