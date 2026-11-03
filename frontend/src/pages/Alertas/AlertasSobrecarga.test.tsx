@@ -108,7 +108,7 @@ describe('alertas de sobrecarga', () => {
     vi.mocked(alertasApi.listarAlertasSobrecarga).mockResolvedValue(pagina([]))
     await userEvent.click(screen.getByRole('button', { name: 'Não reconhecidos' }))
 
-    expect(await screen.findByText('Nenhum alerta de sobrecarga neste filtro.')).toBeInTheDocument()
+    expect(await screen.findByText('Nenhum alerta neste filtro.')).toBeInTheDocument()
     expect(alertasApi.listarAlertasSobrecarga).toHaveBeenLastCalledWith(0, 'ATIVO')
   })
 

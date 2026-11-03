@@ -712,8 +712,8 @@ Como operador, quero receber alertas de variação anormal de tensão, para evit
 
 - **Perfil e prioridade:** Operador. Prioridade: Alta.
 - **Status:** Em andamento.
-- **Implementação existente:** Frontend estático. Backend com V9, geração transacional, consultas e reconhecimento idempotente em revisão.
-- **Trabalho pendente:** Revisão do backend, integração da interface e aceite funcional.
+- **Implementação existente:** Frontend com consulta e reconhecimento dos alertas de tensão pela API. Backend com V9, geração transacional, consultas e reconhecimento idempotente em revisão.
+- **Trabalho pendente:** Revisão do backend e da integração; aceite funcional. Recorrência e recuperação dependem de política ainda não definida.
 - **Dependências:** US08; US20; faixas de tensão e regras de geração.
 - **Referências no frontend:** [Alertas/index.tsx](../frontend/src/pages/Alertas/index.tsx#L19) (linhas 19); [Monitoramento/index.tsx](../frontend/src/pages/Monitoramento/index.tsx#L13) (linhas 13).
 
@@ -737,6 +737,8 @@ Como operador, quero receber alertas de variação anormal de tensão, para evit
 **US22-T02 — Lote 2 em revisão:** MedicaoLinhaService carrega a referência cadastral antes de persistir e rejeita tensão informada com referência nula/não positiva (400). AlertaTensaoService participa obrigatoriamente da transação e calcula limites exatos com fatores 0.95/1.05. Uma leitura igual ao limite já gera alerta, sem arredondamento intermediário. Sem tensão, não há avaliação. GET /api/alertas-tensao usa paginação 0/20, máximo 100, geradoEm DESC/id DESC e filtros por ativoId, tipo, status e período de geração; sort e parâmetros inválidos são rejeitados. GET /{id} retorna detalhe ou 404. AlertaTensaoControllerTest cobre limites e filtros; AlertaTensaoTransacaoTest verifica rollback sem transação externa envolvendo a ingestão.
 
 **US22-T02 — Lote 3 em revisão:** PATCH /api/alertas-tensao/{id}/reconhecimento dispensa corpo e usa o usuário real da sessão HTTP. O reconhecimento transacional adquire bloqueio pessimista e grava o instante UTC com precisão de microssegundos. Repetições retornam 200 sem alterar o primeiro autor ou horário, inclusive por outro usuário ou em chamadas concorrentes. Alerta inexistente retorna 404; sessão e CSRF são obrigatórios. AlertaTensaoControllerTest cobre persistência, idempotência, autoria e segurança; AlertaTensaoReconhecimentoConcorrenteTest cobre duas transações sobre o mesmo alerta. Reconhecimento não implica recuperação elétrica.
+
+**US22-T03 — interface em revisão:** A tela de alertas inclui a seção "Tensão anormal em linhas", que consome GET /api/alertas-tensao na ordem do backend, com filtros de status e tipo (subtensão/sobretensão) aplicados no servidor e paginação incremental de 20 itens. Cada alerta mostra o tipo, a linha pelo catálogo de ativos, a tensão medida, a referência e a faixa registradas no alerta, o instante e a medição de origem, sem recalcular limites com o cadastro atual. O reconhecimento usa PATCH /{id}/reconhecimento com a mesma apresentação de autoria da US21. A seção de sobrecarga foi generalizada em SecaoAlertasAutomaticos.tsx, compartilhada pelas duas origens. AlertasTensao.test.tsx cobre a apresentação de US22-CA01/CA03, os filtros e o reconhecimento; a demonstração de limites e da condição normal (US22-CA02) foi verificada no navegador com leituras abaixo, nos limites e dentro da faixa.
 
 ### US23 — Gerar alertas de perda de comunicação
 
