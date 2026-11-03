@@ -7,6 +7,7 @@ import type { Alerta, Criticidade } from '../../types'
 import { CRITICIDADE_STYLES, CRITICIDADES, SITUACAO_ALERTA_LABEL } from '../../utils/constants'
 import { formatarDataHora } from '../../utils/formatacao'
 import AlertaForm from './AlertaForm'
+import AlertasSobrecarga from './AlertasSobrecarga'
 
 const icones: Record<Criticidade, typeof AlertTriangle> = {
   CRITICA: AlertTriangle,
@@ -77,7 +78,7 @@ function Alertas() {
           </h2>
 
           <p className="mt-2 text-slate-400">
-            Alertas ativos, da maior para a menor criticidade.
+            Alertas ativos, da maior para a menor criticidade, e alertas automáticos de sobrecarga.
           </p>
         </div>
 
@@ -200,6 +201,8 @@ function Alertas() {
           <p className="py-10 text-center text-sm text-slate-500">Nenhum alerta corresponde ao filtro.</p>
         )}
       </div>
+
+      <AlertasSobrecarga ativos={ativos} />
 
       {formularioAberto && (
         <AlertaForm ativos={ativos} aoFechar={() => setFormularioAberto(false)} aoSalvar={handleSalvar} />
