@@ -9,6 +9,7 @@ import { formatarDataHora } from '../../utils/formatacao'
 import AlertaForm from './AlertaForm'
 import AlertasSobrecarga from './AlertasSobrecarga'
 import AlertasTensao from './AlertasTensao'
+import AlertasComunicacao from './AlertasComunicacao'
 
 const icones: Record<Criticidade, typeof AlertTriangle> = {
   CRITICA: AlertTriangle,
@@ -79,7 +80,7 @@ function Alertas() {
           </h2>
 
           <p className="mt-2 text-slate-400">
-            Alertas ativos, da maior para a menor criticidade, e alertas automáticos de sobrecarga e tensão.
+            Alertas ativos, da maior para a menor criticidade, e alertas automáticos de sobrecarga, tensão e comunicação.
           </p>
         </div>
 
@@ -205,6 +206,7 @@ function Alertas() {
 
       <AlertasSobrecarga ativos={ativos} />
       <AlertasTensao ativos={ativos} />
+      <AlertasComunicacao ativos={ativos} />
 
       {formularioAberto && (
         <AlertaForm ativos={ativos} aoFechar={() => setFormularioAberto(false)} aoSalvar={handleSalvar} />

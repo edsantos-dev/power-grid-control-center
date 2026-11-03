@@ -4,6 +4,9 @@ import type {
   AlertaRequest,
   AlertaSobrecarga,
   AlertaTensao,
+  AlertaComunicacao,
+  AvaliacaoComunicacao,
+  StatusComunicacao,
   PageResponse,
   StatusAlertaAutomatico,
   TipoAlertaTensao,
@@ -49,5 +52,19 @@ export async function listarAlertasTensao(page: number, status?: StatusAlertaAut
 
 export async function reconhecerAlertaTensao(id: number) {
   const { data } = await api.patch<AlertaTensao>(`${ROTA_TENSAO}/${id}/reconhecimento`)
+  return data
+}
+
+// Ordem fixa do backend: detectadoEm e id decrescentes
+export async function listarAlertasComunicacao(page: number, status?: StatusComunicacao) {
+  const { data } = await api.get<PageResponse<AlertaComunicacao>>('/api/alertas-comunicacao', {
+    params: { page, size: 20, ...(status && { status }) },
+  })
+  return data
+}
+
+// A detecção não é agendada: roda sob demanda, para OPERADOR e GERENTE_OPERACOES
+export async function avaliarComunicacao() {
+  const { data } = await api.post<AvaliacaoComunicacao>('/api/jobs/avaliar-comunicacao')
   return data
 }
