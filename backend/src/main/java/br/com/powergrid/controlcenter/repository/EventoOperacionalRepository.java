@@ -19,6 +19,10 @@ public interface EventoOperacionalRepository extends JpaRepository<EventoOperaci
     @Lock(LockModeType.PESSIMISTIC_WRITE)
     @Query("select e from EventoOperacional e where e.id = :id")
     Optional<EventoOperacional> buscarPorIdParaTransicao(@Param("id") Long id);
+    @Lock(LockModeType.PESSIMISTIC_WRITE)
+    @Query("select e from EventoOperacional e where e.id = :id")
+    Optional<EventoOperacional> buscarPorIdParaDesignacao(@Param("id") Long id);
+
     String FILTROS_MANUTENCAO = " WHERE e.ativo_id = :ativoId AND e.categoria = 'MANUTENCAO'"
             + " AND (CAST(:situacao AS VARCHAR(32)) IS NULL OR e.situacao = :situacao)"
             + " AND (CAST(:responsavelUsuarioId AS BIGINT) IS NULL OR e.responsavel_usuario_id = :responsavelUsuarioId)"
