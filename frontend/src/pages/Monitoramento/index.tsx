@@ -2,10 +2,11 @@ import { useCallback, useEffect, useState } from 'react'
 import { RefreshCw } from 'lucide-react'
 import { extrairErroApi } from '../../services/api'
 import { listarLinhas, listarMedicoesLinha } from '../../services/linhas'
-import type { LinhaTransmissao, MedicaoLinha } from '../../types'
+import { listarSubestacoes } from '../../services/subestacoes'
+import type { LinhaTransmissao, MedicaoLinha, Subestacao } from '../../types'
 import CelulaLeitura from './CelulaLeitura'
 import GraficoSerie from './GraficoSerie'
-import { CADENCIA_MS, GRANDEZAS_LINHA, ultimaLeitura } from './monitoramento'
+import { CADENCIA_MS, GRANDEZAS_LINHA, ultimaLeitura, type Leitura } from './monitoramento'
 
 type Medicoes = { estado: 'pronta'; lista: MedicaoLinha[] } | { estado: 'erro' }
 
@@ -18,6 +19,19 @@ function Monitoramento() {
   const [erro, setErro] = useState('')
   const [atualizadoEm, setAtualizadoEm] = useState<number>(() => Date.now())
   const [automatico, setAutomatico] = useState(true)
+  const [subestacoes, setSubestacoes] = useState<Subestacao[]>([])
+
+  // Os nomes dos terminais não mudam com a cadência das leituras
+  useEffect(() => {
+    listarSubestacoes().then(setSubestacoes).catch(() => setSubestacoes([]))
+  }, [])
+
+  function terminal(leitura: Leitura | null) {
+    if (!leitura) return undefined
+    if (leitura.subestacaoReferenciaId === null) return 'Sem terminal de referência'
+    const nome = subestacoes.find((s) => s.id === leitura.subestacaoReferenciaId)?.nome ?? `Subestação #${leitura.subestacaoReferenciaId}`
+    return `Referência: ${nome}`
+  }
 
   // Cada linha consulta suas leituras recentes; a falha de uma não esconde as demais
   const atualizar = useCallback(async () => {
@@ -110,6 +124,9 @@ function Monitoramento() {
         <h3 id="titulo-linhas" className="text-lg font-semibold text-white">
           Linhas de transmissão
         </h3>
+        <p className="mt-1 text-xs text-slate-500">
+          Potências positivas indicam fluxo entrando na linha pelo terminal de referência da fonte; negativas, saindo.
+        </p>
 
         <div className="mt-4 overflow-x-auto">
           <table className="w-full text-sm">
@@ -138,22 +155,27 @@ function Monitoramento() {
                       <p className="mt-1 text-xs text-slate-500">Operação {linha.tensaoOperacaoKv} kV</p>
                     </td>
 
-                    {GRANDEZAS_LINHA.map((g) => (
-                      <td key={g.campo} className="py-3 pr-4">
-                        {!estado ? (
-                          <span className="text-xs text-slate-500">...</span>
-                        ) : estado.estado === 'erro' ? (
-                          <span className="text-xs text-slate-500">Indisponível</span>
-                        ) : (
-                          <CelulaLeitura
-                            leitura={ultimaLeitura(estado.lista, g.campo)}
-                            unidade={g.unidade}
-                            agora={atualizadoEm}
-                            referenciaKv={g.campo === 'tensaoKv' ? linha.tensaoOperacaoKv : undefined}
-                          />
-                        )}
-                      </td>
-                    ))}
+                    {GRANDEZAS_LINHA.map((g) => {
+                      const leitura = estado?.estado === 'pronta' ? ultimaLeitura(estado.lista, g.campo) : null
+
+                      return (
+                        <td key={g.campo} className="py-3 pr-4">
+                          {!estado ? (
+                            <span className="text-xs text-slate-500">...</span>
+                          ) : estado.estado === 'erro' ? (
+                            <span className="text-xs text-slate-500">Indisponível</span>
+                          ) : (
+                            <CelulaLeitura
+                              leitura={leitura}
+                              unidade={g.unidade}
+                              agora={atualizadoEm}
+                              referenciaKv={g.campo === 'tensaoKv' ? linha.tensaoOperacaoKv : undefined}
+                              nota={g.comTerminal ? terminal(leitura) : undefined}
+                            />
+                          )}
+                        </td>
+                      )
+                    })}
                   </tr>
                 )
               })}
