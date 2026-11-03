@@ -1,5 +1,5 @@
 import api from './api'
-import type { Alerta, AlertaRequest } from '../types'
+import type { Alerta, AlertaRequest, AlertaSobrecarga, PageResponse, StatusAlertaAutomatico } from '../types'
 
 const ROTA = '/api/alertas'
 
@@ -11,5 +11,21 @@ export async function listarAlertasAtivos() {
 
 export async function criarAlerta(dados: AlertaRequest) {
   const { data } = await api.post<Alerta>(ROTA, dados)
+  return data
+}
+
+const ROTA_SOBRECARGA = '/api/alertas-sobrecarga'
+
+// Ordem fixa do backend: geradoEm e id decrescentes; size máximo de 100
+export async function listarAlertasSobrecarga(page: number, status?: StatusAlertaAutomatico) {
+  const { data } = await api.get<PageResponse<AlertaSobrecarga>>(ROTA_SOBRECARGA, {
+    params: { page, size: 20, ...(status && { status }) },
+  })
+  return data
+}
+
+// O autor e o instante vêm da sessão; repetir o reconhecimento preserva o primeiro registro
+export async function reconhecerAlertaSobrecarga(id: number) {
+  const { data } = await api.patch<AlertaSobrecarga>(`${ROTA_SOBRECARGA}/${id}/reconhecimento`)
   return data
 }
