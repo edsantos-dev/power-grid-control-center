@@ -1,15 +1,15 @@
-import { useEffect, useState, type ElementType } from 'react'
+import { useEffect, useState, type ElementType, type ReactNode } from 'react'
 import { CheckCheck } from 'lucide-react'
 import { useAuth } from '../../hooks/useAuth'
 import { extrairErroApi } from '../../services/api'
-import type { PageResponse, StatusAlertaAutomatico } from '../../types'
+import type { PageResponse } from '../../types'
 import { formatarDataHora } from '../../utils/formatacao'
 
 export type AlertaAutomatico = {
   id: number
-  status: StatusAlertaAutomatico
-  reconhecidoEm: string | null
-  reconhecidoPorUsuarioId: number | null
+  status: string
+  reconhecidoEm?: string | null
+  reconhecidoPorUsuarioId?: number | null
 }
 
 type Opcao = { valor: string; label: string }
@@ -21,15 +21,17 @@ type Props<T extends AlertaAutomatico> = {
   icone: ElementType
   cor: { texto: string; fundo: string; borda: string }
   filtroExtra?: { rotulo: string; opcoes: Opcao[] }
-  listar: (page: number, filtros: { status?: StatusAlertaAutomatico; extra?: string }) => Promise<PageResponse<T>>
-  reconhecer: (id: number) => Promise<T>
-  descrever: (alerta: T) => { resumo: string; detalhe: string; alvo: string }
+  // Status da origem; por padrão, o ciclo ATIVO/RECONHECIDO de sobrecarga e tensão
+  filtrosStatus?: Opcao[]
+  acoes?: ReactNode
+  listar: (page: number, filtros: { status?: string; extra?: string }) => Promise<PageResponse<T>>
+  // Origens sem reconhecimento exibem a situação descrita por `situacao`
+  reconhecer?: (id: number) => Promise<T>
+  situacao?: (alerta: T) => { texto: string; classe: string }
+  descrever: (alerta: T) => { resumo: string; detalhe: string; alvo: string; complemento?: string }
 }
 
-type FiltroStatus = StatusAlertaAutomatico | 'todos'
-
-const filtrosStatus: { valor: FiltroStatus; label: string }[] = [
-  { valor: 'todos', label: 'Todos' },
+const filtrosReconhecimento: Opcao[] = [
   { valor: 'ATIVO', label: 'Não reconhecidos' },
   { valor: 'RECONHECIDO', label: 'Reconhecidos' },
 ]
@@ -63,8 +65,11 @@ function SecaoAlertasAutomaticos<T extends AlertaAutomatico>({
   icone: Icone,
   cor,
   filtroExtra,
+  filtrosStatus = filtrosReconhecimento,
+  acoes,
   listar,
   reconhecer,
+  situacao,
   descrever,
 }: Props<T>) {
   const { usuario } = useAuth()
@@ -72,7 +77,7 @@ function SecaoAlertasAutomaticos<T extends AlertaAutomatico>({
   const [total, setTotal] = useState(0)
   const [pagina, setPagina] = useState(0)
   const [ultimaPagina, setUltimaPagina] = useState(true)
-  const [status, setStatus] = useState<FiltroStatus>('todos')
+  const [status, setStatus] = useState('todos')
   const [extra, setExtra] = useState('')
   const [carregando, setCarregando] = useState(true)
   const [erro, setErro] = useState('')
@@ -107,6 +112,7 @@ function SecaoAlertasAutomaticos<T extends AlertaAutomatico>({
   }
 
   async function handleReconhecer(id: number) {
+    if (!reconhecer) return
     setReconhecendo(id)
     setErroReconhecimento((atuais) => ({ ...atuais, [id]: '' }))
 
@@ -135,9 +141,10 @@ function SecaoAlertasAutomaticos<T extends AlertaAutomatico>({
         </div>
 
         <div className="flex flex-col gap-2 lg:items-end">
+          {acoes}
           <BotoesFiltro
             rotulo={`Status dos ${rotuloLista.toLowerCase()}`}
-            opcoes={filtrosStatus}
+            opcoes={[{ valor: 'todos', label: 'Todos' }, ...filtrosStatus]}
             valor={status}
             aoAlterar={(valor) => {
               setStatus(valor)
@@ -164,7 +171,8 @@ function SecaoAlertasAutomaticos<T extends AlertaAutomatico>({
 
       <ul className="mt-3 space-y-3" aria-label={rotuloLista}>
         {alertas.map((alerta) => {
-          const { resumo, detalhe, alvo } = descrever(alerta)
+          const { resumo, detalhe, alvo, complemento } = descrever(alerta)
+          const rotuloSituacao = situacao?.(alerta) ?? { texto: 'Reconhecido', classe: 'text-yellow-400' }
 
           return (
             <li key={alerta.id} className={`flex flex-wrap items-start justify-between gap-4 rounded-lg border p-4 ${cor.borda}`}>
@@ -176,7 +184,8 @@ function SecaoAlertasAutomaticos<T extends AlertaAutomatico>({
                 <div>
                   <p className="text-sm text-slate-200">{resumo}</p>
                   <p className="mt-1 text-xs text-slate-500">{detalhe}</p>
-                  {alerta.status === 'RECONHECIDO' && (
+                  {complemento && <p className="mt-1 text-xs text-slate-400">{complemento}</p>}
+                  {reconhecer && alerta.status === 'RECONHECIDO' && (
                     <p className="mt-1 text-xs text-slate-400">{descreverReconhecimento(alerta)}</p>
                   )}
                   {erroReconhecimento[alerta.id] && (
@@ -185,7 +194,7 @@ function SecaoAlertasAutomaticos<T extends AlertaAutomatico>({
                 </div>
               </div>
 
-              {alerta.status === 'ATIVO' ? (
+              {reconhecer && alerta.status === 'ATIVO' ? (
                 <button
                   type="button"
                   onClick={() => handleReconhecer(alerta.id)}
@@ -197,7 +206,7 @@ function SecaoAlertasAutomaticos<T extends AlertaAutomatico>({
                   {reconhecendo === alerta.id ? 'Reconhecendo...' : 'Reconhecer'}
                 </button>
               ) : (
-                <span className="text-xs text-yellow-400">Reconhecido</span>
+                <span className={`text-xs ${rotuloSituacao.classe}`}>{rotuloSituacao.texto}</span>
               )}
             </li>
           )

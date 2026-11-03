@@ -17,8 +17,8 @@ const tipoLabel: Record<TipoAlertaTensao, string> = {
 const opcoesTipo = (Object.keys(tipoLabel) as TipoAlertaTensao[]).map((valor) => ({ valor, label: tipoLabel[valor] }))
 
 // Referência estável para não disparar novas consultas a cada renderização
-const listar = (page: number, { status, extra }: { status?: StatusAlertaAutomatico; extra?: string }) =>
-  listarAlertasTensao(page, status, extra as TipoAlertaTensao | undefined)
+const listar = (page: number, { status, extra }: { status?: string; extra?: string }) =>
+  listarAlertasTensao(page, status as StatusAlertaAutomatico | undefined, extra as TipoAlertaTensao | undefined)
 
 function AlertasTensao({ ativos }: Props) {
   function descrever(alerta: AlertaTensao) {

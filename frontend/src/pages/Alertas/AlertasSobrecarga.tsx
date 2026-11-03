@@ -10,7 +10,8 @@ type Props = {
 }
 
 // Referência estável para não disparar novas consultas a cada renderização
-const listar = (page: number, { status }: { status?: StatusAlertaAutomatico }) => listarAlertasSobrecarga(page, status)
+const listar = (page: number, { status }: { status?: string }) =>
+  listarAlertasSobrecarga(page, status as StatusAlertaAutomatico | undefined)
 
 function AlertasSobrecarga({ ativos }: Props) {
   function descrever(alerta: AlertaSobrecarga) {
