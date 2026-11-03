@@ -1,5 +1,5 @@
 import api from './api'
-import type { LinhaTransmissao, LinhaTransmissaoRequest } from '../types'
+import type { LinhaTransmissao, LinhaTransmissaoRequest, MedicaoLinha, PageResponse } from '../types'
 
 const ROTA = '/api/linhas-transmissao'
 
@@ -16,4 +16,10 @@ export async function criarLinha(dados: LinhaTransmissaoRequest) {
 export async function atualizarLinha(id: number, dados: LinhaTransmissaoRequest) {
   const { data } = await api.put<LinhaTransmissao>(`${ROTA}/${id}`, dados)
   return data
+}
+
+// Ordem fixa do backend: medidoEm e id decrescentes; size máximo de 100
+export async function listarMedicoesLinha(id: number, size = 20) {
+  const { data } = await api.get<PageResponse<MedicaoLinha>>(`${ROTA}/${id}/medicoes`, { params: { page: 0, size } })
+  return data.content
 }
