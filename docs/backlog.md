@@ -353,8 +353,8 @@ Como operador, quero monitorar a frequência e o fator de potência da rede, par
 
 - **Perfil e prioridade:** Operador. Prioridade: Alta.
 - **Status:** Em andamento.
-- **Implementação existente:** Frontend com valores simulados fixos. Persistência de frequenciaHz em MedicaoLinha pela V6, com testes de integridade em revisão.
-- **Trabalho pendente:** Revisão do backend, integração e atualização da interface, política de atraso e aceite funcional.
+- **Implementação existente:** Frontend com monitoramento de frequência e fator de potência por linha pela API. Frontend com valores simulados fixos. Persistência de frequenciaHz em MedicaoLinha pela V6, com testes de integridade em revisão.
+- **Trabalho pendente:** Revisão do backend e da integração; aprovação da cadência e da política de atraso propostas na US08; aceite funcional.
 - **Dependências:** PEN-06; US25; infraestrutura de medições.
 - **Referências no frontend:** [Monitoramento/index.tsx](../frontend/src/pages/Monitoramento/index.tsx#L13) (linhas 13,85,96).
 
@@ -374,6 +374,8 @@ Como operador, quero monitorar a frequência e o fator de potência da rede, par
 **US10-T02 — persistência e API em revisão:** V6 adiciona frequencia_hz opcional em NUMERIC(9,6), com restrição estritamente positiva e rejeição de valores não finitos. O CHECK exige ao menos uma das cinco grandezas ingeridas. Leituras anteriores podem manter frequência nula; valores positivos fora da faixa nominal são aceitos. MedicaoLinhaRepositoryTest cobre frequência isolada, limites, zero/negativos e compatibilidade de tensão, corrente e potências.
 
 **Contrato para a Camada Web:** Frequência em Hz, nominal didático de 60 Hz; eventual faixa demonstrativa não bloqueia ingestão. FP será calculado no serviço com P e Q da mesma medição, usando |P|/sqrt(P²+Q²), seis casas e HALF_EVEN, sem coluna persistida. P ou Q ausente resulta em DADOS_INSUFICIENTES; ambos zero em POTENCIA_APARENTE_NULA; demais casos em CALCULADO. DTOs expõem frequenciaHz, fatorPotencia e situacaoFatorPotencia. A conversão única no serviço atende POST e GET, com BigDecimal, raiz DECIMAL128 e arredondamento final HALF_EVEN em seis casas. Frequência aceita até três inteiros e seis decimais, sempre positiva. FP e situação são definidos pelo servidor, sem persistência ou cálculo entre leituras. MedicaoLinhaControllerTest cobre frequência isolada, precisão, os três estados e compatibilidade do contrato.
+
+**US10-T03 — interface em revisão:** O monitoramento de linhas exibe a frequência (Hz) da leitura mais recente que a contém, com a referência nominal didática de 60 Hz apenas como nota, sem classificar estabilidade. O fator de potência é o calculado pelo servidor com P e Q da mesma leitura: a tela usa a leitura mais recente com cálculo possível, mostra o valor com seis casas e a indicação "Calculado de P e Q", exibe "Indefinido" quando P e Q são zero (POTENCIA_APARENTE_NULA) e "Sem leitura" quando nenhuma leitura recente traz P e Q (DADOS_INSUFICIENTES), sem cálculo no cliente. Origem, instante e atraso seguem a proposta da US08, e a linha selecionada ganha gráficos de frequência e de fator de potência, cada um com seu eixo. Monitoramento.test.tsx cobre US10-CA01–CA03 na interface; o cálculo foi conferido no navegador com P=40 MW e Q=5 MVAr (0,992278).
 
 ### US11 — Monitorar carga dos transformadores
 

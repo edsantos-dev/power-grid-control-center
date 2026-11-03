@@ -6,7 +6,15 @@ import { listarSubestacoes } from '../../services/subestacoes'
 import type { LinhaTransmissao, MedicaoLinha, Subestacao } from '../../types'
 import CelulaLeitura from './CelulaLeitura'
 import GraficoSerie from './GraficoSerie'
-import { CADENCIA_MS, GRANDEZAS_LINHA, ultimaLeitura, type Leitura } from './monitoramento'
+import {
+  CADENCIA_MS,
+  descreverIdade,
+  FREQUENCIA_NOMINAL_HZ,
+  GRANDEZAS_LINHA,
+  ultimoFatorPotencia,
+  ultimaLeitura,
+  type Leitura,
+} from './monitoramento'
 
 type Medicoes = { estado: 'pronta'; lista: MedicaoLinha[] } | { estado: 'erro' }
 
@@ -156,7 +164,13 @@ function Monitoramento() {
                     </td>
 
                     {GRANDEZAS_LINHA.map((g) => {
-                      const leitura = estado?.estado === 'pronta' ? ultimaLeitura(estado.lista, g.campo) : null
+                      const fator = g.campo === 'fatorPotencia' && estado?.estado === 'pronta' ? ultimoFatorPotencia(estado.lista) : null
+                      const leitura =
+                        estado?.estado !== 'pronta'
+                          ? null
+                          : g.campo === 'fatorPotencia'
+                            ? fator?.tipo === 'calculado' ? fator.leitura : null
+                            : ultimaLeitura(estado.lista, g.campo)
 
                       return (
                         <td key={g.campo} className="py-3 pr-4">
@@ -164,13 +178,19 @@ function Monitoramento() {
                             <span className="text-xs text-slate-500">...</span>
                           ) : estado.estado === 'erro' ? (
                             <span className="text-xs text-slate-500">Indisponível</span>
+                          ) : fator?.tipo === 'indefinido' ? (
+                            <div className="text-xs">
+                              <p className="text-slate-300">Indefinido</p>
+                              <p className="mt-0.5 text-slate-500">P e Q iguais a zero</p>
+                              <p className="mt-0.5 text-slate-500">{descreverIdade(fator.medidoEm, atualizadoEm)}</p>
+                            </div>
                           ) : (
                             <CelulaLeitura
                               leitura={leitura}
                               unidade={g.unidade}
                               agora={atualizadoEm}
                               referenciaKv={g.campo === 'tensaoKv' ? linha.tensaoOperacaoKv : undefined}
-                              nota={g.comTerminal ? terminal(leitura) : undefined}
+                              nota={g.comTerminal ? terminal(leitura) : g.campo === 'frequenciaHz' ? `Nominal ${FREQUENCIA_NOMINAL_HZ} Hz` : g.campo === 'fatorPotencia' ? 'Calculado de P e Q' : undefined}
                             />
                           )}
                         </td>
