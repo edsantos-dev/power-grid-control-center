@@ -231,6 +231,38 @@ export type AvaliacaoComunicacao = {
   alertasAtivosExistentes: number
 }
 
+export type TipoAlertaHistorico = 'GENERICO' | 'SOBRECARGA' | 'TENSAO' | 'COMUNICACAO'
+
+export type StatusOrigemAlerta = 'ABERTO' | 'ATIVO' | 'RECONHECIDO' | 'RESOLVIDO' | 'RESTABELECIDO'
+
+// A identidade é composta: o mesmo idOrigem pode existir em tipos diferentes
+export type AlertaHistorico = {
+  idOrigem: number
+  tipoAlerta: TipoAlertaHistorico
+  criticidade: Criticidade
+  escopo: EscopoAlerta
+  ativoId: number | null
+  fonteId: number | null
+  medicaoId: number | null
+  ocorridoEm: string | null
+  statusOrigem: StatusOrigemAlerta
+  subtipo: string | null
+  mensagem: string | null
+  reconhecidoEm: string | null
+  reconhecidoPorUsuarioId: number | null
+  restabelecidoEm: string | null
+  descricao: string | null
+}
+
+export type FiltrosHistoricoAlertas = {
+  tipoAlerta?: TipoAlertaHistorico
+  criticidade?: Criticidade
+  escopo?: EscopoAlerta
+  statusOrigem?: StatusOrigemAlerta
+  dataInicio?: string
+  dataFim?: string
+}
+
 export type LinhaTransmissao = {
   id: number
   nome: string
