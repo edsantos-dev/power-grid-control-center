@@ -1,91 +1,107 @@
-import { useState } from 'react'
-import { AlertTriangle, AlertCircle, Info, CheckCircle2, Search } from 'lucide-react'
+import { useEffect, useState } from 'react'
+import { AlertTriangle, AlertCircle, Info, CheckCircle2, Search, Plus, Network } from 'lucide-react'
+import { listarAlertasAtivos } from '../../services/alertas'
+import { extrairErroApi } from '../../services/api'
+import { listarCatalogoAtivos, type AtivoCatalogo } from '../../services/ativos'
+import type { Alerta, Criticidade } from '../../types'
+import { CRITICIDADE_STYLES, CRITICIDADES, SITUACAO_ALERTA_LABEL } from '../../utils/constants'
+import { formatarDataHora } from '../../utils/formatacao'
+import AlertaForm from './AlertaForm'
 
-type Nivel = 'critico' | 'atencao' | 'info'
-type StatusAlerta = 'aberto' | 'em_andamento' | 'resolvido'
-
-interface Alerta {
-  id: number
-  titulo: string
-  ativo: string
-  nivel: Nivel
-  status: StatusAlerta
-  categoria: string
-  tempo: string
-}
-
-const alertas: Alerta[] = [
-  { id: 1, titulo: 'Transformador T-14 acima da capacidade', ativo: 'Transformador T-14', nivel: 'critico', status: 'aberto', categoria: 'Sobrecarga', tempo: '2 min atrás' },
-  { id: 2, titulo: 'Subestação SE-07 com oscilação de tensão', ativo: 'Subestação SE-07', nivel: 'atencao', status: 'em_andamento', categoria: 'Tensão', tempo: '18 min atrás' },
-  { id: 3, titulo: 'Falha de comunicação no medidor M-231', ativo: 'Smartmeter M-231', nivel: 'atencao', status: 'aberto', categoria: 'Comunicação', tempo: '41 min atrás' },
-  { id: 4, titulo: 'Sobrecorrente na linha LT-05', ativo: 'Linha LT-05', nivel: 'critico', status: 'em_andamento', categoria: 'Sobrecorrente', tempo: '1h atrás' },
-  { id: 5, titulo: 'Oscilação de frequência detectada', ativo: 'Rede Geral', nivel: 'info', status: 'resolvido', categoria: 'Frequência', tempo: '3h atrás' },
-  { id: 6, titulo: 'Manutenção programada concluída', ativo: 'Subestação SE-02', nivel: 'info', status: 'resolvido', categoria: 'Manutenção', tempo: '5h atrás' },
-]
-
-const nivelStyles: Record<Nivel, { dot: string; text: string; bg: string; label: string; icon: typeof AlertTriangle }> = {
-  critico: { dot: 'bg-red-500', text: 'text-red-400', bg: 'bg-red-500/10', label: 'Crítico', icon: AlertTriangle },
-  atencao: { dot: 'bg-yellow-500', text: 'text-yellow-400', bg: 'bg-yellow-500/10', label: 'Atenção', icon: AlertCircle },
-  info: { dot: 'bg-blue-500', text: 'text-blue-400', bg: 'bg-blue-500/10', label: 'Info', icon: Info },
-}
-
-const statusStyles: Record<StatusAlerta, { text: string; label: string }> = {
-  aberto: { text: 'text-red-400', label: 'Aberto' },
-  em_andamento: { text: 'text-yellow-400', label: 'Em andamento' },
-  resolvido: { text: 'text-green-400', label: 'Resolvido' },
+const icones: Record<Criticidade, typeof AlertTriangle> = {
+  CRITICA: AlertTriangle,
+  ALTA: AlertTriangle,
+  MEDIA: AlertCircle,
+  BAIXA: Info,
 }
 
 function Alertas() {
-  const [filtroNivel, setFiltroNivel] = useState<Nivel | 'todos'>('todos')
+  const [alertas, setAlertas] = useState<Alerta[]>([])
+  const [ativos, setAtivos] = useState<AtivoCatalogo[]>([])
+  const [carregando, setCarregando] = useState(true)
+  const [erro, setErro] = useState('')
+  const [filtroCriticidade, setFiltroCriticidade] = useState<Criticidade | 'todos'>('todos')
   const [busca, setBusca] = useState('')
+  const [formularioAberto, setFormularioAberto] = useState(false)
 
+  async function carregar() {
+    setCarregando(true)
+    setErro('')
+
+    try {
+      const [listaAlertas, catalogo] = await Promise.all([listarAlertasAtivos(), listarCatalogoAtivos()])
+      setAlertas(listaAlertas)
+      setAtivos(catalogo)
+    } catch (error) {
+      setErro(extrairErroApi(error).mensagem)
+    } finally {
+      setCarregando(false)
+    }
+  }
+
+  useEffect(() => {
+    carregar()
+  }, [])
+
+  function descreverAfetado(alerta: Alerta) {
+    if (alerta.escopo === 'REDE_MONITORADA') {
+      return 'Rede monitorada'
+    }
+
+    const ativo = ativos.find((a) => a.id === alerta.ativoId)
+    return ativo ? `${ativo.tipo} · ${ativo.nome}` : `Ativo #${alerta.ativoId}`
+  }
+
+  // A lista mantém a ordem do backend; o filtro apenas remove itens
   const alertasFiltrados = alertas.filter((a) => {
-    const passaNivel = filtroNivel === 'todos' || a.nivel === filtroNivel
-    const passaBusca = a.titulo.toLowerCase().includes(busca.toLowerCase()) || a.ativo.toLowerCase().includes(busca.toLowerCase())
-    return passaNivel && passaBusca
+    const termo = busca.trim().toLowerCase()
+    const passaCriticidade = filtroCriticidade === 'todos' || a.criticidade === filtroCriticidade
+    const passaBusca = a.tipo.toLowerCase().includes(termo) || descreverAfetado(a).toLowerCase().includes(termo)
+    return passaCriticidade && passaBusca
   })
 
-  const totalCritico = alertas.filter((a) => a.nivel === 'critico' && a.status !== 'resolvido').length
-  const totalAtencao = alertas.filter((a) => a.nivel === 'atencao' && a.status !== 'resolvido').length
-  const totalAbertos = alertas.filter((a) => a.status === 'aberto').length
-  const totalResolvidos = alertas.filter((a) => a.status === 'resolvido').length
+  const contagem = (criticidade: Criticidade) => alertas.filter((a) => a.criticidade === criticidade).length
+
+  function handleSalvar() {
+    setFormularioAberto(false)
+    // Recarrega para exibir o novo alerta na posição definida pelo backend
+    carregar()
+  }
 
   return (
     <div>
-      <div className="mb-8">
-        <h2 className="text-3xl font-bold text-white">
-          Alertas
-        </h2>
+      <div className="mb-8 flex flex-wrap items-start justify-between gap-4">
+        <div>
+          <h2 className="text-3xl font-bold text-white">
+            Alertas
+          </h2>
 
-        <p className="mt-2 text-slate-400">
-          Ocorrências e situações que requerem atenção dos operadores.
-        </p>
+          <p className="mt-2 text-slate-400">
+            Alertas ativos, da maior para a menor criticidade.
+          </p>
+        </div>
+
+        <button
+          type="button"
+          onClick={() => setFormularioAberto(true)}
+          className="flex items-center gap-2 rounded-lg bg-blue-600 px-4 py-2 text-sm font-semibold text-white transition hover:bg-blue-500"
+        >
+          <Plus className="h-4 w-4" />
+          Registrar alerta
+        </button>
       </div>
 
       <div className="grid gap-6 md:grid-cols-2 xl:grid-cols-4">
-        <div className="rounded-xl border border-slate-800 bg-slate-900 p-6 transition hover:border-slate-700">
-          <p className="text-sm text-slate-400">Críticos</p>
-          <p className="mt-2 text-3xl font-bold text-red-500">{totalCritico}</p>
-          <p className="mt-2 text-sm text-red-400">Ação imediata</p>
-        </div>
+        {CRITICIDADES.map((criticidade) => {
+          const estilo = CRITICIDADE_STYLES[criticidade]
 
-        <div className="rounded-xl border border-slate-800 bg-slate-900 p-6 transition hover:border-slate-700">
-          <p className="text-sm text-slate-400">Atenção</p>
-          <p className="mt-2 text-3xl font-bold text-yellow-400">{totalAtencao}</p>
-          <p className="mt-2 text-sm text-yellow-400">Monitorar</p>
-        </div>
-
-        <div className="rounded-xl border border-slate-800 bg-slate-900 p-6 transition hover:border-slate-700">
-          <p className="text-sm text-slate-400">Em aberto</p>
-          <p className="mt-2 text-3xl font-bold text-white">{totalAbertos}</p>
-          <p className="mt-2 text-sm text-slate-400">Aguardando resposta</p>
-        </div>
-
-        <div className="rounded-xl border border-slate-800 bg-slate-900 p-6 transition hover:border-slate-700">
-          <p className="text-sm text-slate-400">Resolvidos</p>
-          <p className="mt-2 text-3xl font-bold text-green-400">{totalResolvidos}</p>
-          <p className="mt-2 text-sm text-green-400">Últimas 24h</p>
-        </div>
+          return (
+            <div key={criticidade} className="rounded-xl border border-slate-800 bg-slate-900 p-6 transition hover:border-slate-700">
+              <p className="text-sm text-slate-400">{estilo.label}</p>
+              <p className={`mt-2 text-3xl font-bold ${estilo.text}`}>{contagem(criticidade)}</p>
+            </div>
+          )
+        })}
       </div>
 
       <div className="mt-6 rounded-xl border border-slate-800 bg-slate-900 p-6">
@@ -102,65 +118,92 @@ function Alertas() {
           </div>
 
           <div className="flex flex-wrap gap-2">
-            {(['todos', 'critico', 'atencao', 'info'] as const).map((nivel) => (
+            {(['todos', ...CRITICIDADES] as const).map((criticidade) => (
               <button
-                key={nivel}
-                onClick={() => setFiltroNivel(nivel)}
+                key={criticidade}
+                onClick={() => setFiltroCriticidade(criticidade)}
                 className={`rounded-lg border px-3 py-1.5 text-xs font-medium transition ${
-                  filtroNivel === nivel
+                  filtroCriticidade === criticidade
                     ? 'border-slate-600 bg-slate-800 text-white'
                     : 'border-slate-800 text-slate-400 hover:border-slate-700'
                 }`}
               >
-                {nivel === 'todos' ? 'Todos' : nivelStyles[nivel].label}
+                {criticidade === 'todos' ? 'Todas' : CRITICIDADE_STYLES[criticidade].label}
               </button>
             ))}
           </div>
         </div>
 
-        <div className="mt-6 space-y-3">
+        <ul className="mt-6 space-y-3" aria-label="Alertas ativos">
           {alertasFiltrados.map((alerta) => {
-            const nivel = nivelStyles[alerta.nivel]
-            const status = statusStyles[alerta.status]
-            const Icon = nivel.icon
+            const estilo = CRITICIDADE_STYLES[alerta.criticidade]
+            const Icon = icones[alerta.criticidade]
 
             return (
-              <div
+              <li
                 key={alerta.id}
-                className="flex items-start justify-between gap-4 rounded-lg border border-slate-800 p-4 transition hover:border-slate-700"
+                className={`flex items-start justify-between gap-4 rounded-lg border p-4 transition hover:border-slate-700 ${estilo.border}`}
               >
                 <div className="flex items-start gap-3">
-                  <span className={`mt-0.5 flex h-8 w-8 shrink-0 items-center justify-center rounded-lg ${nivel.bg}`}>
-                    <Icon className={`h-4 w-4 ${nivel.text}`} />
+                  <span className={`mt-0.5 flex h-8 w-8 shrink-0 items-center justify-center rounded-lg ${estilo.bg}`}>
+                    <Icon className={`h-4 w-4 ${estilo.text}`} />
                   </span>
 
                   <div>
-                    <p className="text-sm text-slate-200">{alerta.titulo}</p>
-                    <p className="mt-1 text-xs text-slate-500">
-                      {alerta.ativo} • {alerta.categoria} • {alerta.tempo}
+                    <p className="text-sm text-slate-200">{alerta.tipo}</p>
+                    <p className="mt-1 flex flex-wrap items-center gap-1 text-xs text-slate-500">
+                      {alerta.escopo === 'REDE_MONITORADA' && <Network className="h-3.5 w-3.5" />}
+                      {descreverAfetado(alerta)} • {formatarDataHora(alerta.geradoEm)}
                     </p>
                   </div>
                 </div>
 
                 <div className="flex shrink-0 flex-col items-end gap-1.5">
-                  <span className={`flex items-center gap-1.5 text-xs font-medium ${nivel.text}`}>
-                    <span className={`h-1.5 w-1.5 rounded-full ${nivel.dot}`} />
-                    {nivel.label}
+                  <span className={`flex items-center gap-1.5 text-xs font-medium ${estilo.text}`}>
+                    <span className={`h-1.5 w-1.5 rounded-full ${estilo.dot}`} />
+                    {estilo.label}
                   </span>
-                  <span className={`text-xs ${status.text}`}>{status.label}</span>
+                  <span className={`text-xs ${alerta.situacao === 'ABERTO' ? 'text-red-400' : 'text-yellow-400'}`}>
+                    {SITUACAO_ALERTA_LABEL[alerta.situacao]}
+                  </span>
                 </div>
-              </div>
+              </li>
             )
           })}
+        </ul>
 
-          {alertasFiltrados.length === 0 && (
-            <div className="flex flex-col items-center gap-2 py-10 text-slate-500">
-              <CheckCircle2 className="h-8 w-8" />
-              <p className="text-sm">Nenhum alerta encontrado.</p>
-            </div>
-          )}
-        </div>
+        {carregando && (
+          <p className="py-10 text-center text-sm text-slate-500">Carregando alertas...</p>
+        )}
+
+        {!carregando && erro && (
+          <div className="flex flex-col items-center gap-3 py-10">
+            <p className="text-sm text-red-400">{erro}</p>
+            <button
+              type="button"
+              onClick={carregar}
+              className="rounded-lg border border-slate-700 px-3 py-1.5 text-sm text-slate-300 transition hover:bg-slate-800"
+            >
+              Tentar novamente
+            </button>
+          </div>
+        )}
+
+        {!carregando && !erro && alertas.length === 0 && (
+          <div className="flex flex-col items-center gap-2 py-10 text-slate-500">
+            <CheckCircle2 className="h-8 w-8 text-green-500" />
+            <p className="text-sm">Nenhum alerta ativo no momento.</p>
+          </div>
+        )}
+
+        {!carregando && !erro && alertas.length > 0 && alertasFiltrados.length === 0 && (
+          <p className="py-10 text-center text-sm text-slate-500">Nenhum alerta corresponde ao filtro.</p>
+        )}
       </div>
+
+      {formularioAberto && (
+        <AlertaForm ativos={ativos} aoFechar={() => setFormularioAberto(false)} aoSalvar={handleSalvar} />
+      )}
     </div>
   )
 }
