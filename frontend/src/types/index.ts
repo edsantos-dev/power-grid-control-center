@@ -140,6 +140,21 @@ export type Medidor = {
   subestacaoId: number | null
 }
 
+export type MedidorRequest = {
+  nome: string
+  numeroSerie: string
+  estadoOperacional: EstadoOperacional
+}
+
+export type InstalacaoMedidorRequest = {
+  consumidorId: number
+  transformadorId: number
+  latitude: string
+  longitude: string
+  dataInstalacao: string
+  enderecoFornecimento: string | null
+}
+
 export type LinhaTransmissao = {
   id: number
   nome: string
