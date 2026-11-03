@@ -358,6 +358,34 @@ export type MedicaoLinha = {
   situacaoFatorPotencia: SituacaoFatorPotencia
 }
 
+export type SituacaoPerdaTecnica = 'OK' | 'DADOS_INSUFICIENTES' | 'SEM_ENERGIA_INJETADA'
+
+// O percentual de referência é o snapshot gravado na medição, não o parâmetro atual do alimentador
+export type MedicaoEnergia = {
+  id: number
+  alimentadorId: number
+  fonteId: number
+  origem: 'REAL' | 'SIMULADA'
+  inicioPeriodo: string
+  fimPeriodo: string
+  recebidoEm: string
+  energiaInjetadaMwh: number
+  percentualPerdaReferencia: number
+}
+
+// Totais e percentual ficam nulos quando a cobertura do período é insuficiente
+export type PerdaTecnica = {
+  alimentadorId: number
+  dataInicio: string
+  dataFim: string
+  totalEnergiaInjetadaMwh: number | null
+  totalPerdaEstimadaMwh: number | null
+  percentualPonderado: number | null
+  situacao: SituacaoPerdaTecnica
+  percentualCobertura: number
+  medicoesConsideradas: MedicaoEnergia[]
+}
+
 export type LinhaTransmissao = {
   id: number
   nome: string

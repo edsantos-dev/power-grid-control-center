@@ -416,7 +416,7 @@ Como gerente, quero acompanhar as perdas técnicas na distribuição, para ident
 
 - **Perfil e prioridade:** Gerente de Operações. Prioridade: Média.
 - **Status:** Em andamento.
-- **Implementação existente:** V14 com parâmetro opcional no alimentador e medições de energia por intervalo, fonte e percentual de referência persistido. Configuração por gerente, cadastro de fontes e ingestão por gerente/operador, com snapshot automático, bloqueio do alimentador, validação de sobreposição e integração transacional com a US23. Cálculo ponderado sob demanda com cobertura contínua, situações explícitas e rastreabilidade das entradas; consultas paginadas e fluxo HTTP E2E. Frontend ainda exibe percentuais literais.
+- **Implementação existente:** Frontend com cálculo de perdas técnicas por alimentador e período pela API. V14 com parâmetro opcional no alimentador e medições de energia por intervalo, fonte e percentual de referência persistido. Configuração por gerente, cadastro de fontes e ingestão por gerente/operador, com snapshot automático, bloqueio do alimentador, validação de sobreposição e integração transacional com a US23. Cálculo ponderado sob demanda com cobertura contínua, situações explícitas e rastreabilidade das entradas; consultas paginadas e fluxo HTTP E2E. Frontend ainda exibe percentuais literais.
 - **Trabalho pendente:** Integração do frontend e aceite completo.
 - **Dependências:** Alimentadores e fontes; ingestão por intervalo na fronteira do alimentador, com energia em MWh e percentual de simulação explicitamente configurado.
 - **Referências no frontend:** [Monitoramento/index.tsx](../frontend/src/pages/Monitoramento/index.tsx#L39) (linhas 39,107); [Alimentadores/index.tsx](../frontend/src/pages/Alimentadores/index.tsx#L12) (linhas 12,17).
@@ -433,6 +433,8 @@ Como gerente, quero acompanhar as perdas técnicas na distribuição, para ident
 - [x] **US12-T02:** Implementar o recorte de backend com testes pertinentes e documentação. V14, persistência, configuração, fontes, ingestão transacional, cálculo, consultas e fluxo HTTP E2E implementados.
 - [ ] **US12-T03:** Integrar a interface com testes pertinentes e documentação.
 - [ ] **US12-T04:** Verificar integração/aceite e apresentar resultados e limitações.
+
+**US12-T03 — interface em revisão:** A tela Relatórios substitui os relatórios fictícios pela consulta "Perdas técnicas por alimentador", que chama GET /api/alimentadores/{id}/perdas-tecnicas com o período escolhido por dia local e enviado em UTC, com fim exclusivo no dia seguinte ao último selecionado; período ausente ou invertido é bloqueado no cliente. O resultado mostra energia injetada, perda estimada, percentual ponderado pela energia e cobertura do período, além da tabela de medições consideradas com intervalo, fonte, origem, energia e o percentual de referência registrado em cada medição. DADOS_INSUFICIENTES exibe a cobertura obtida e deixa os totais como "—"; SEM_ENERGIA_INJETADA mostra energia e perda zero sem percentual. O gerente pode definir o percentual de estimativa do alimentador (PATCH /parametros-perdas), apresentado como parâmetro que vale para as próximas medições; os demais perfis não veem o campo. PerdasTecnicas.test.tsx cobre US12-CA01–CA03 na interface; o resultado conhecido foi conferido no navegador.
 
 ### US13 — Visualizar mapa geográfico de ativos
 
