@@ -1,4 +1,4 @@
-import { CartesianGrid, Line, LineChart, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts'
+import { CartesianGrid, Line, LineChart, ReferenceLine, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts'
 import { formatarDataHora, formatarNumero } from '../../utils/formatacao'
 
 type Ponto = { instante: string; valor: number | null }
@@ -7,6 +7,8 @@ type Props = {
   titulo: string
   unidade: string
   pontos: Ponto[]
+  // Valor de referência exibido como linha tracejada, como o limiar de sobrecarga
+  limiar?: { valor: number; rotulo: string }
 }
 
 // Cor de série única validada contra a superfície escura (#0f172a)
@@ -15,7 +17,7 @@ const COR_SERIE = '#3987e5'
 const hora = (tempo: number) => new Date(tempo).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })
 
 // Uma grandeza por gráfico: unidades diferentes nunca dividem o mesmo eixo
-function GraficoSerie({ titulo, unidade, pontos }: Props) {
+function GraficoSerie({ titulo, unidade, pontos, limiar }: Props) {
   const comValor = pontos.filter((p) => p.valor !== null)
   // Eixo em tempo real: intervalos irregulares entre leituras ficam proporcionais
   const dados = pontos.map((p) => ({ tempo: new Date(p.instante).getTime(), valor: p.valor }))
@@ -50,6 +52,9 @@ function GraficoSerie({ titulo, unidade, pontos }: Props) {
                 labelFormatter={(tempo) => formatarDataHora(new Date(Number(tempo)).toISOString())}
                 formatter={(valor) => [`${formatarNumero(Number(valor))} ${unidade}`.trim(), titulo]}
               />
+              {limiar && (
+                <ReferenceLine y={limiar.valor} stroke="#94a3b8" strokeDasharray="4 4" ifOverflow="extendDomain" label={{ value: limiar.rotulo, position: 'insideTopRight', fill: '#94a3b8', fontSize: 11 }} />
+              )}
               {/* Segmentos retos entre leituras; pontos sem a grandeza ficam como lacuna */}
               <Line type="linear" dataKey="valor" stroke={COR_SERIE} strokeWidth={2} dot={(props) => <Marcador {...props} />} activeDot={{ r: 4 }} connectNulls={false} isAnimationActive={false} />
             </LineChart>
