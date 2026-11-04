@@ -68,6 +68,12 @@ class UsinaGeradoraControllerTest {
     @ParameterizedTest
     @EnumSource(EstadoOperacional.class)
     void deveAceitarEstadoExplicitoDataFuturaELimitesGeograficos(EstadoOperacional estado) throws Exception {
+        if (estado == EstadoOperacional.FALHA) {
+            var negado = corpo(); negado.put("estadoOperacional", "FALHA");
+            mvc.perform(post("/api/usinas").session(sessao).header(csrf.headerName(), csrf.token())
+                    .contentType(MediaType.APPLICATION_JSON).content(mapper.writeValueAsString(negado)))
+                    .andExpect(status().isConflict()); return;
+        }
         var corpo = corpo(); corpo.put("latitude", new BigDecimal("90.0000000")); corpo.put("longitude", new BigDecimal("-180.0000000"));
         corpo.put("dataInstalacao", "2099-01-01"); corpo.put("estadoOperacional", estado.name()); corpo.put("nome", "A".repeat(255));
         mvc.perform(post("/api/usinas").session(sessao).header(csrf.headerName(), csrf.token()).contentType(MediaType.APPLICATION_JSON)

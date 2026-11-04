@@ -105,7 +105,13 @@ class InterrupcaoTransicaoControllerTest {
     void deveManterTerminoAutomaticoNasDemaisCategorias(String categoria) throws Exception {
         var evento = eventos.findById(eventoId).orElseThrow();
         evento.setCategoria(EventoOperacional.Categoria.valueOf(categoria)); em.flush();
-        iniciar(); enviar(conclusao(), 201); em.clear();
+        iniciar();
+        if (categoria.equals("FALHA_EQUIPAMENTO")) {
+            enviar(conclusao(), 400); em.clear();
+            assertThat(eventos.findById(eventoId).orElseThrow().getSituacao()).isEqualTo("EM_ANDAMENTO");
+            return;
+        }
+        enviar(conclusao(), 201); em.clear();
         assertThat(eventos.findById(eventoId).orElseThrow().getTerminoEfetivo().toInstant()).isEqualTo(AGORA);
     }
 

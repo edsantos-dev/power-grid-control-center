@@ -80,6 +80,14 @@ class TransformadorControllerTest {
 	@EnumSource(EstadoOperacional.class)
 	@NullSource
 	void deveCriarEConsultarComRelacionamento(EstadoOperacional estado) throws Exception {
+        if (estado == EstadoOperacional.FALHA) {
+            var negado = requestValido(); negado.put("estadoOperacional", "FALHA");
+            
+            mockMvc.perform(post("/api/transformadores").session(sessao)
+                    .header(csrf.headerName(), csrf.token()).contentType(MediaType.APPLICATION_JSON)
+                    .content(objectMapper.writeValueAsString(negado))).andExpect(status().isConflict());
+            return;
+        }
 		Map<String, Object> request = requestValido();
 		request.put("estadoOperacional", estado);
 		MvcResult result = enviar(post("/api/transformadores"), request, 201);
@@ -125,6 +133,14 @@ class TransformadorControllerTest {
 	@EnumSource(EstadoOperacional.class)
 	@NullSource
 	void deveEditarDadosEVinculoPreservandoId(EstadoOperacional estado) throws Exception {
+        if (estado == EstadoOperacional.FALHA) {
+            var negado = requestValido(); negado.put("estadoOperacional", "FALHA");
+            Long id = criar();
+            mockMvc.perform(put("/api/transformadores/{id}", id).session(sessao)
+                    .header(csrf.headerName(), csrf.token()).contentType(MediaType.APPLICATION_JSON)
+                    .content(objectMapper.writeValueAsString(negado))).andExpect(status().isConflict());
+            return;
+        }
 		Long id = criar();
 		Long outroAlimentadorId = salvarAlimentador();
 		Map<String, Object> request = requestValido();
@@ -159,7 +175,7 @@ class TransformadorControllerTest {
 		TransformadorResponseDTO criado = resposta(enviar(post("/api/transformadores"), requestValido(), 201));
 		assertThat(criado.estadoOperacional()).isEqualTo(EstadoOperacional.OPERACIONAL);
 		Map<String, Object> request = requestValido();
-		request.put("estadoOperacional", "FALHA");
+		request.put("estadoOperacional", "MANUTENCAO");
 		enviar(put("/api/transformadores/{id}", criado.id()), request, 200);
 		TransformadorResponseDTO atualizado = resposta(enviar(
 				put("/api/transformadores/{id}", criado.id()), requestValido(), 200));

@@ -76,6 +76,10 @@ class MedidorInteligenteControllerTest {
     @EnumSource(EstadoOperacional.class)
     @NullSource
     void deveCriarEstoqueEInstalarPreservandoIdentidade(EstadoOperacional estado) throws Exception {
+        if (estado == EstadoOperacional.FALHA) {
+            var negado = criacao(); negado.put("estadoOperacional", "FALHA");
+            enviarPost(negado, 409); assertThat(repository.count()).isZero(); return;
+        }
         mockMvc.perform(get("/api/medidores").session(sessao)).andExpect(status().isOk()).andExpect(content().json("[]"));
         Map<String, Object> request = criacao();
         request.put("estadoOperacional", estado);

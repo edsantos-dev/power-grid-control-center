@@ -16,18 +16,23 @@ import org.springframework.web.server.ResponseStatusException;
 
 @Service
 public class TransformadorService {
+    private final AtivoEmFalhaValidator bloqueios;
 
 	private final TransformadorRepository transformadorRepository;
 	private final AlimentadorRepository alimentadorRepository;
 
-	public TransformadorService(TransformadorRepository transformadorRepository, AlimentadorRepository alimentadorRepository) {
+	public TransformadorService(TransformadorRepository transformadorRepository, AlimentadorRepository alimentadorRepository, AtivoEmFalhaValidator bloqueios) {
+        this.bloqueios = bloqueios;
 		this.transformadorRepository = transformadorRepository;
 		this.alimentadorRepository = alimentadorRepository;
 	}
 
 	@Transactional
 	public TransformadorResponseDTO criar(TransformadorRequestDTO request) {
-		Alimentador alimentador = encontrarAlimentador(request.alimentadorId());
+        bloqueios.validarCriacao(request.estadoOperacional());
+		bloqueios.bloquear(request.alimentadorId());
+        Alimentador alimentador = encontrarAlimentador(request.alimentadorId());
+        bloqueios.validarOperacao(alimentador);
 		Transformador transformador = new Transformador();
 		preencher(transformador, request, alimentador);
 		return toResponse(transformadorRepository.save(transformador));
@@ -45,11 +50,16 @@ public class TransformadorService {
 
 	@Transactional
 	public TransformadorResponseDTO atualizar(Long id, TransformadorRequestDTO request) {
-		Transformador transformador = encontrar(id);
-		Alimentador alimentador = encontrarAlimentador(request.alimentadorId());
-		preencher(transformador, request, alimentador);
-		return toResponse(transformador);
-	}
+        Transformador transformador = encontrar(id);
+        Long anterior = transformador.getAlimentador().getId();
+        bloqueios.bloquear(id, anterior, request.alimentadorId());
+        bloqueios.validarVinculoEstavel(anterior, transformador.getAlimentador().getId());
+        bloqueios.validarAtualizacao(transformador, request.estadoOperacional());
+        Alimentador alimentador = encontrarAlimentador(request.alimentadorId());
+        if (!anterior.equals(request.alimentadorId())) bloqueios.validarTopologia(transformador, transformador.getAlimentador(), alimentador);
+        preencher(transformador, request, alimentador);
+        return toResponse(transformador);
+    }
 
 	private Transformador encontrar(Long id) {
 		return transformadorRepository.findById(id)

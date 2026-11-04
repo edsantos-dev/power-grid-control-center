@@ -16,21 +16,26 @@ import org.springframework.web.server.ResponseStatusException;
 
 @Service
 public class LinhaTransmissaoService {
+    private final AtivoEmFalhaValidator bloqueios;
 
 	private final LinhaTransmissaoRepository linhaTransmissaoRepository;
 	private final SubestacaoRepository subestacaoRepository;
 
-	public LinhaTransmissaoService(LinhaTransmissaoRepository linhaTransmissaoRepository, SubestacaoRepository subestacaoRepository) {
+	public LinhaTransmissaoService(LinhaTransmissaoRepository linhaTransmissaoRepository, SubestacaoRepository subestacaoRepository, AtivoEmFalhaValidator bloqueios) {
+        this.bloqueios = bloqueios;
 		this.linhaTransmissaoRepository = linhaTransmissaoRepository;
 		this.subestacaoRepository = subestacaoRepository;
 	}
 
 	@Transactional
 	public LinhaTransmissaoResponseDTO criar(LinhaTransmissaoRequestDTO request) {
+        bloqueios.validarCriacao(request.estadoOperacional());
 		validar(request);
+        bloqueios.bloquear(request.subestacaoOrigemId(), request.subestacaoDestinoId());
 		Subestacao origem = encontrarSubestacao(request.subestacaoOrigemId());
 		Subestacao destino = encontrarSubestacao(request.subestacaoDestinoId());
-		LinhaTransmissao linhaTransmissao = new LinhaTransmissao();
+		bloqueios.validarTopologia(origem, destino);
+        LinhaTransmissao linhaTransmissao = new LinhaTransmissao();
 		preencher(linhaTransmissao, request, origem, destino);
 		return toResponse(linhaTransmissaoRepository.save(linhaTransmissao));
 	}
@@ -47,13 +52,22 @@ public class LinhaTransmissaoService {
 
 	@Transactional
 	public LinhaTransmissaoResponseDTO atualizar(Long id, LinhaTransmissaoRequestDTO request) {
-		LinhaTransmissao linhaTransmissao = encontrar(id);
-		validar(request);
-		Subestacao origem = encontrarSubestacao(request.subestacaoOrigemId());
-		Subestacao destino = encontrarSubestacao(request.subestacaoDestinoId());
-		preencher(linhaTransmissao, request, origem, destino);
-		return toResponse(linhaTransmissao);
-	}
+        validar(request);
+        var linha = encontrar(id);
+        Long origemAnterior = linha.getSubestacaoOrigem().getId();
+        Long destinoAnterior = linha.getSubestacaoDestino().getId();
+        bloqueios.bloquear(id, origemAnterior, destinoAnterior, request.subestacaoOrigemId(), request.subestacaoDestinoId());
+        bloqueios.validarVinculoEstavel(origemAnterior, linha.getSubestacaoOrigem().getId());
+        bloqueios.validarVinculoEstavel(destinoAnterior, linha.getSubestacaoDestino().getId());
+        bloqueios.validarAtualizacao(linha, request.estadoOperacional());
+        var origem = encontrarSubestacao(request.subestacaoOrigemId());
+        var destino = encontrarSubestacao(request.subestacaoDestinoId());
+        if (!origemAnterior.equals(request.subestacaoOrigemId()) || !destinoAnterior.equals(request.subestacaoDestinoId())) {
+            bloqueios.validarTopologia(linha, linha.getSubestacaoOrigem(), linha.getSubestacaoDestino(), origem, destino);
+        }
+        preencher(linha, request, origem, destino);
+        return toResponse(linha);
+    }
 
 	private void validar(LinhaTransmissaoRequestDTO request) {
 		if (request.subestacaoOrigemId().equals(request.subestacaoDestinoId())) {

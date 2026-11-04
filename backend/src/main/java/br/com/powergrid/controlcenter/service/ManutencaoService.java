@@ -6,6 +6,7 @@ import java.util.Set;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 import br.com.powergrid.controlcenter.dto.EventoOperacionalResponseDTO;
+import br.com.powergrid.controlcenter.mapper.EventoOperacionalMapper;
 import br.com.powergrid.controlcenter.dto.HistoricoEventoResponseDTO;
 import br.com.powergrid.controlcenter.dto.ManutencaoHistoricoResponseDTO;
 import br.com.powergrid.controlcenter.dto.PageResponseDTO;
@@ -68,10 +69,7 @@ public class ManutencaoService {
     }
 
     private EventoOperacionalResponseDTO evento(EventoOperacional e) {
-        return new EventoOperacionalResponseDTO(e.getId(), e.getAtivo().getId(), e.getCategoria(), e.getDescricao(),
-                e.getCriticidade(), e.getSituacao(), e.getRegistradorUsuario().getId(), e.getResponsavelUsuario().getId(),
-                utc(e.getInicioPrevisto()), utc(e.getTerminoPrevisto()), utc(e.getInicioEfetivo()), utc(e.getTerminoEfetivo()),
-                e.getEquipeDesignada() == null ? null : e.getEquipeDesignada().getId(), e.getVersaoDesignacao());
+        return EventoOperacionalMapper.toResponse(e, null);
     }
 
     private HistoricoEventoResponseDTO historico(HistoricoEventoOperacional h) {
