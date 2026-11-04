@@ -94,7 +94,9 @@ public class AlertaDashboardService {
                 utc(a.getMonitoradaDesde()),
                 utc(a.getUltimaComunicacaoEm()),
                 a.getToleranciaSegundos(),
-                descricao(a));
+                descricao(a),
+                utc(a.getResolvidoEm()),
+                a.getResolvidoPorUsuarioId());
     }
 
     private String descricao(AlertaDashboardView a) {

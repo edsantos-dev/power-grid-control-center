@@ -547,3 +547,15 @@ O evento precisa estar ABERTO ou EM_ANDAMENTO. Nova equipe deve estar DISPONIVEL
 GET /api/eventos-operacionais/{id}/designacoes permite todos os autenticados. Retorna PageResponseDTO com page=0/size=20 por padrão, máximo 100 e ordem registradoEm DESC/id DESC. Não aceita sort nem filtros adicionais. Cada item contém id, eventoOperacionalId, equipeAnteriorId, equipeNovaId, usuarioId, registradoEm UTC, comentario e versaoDesignacao. Não inclui as transições de situação da US18. Evento ausente retorna 404 e histórico vazio retorna 200.
 
 A V16 preserva designações legadas na versão zero sem criar histórico retroativo. O backend de despacho está concluído, incluindo testes de persistência, serviço, concorrência, rollback, Web e fluxo E2E Alfa → Beta → retirada; a integração visual permanece pendente.
+
+## Reconhecimento e resolução de alertas genéricos — US20
+
+PATCH /api/alertas/{id}/reconhecimento e PATCH /api/alertas/{id}/resolucao recebem comentario obrigatório, não branco, de até 1.000 caracteres, e retornam 200 com o alerta atualizado. GERENTE_OPERACOES e OPERADOR podem executar as ações com sessão e CSRF; todos os autenticados podem consultar detalhe e histórico. Autoria e instante UTC são obtidos no servidor.
+
+O ciclo é ABERTO → RECONHECIDO → RESOLVIDO. Resolver ABERTO e reconhecer RESOLVIDO retornam 409. Reconhecer RECONHECIDO ou resolver RESOLVIDO retorna 200 sem regravar auditoria. Contrato inválido retorna 400, falta de permissão 403 e alerta inexistente 404. Situações legadas inválidas exigem regularização (409). O serviço bloqueia o alerta e grava situação/histórico na mesma transação; falhas desfazem ambas as alterações. Não há mudança automática do estado do ativo ou dos alertas automáticos.
+
+GET /api/alertas/{id} consulta inclusive resolvidos. As respostas de alerta incluem reconhecidoEm, reconhecidoPorUsuarioId, resolvidoEm e resolvidoPorUsuarioId; ausência de histórico legado mantém esses campos nulos. GET /api/alertas continua listando apenas ABERTO/RECONHECIDO, com auditoria carregada em lote e prioridade preservada.
+
+GET /api/alertas/{id}/historico retorna PageResponseDTO com page=0/size=20, máximo 100 e ordem alteradoEm DESC/id DESC. Não aceita sort ou filtros adicionais. Itens contêm id, alertaId, usuarioId, situacaoAnterior, situacaoNova, alteradoEm UTC e comentario. Alerta inexistente retorna 404; auditoria ausente retorna página vazia.
+
+A V17 cria o histórico e a V18 projeta sua autoria/data na view unificada, incluindo os novos campos resolvidoEm/resolvidoPorUsuarioId no dashboard. As quatro origens permanecem distintas e a consulta preserva uma linha por origem/ID. O fluxo E2E confirma a rejeição do salto, a idempotência e as duas auditorias. O backend deste recorte está concluído; integração visual e consulta operacional unificada de ativos permanecem em recortes próprios.
