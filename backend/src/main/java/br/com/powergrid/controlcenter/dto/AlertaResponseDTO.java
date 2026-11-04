@@ -7,5 +7,7 @@ import br.com.powergrid.controlcenter.model.SituacaoAlerta;
 
 public record AlertaResponseDTO(
         Long id, String tipo, Criticidade criticidade, EscopoAlerta escopo,
-        SituacaoAlerta situacao, OffsetDateTime geradoEm, Long ativoId) {
+        SituacaoAlerta situacao, OffsetDateTime geradoEm, Long ativoId,
+        OffsetDateTime reconhecidoEm, Long reconhecidoPorUsuarioId,
+        OffsetDateTime resolvidoEm, Long resolvidoPorUsuarioId) {
 }

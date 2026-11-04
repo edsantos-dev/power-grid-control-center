@@ -30,5 +30,7 @@ public record AlertaDashboardResponseDTO(
         OffsetDateTime monitoradaDesde,
         OffsetDateTime ultimaComunicacaoEm,
         Integer toleranciaSegundos,
-        String descricao) {
+        String descricao,
+        OffsetDateTime resolvidoEm,
+        Long resolvidoPorUsuarioId) {
 }

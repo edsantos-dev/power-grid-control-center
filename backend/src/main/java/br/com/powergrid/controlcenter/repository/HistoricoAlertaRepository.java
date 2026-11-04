@@ -21,6 +21,14 @@ public interface HistoricoAlertaRepository extends Repository<HistoricoAlerta, L
 
     Page<HistoricoAlerta> findByAlertaIdOrderByAlteradoEmDescIdDesc(Long alertaId, Pageable pageable);
 
+    @Query("select h from HistoricoAlerta h where h.alerta.id in :alertaIds"
+            + " order by h.alerta.id, h.alteradoEm desc, h.id desc")
+    List<HistoricoAlerta> consultarPorAlertas(@Param("alertaIds") List<Long> alertaIds);
+
+    default List<HistoricoAlerta> buscarPorAlertas(List<Long> alertaIds) {
+        return alertaIds.isEmpty() ? List.of() : consultarPorAlertas(alertaIds);
+    }
+
     @Query(value = "SELECT * FROM historico_alerta WHERE alerta_id = :alertaId"
             + " ORDER BY alterado_em DESC, id DESC LIMIT :limite OFFSET :deslocamento", nativeQuery = true)
     List<HistoricoAlerta> buscarPorAlertaOrdenado(@Param("alertaId") Long alertaId,

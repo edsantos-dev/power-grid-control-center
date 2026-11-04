@@ -16,7 +16,7 @@ import org.hibernate.type.SqlTypes;
 @Table(name = "vw_alertas_dashboard")
 @IdClass(AlertaDashboardId.class)
 @Immutable
-@Synchronize({"alerta", "alerta_sobrecarga", "alerta_tensao", "alerta_comunicacao", "medicao_linha", "medicao_transformador"})
+@Synchronize({"alerta", "historico_alerta", "alerta_sobrecarga", "alerta_tensao", "alerta_comunicacao", "medicao_linha", "medicao_transformador"})
 @Getter
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
 @EqualsAndHashCode(onlyExplicitlyIncluded = true)
@@ -69,6 +69,12 @@ public class AlertaDashboardView {
 
     @Column(name = "reconhecido_por_usuario_id")
     private Long reconhecidoPorUsuarioId;
+
+    @Column(name = "resolvido_em")
+    private OffsetDateTime resolvidoEm;
+
+    @Column(name = "resolvido_por_usuario_id")
+    private Long resolvidoPorUsuarioId;
 
     @Column(name = "restabelecido_em")
     private OffsetDateTime restabelecidoEm;
