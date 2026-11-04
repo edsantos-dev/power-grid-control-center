@@ -1,15 +1,9 @@
 package br.com.powergrid.controlcenter.service;
 
-import java.math.BigDecimal;
-import java.math.RoundingMode;
-import java.text.DecimalFormat;
-import java.text.DecimalFormatSymbols;
-import java.time.OffsetDateTime;
-import java.time.ZoneOffset;
 import java.util.List;
-import java.util.Locale;
 import java.util.Set;
 import br.com.powergrid.controlcenter.dto.AlertaDashboardResponseDTO;
+import br.com.powergrid.controlcenter.mapper.AlertaDashboardMapper;
 import br.com.powergrid.controlcenter.dto.PageResponseDTO;
 import br.com.powergrid.controlcenter.model.*;
 import br.com.powergrid.controlcenter.repository.AlertaDashboardViewRepository;
@@ -46,7 +40,7 @@ public class AlertaDashboardService {
         List<AlertaDashboardResponseDTO> conteudo = List.of();
         if (pagina.getOffset() < total) {
             conteudo = repository.buscarFiltrados(tipo, criticidade, escopo, ativoId, fonteId, status,
-                    consulta.inicio(), consulta.fim(), pagina.getPageSize(), pagina.getOffset()).stream().map(this::toResponse).toList();
+                    consulta.inicio(), consulta.fim(), pagina.getPageSize(), pagina.getOffset()).stream().map(AlertaDashboardMapper::toResponse).toList();
         }
         return PageResponseDTO.from(new PageImpl<>(conteudo, pagina, total));
     }
@@ -67,57 +61,6 @@ public class AlertaDashboardService {
             if (id <= 0) throw new NumberFormatException();
             return id;
         } catch (NumberFormatException ex) { throw invalido(nome + " deve ser um inteiro positivo válido."); }
-    }
-
-    private AlertaDashboardResponseDTO toResponse(AlertaDashboardView a) {
-        return new AlertaDashboardResponseDTO(
-                a.getIdOrigem(),
-                a.getTipoAlerta(),
-                a.getCriticidade(),
-                a.getEscopo(),
-                a.getAtivoId(),
-                a.getFonteId(),
-                a.getMedicaoId(),
-                utc(a.getOcorridoEm()),
-                a.getStatusOrigem(),
-                a.getSubtipo(),
-                a.getMensagem(),
-                utc(a.getReconhecidoEm()),
-                a.getReconhecidoPorUsuarioId(),
-                utc(a.getRestabelecidoEm()),
-                a.getCargaPercentual(),
-                a.getLimiarPercentual(),
-                a.getTensaoMedidaKv(),
-                a.getTensaoReferenciaKv(),
-                a.getLimiteInferiorKv(),
-                a.getLimiteSuperiorKv(),
-                utc(a.getMonitoradaDesde()),
-                utc(a.getUltimaComunicacaoEm()),
-                a.getToleranciaSegundos(),
-                descricao(a),
-                utc(a.getResolvidoEm()),
-                a.getResolvidoPorUsuarioId());
-    }
-
-    private String descricao(AlertaDashboardView a) {
-        return switch (a.getTipoAlerta()) {
-            case GENERICO -> a.getMensagem();
-            case SOBRECARGA -> "Sobrecarga de " + numero(a.getCargaPercentual()) + "% (limiar: " + numero(a.getLimiarPercentual()) + "%)";
-            case TENSAO -> ("SUBTENSAO".equals(a.getSubtipo()) ? "Subtensão: " : "Sobretensão: ")
-                    + numero(a.getTensaoMedidaKv()) + " kV (referência: " + numero(a.getTensaoReferenciaKv())
-                    + " kV; faixa: " + numero(a.getLimiteInferiorKv()) + " a " + numero(a.getLimiteSuperiorKv()) + " kV)";
-            case COMUNICACAO -> "Perda de comunicação na fonte " + a.getFonteId() + " (tolerância: " + a.getToleranciaSegundos() + " s)";
-        };
-    }
-
-    private String numero(BigDecimal valor) {
-        var formato = new DecimalFormat("0.00######", DecimalFormatSymbols.getInstance(Locale.forLanguageTag("pt-BR")));
-        formato.setRoundingMode(RoundingMode.HALF_EVEN);
-        return formato.format(valor);
-    }
-
-    private OffsetDateTime utc(OffsetDateTime instante) {
-        return instante == null ? null : instante.withOffsetSameInstant(ZoneOffset.UTC);
     }
 
     private ResponseStatusException invalido(String mensagem) {
