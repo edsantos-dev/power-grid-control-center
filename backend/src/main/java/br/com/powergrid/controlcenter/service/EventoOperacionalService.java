@@ -1,6 +1,8 @@
 package br.com.powergrid.controlcenter.service;
 
 import java.util.List;
+import java.util.HashMap;
+import br.com.powergrid.controlcenter.mapper.EventoOperacionalMapper;
 import java.util.Set;
 import br.com.powergrid.controlcenter.dto.PageResponseDTO;
 import br.com.powergrid.controlcenter.util.ParametrosConsultaMedicao;
@@ -213,7 +215,12 @@ public class EventoOperacionalService {
 
     @Transactional(readOnly = true)
     public List<EventoOperacionalResponseDTO> listar() {
-        return repository.findAll().stream().map(this::toResponse).toList();
+        var registros = repository.findAll();
+        var ids = registros.stream().filter(e -> e.getCategoria() == EventoOperacional.Categoria.FALHA_EQUIPAMENTO)
+                .map(EventoOperacional::getId).toList();
+        var estados = new HashMap<Long, EstadoOperacional>();
+        if (!ids.isEmpty()) falhas.findAllById(ids).forEach(f -> estados.put(f.getId(), f.getEstadoAposReparo()));
+        return registros.stream().map(e -> EventoOperacionalMapper.toResponse(e, estados.get(e.getId()))).toList();
     }
 
     @Transactional(readOnly = true)
@@ -270,11 +277,8 @@ public class EventoOperacionalService {
     }
 
     private EventoOperacionalResponseDTO toResponse(EventoOperacional evento) {
-        return new EventoOperacionalResponseDTO(evento.getId(), evento.getAtivo().getId(),
-                evento.getCategoria(), evento.getDescricao(), evento.getCriticidade(), evento.getSituacao(),
-                evento.getRegistradorUsuario().getId(), evento.getResponsavelUsuario().getId(),
-                evento.getInicioPrevisto(), evento.getTerminoPrevisto(),
-                evento.getInicioEfetivo(), evento.getTerminoEfetivo(),
-                evento.getEquipeDesignada() == null ? null : evento.getEquipeDesignada().getId(), evento.getVersaoDesignacao());
+        var estado = evento.getCategoria() == EventoOperacional.Categoria.FALHA_EQUIPAMENTO
+                ? falhas.findById(evento.getId()).map(FalhaEquipamento::getEstadoAposReparo).orElse(null) : null;
+        return EventoOperacionalMapper.toResponse(evento, estado);
     }
 }

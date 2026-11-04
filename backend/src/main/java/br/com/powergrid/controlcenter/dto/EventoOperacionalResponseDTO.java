@@ -2,6 +2,7 @@ package br.com.powergrid.controlcenter.dto;
 
 import java.time.OffsetDateTime;
 import br.com.powergrid.controlcenter.model.EventoOperacional.Categoria;
+import br.com.powergrid.controlcenter.model.AtivoRede.EstadoOperacional;
 
 public record EventoOperacionalResponseDTO(
         Long id, Long ativoId, Categoria categoria, String descricao,
@@ -9,5 +10,5 @@ public record EventoOperacionalResponseDTO(
         Long registradorUsuarioId, Long responsavelUsuarioId,
         OffsetDateTime inicioPrevisto, OffsetDateTime terminoPrevisto,
         OffsetDateTime inicioEfetivo, OffsetDateTime terminoEfetivo,
-        Long equipeDesignadaId, Integer versaoDesignacao) {
+        Long equipeDesignadaId, Integer versaoDesignacao, EstadoOperacional estadoAposReparo) {
 }

@@ -1,6 +1,15 @@
 package br.com.powergrid.controlcenter.service;
 
 import java.time.Clock;
+import java.util.Set;
+import br.com.powergrid.controlcenter.dto.FalhaEquipamentoRequestDTO;
+import br.com.powergrid.controlcenter.dto.FalhaEquipamentoResponseDTO;
+import br.com.powergrid.controlcenter.dto.PageResponseDTO;
+import br.com.powergrid.controlcenter.mapper.EventoOperacionalMapper;
+import br.com.powergrid.controlcenter.repository.FalhaEquipamentoConsultaRepository;
+import br.com.powergrid.controlcenter.util.ParametrosConsultaMedicao;
+import org.springframework.util.MultiValueMap;
+import org.springframework.transaction.annotation.Isolation;
 import java.time.ZoneOffset;
 import java.time.temporal.ChronoUnit;
 import br.com.powergrid.controlcenter.model.*;
@@ -27,9 +36,12 @@ public class FalhaEquipamentoService {
     private final UsuarioRepository usuarios;
     private final EntityManager em;
     private final Clock clock;
+    private final FalhaEquipamentoConsultaRepository consultas;
 
     public FalhaEquipamentoService(AtivoEmFalhaValidator bloqueios, EventoOperacionalRepository eventos,
-            FalhaEquipamentoRepository falhas, UsuarioRepository usuarios, EntityManager em, Clock clock) {
+            FalhaEquipamentoRepository falhas, UsuarioRepository usuarios, EntityManager em, Clock clock,
+            FalhaEquipamentoConsultaRepository consultas) {
+        this.consultas = consultas;
         this.bloqueios = bloqueios; this.eventos = eventos; this.falhas = falhas;
         this.usuarios = usuarios; this.em = em; this.clock = clock;
     }
@@ -68,4 +80,47 @@ public class FalhaEquipamentoService {
         ativo.setEstadoOperacional(EstadoOperacional.FALHA);
         return falhas.saveAndFlush(falha);
     }
+    @Transactional
+    @PreAuthorize("hasAnyRole('GERENTE_OPERACOES', 'OPERADOR')")
+    public FalhaEquipamentoResponseDTO criar(FalhaEquipamentoRequestDTO request) {
+        return resposta(registrar(request.ativoId(), request.responsavelUsuarioId(), request.descricao(), request.criticidade()));
+    }
+
+    @Transactional(readOnly = true)
+    public FalhaEquipamentoResponseDTO obterPorId(Long id) {
+        var falha = falhas.findDetalhadaByIdAndEventoOperacionalCategoria(id, EventoOperacional.Categoria.FALHA_EQUIPAMENTO)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Falha de equipamento não encontrada."));
+        return resposta(falha);
+    }
+
+    @Transactional(readOnly = true, isolation = Isolation.REPEATABLE_READ)
+    public PageResponseDTO<FalhaEquipamentoResponseDTO> listar(MultiValueMap<String, String> params) {
+        var permitidos = Set.of("page", "size", "ativoId", "situacao", "dataInicio", "dataFim");
+        for (String nome : params.keySet()) {
+            if (!permitidos.contains(nome)) throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Parâmetro não permitido: " + nome);
+            ParametrosConsultaMedicao.parametro(params, nome);
+        }
+        var consulta = ParametrosConsultaMedicao.from(params, "registradoEm");
+        String situacao = ParametrosConsultaMedicao.parametro(params, "situacao");
+        if (situacao != null) {
+            try { SituacaoEventoOperacional.valueOf(situacao); }
+            catch (IllegalArgumentException ex) { throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Situação de falha inválida."); }
+        }
+        Long ativoId = null;
+        String id = ParametrosConsultaMedicao.parametro(params, "ativoId");
+        if (id != null) {
+            try {
+                if (!id.matches("[0-9]+")) throw new NumberFormatException();
+                ativoId = Long.parseLong(id); if (ativoId <= 0) throw new NumberFormatException();
+            } catch (NumberFormatException ex) { throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "ativoId deve ser um inteiro positivo válido."); }
+        }
+        return PageResponseDTO.from(consultas.buscar(ativoId, situacao, consulta.inicio(), consulta.fim(), consulta.pageable()).map(this::resposta));
+    }
+
+    private FalhaEquipamentoResponseDTO resposta(FalhaEquipamento falha) {
+        return new FalhaEquipamentoResponseDTO(falha.getId(), EventoOperacionalMapper.toResponse(falha.getEventoOperacional(), falha.getEstadoAposReparo()),
+                falha.getEstadoAnterior(), falha.getRegistradoEm().withOffsetSameInstant(ZoneOffset.UTC), falha.getEstadoAposReparo(),
+                falha.getEventoOperacional().getAtivo().getEstadoOperacional());
+    }
+
 }

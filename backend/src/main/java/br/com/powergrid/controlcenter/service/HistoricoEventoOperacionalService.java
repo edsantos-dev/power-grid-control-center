@@ -32,7 +32,7 @@ public class HistoricoEventoOperacionalService {
 
     @Transactional
     public HistoricoEventoResponseDTO transicionar(Long eventoId, TransacaoEventoRequestDTO request) {
-        Long historicoId = eventos.transicionar(eventoId, request.situacaoEsperada(), request.situacaoDestino(), request.comentario(), request.terminoEfetivo());
+        Long historicoId = eventos.transicionar(eventoId, request.situacaoEsperada(), request.situacaoDestino(), request.comentario(), request.terminoEfetivo(), request.estadoAposReparo());
         return toResponse(historicos.findByIdAndEventoId(historicoId, eventoId).orElseThrow());
     }
 
