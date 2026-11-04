@@ -16,6 +16,14 @@ import org.springframework.data.repository.query.Param;
 import org.springframework.data.jpa.repository.JpaRepository;
 
 public interface EventoOperacionalRepository extends JpaRepository<EventoOperacional, Long> {
+    @Query(value = "SELECT COUNT(*) > 0 FROM evento_operacional WHERE ativo_id = :ativoId"
+            + " AND categoria = 'FALHA_EQUIPAMENTO' AND (situacao IS NULL OR situacao <> 'CONCLUIDO')", nativeQuery = true)
+    boolean existeFalhaNaoConcluida(@Param("ativoId") Long ativoId);
+
+    @Query(value = "SELECT COUNT(*) > 0 FROM evento_operacional WHERE ativo_id = :ativoId AND id <> :eventoId"
+            + " AND categoria = 'FALHA_EQUIPAMENTO' AND (situacao IS NULL OR situacao <> 'CONCLUIDO')", nativeQuery = true)
+    boolean existeOutraFalhaNaoConcluida(@Param("ativoId") Long ativoId, @Param("eventoId") Long eventoId);
+
     @Lock(LockModeType.PESSIMISTIC_WRITE)
     @Query("select e from EventoOperacional e where e.id = :id")
     Optional<EventoOperacional> buscarPorIdParaTransicao(@Param("id") Long id);

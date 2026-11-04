@@ -80,6 +80,14 @@ class SubestacaoControllerTest {
 	@EnumSource(EstadoOperacional.class)
 	@NullSource
 	void deveCriarSubestacaoComLocationEDadosPersistidos(EstadoOperacional estado) throws Exception {
+        if (estado == EstadoOperacional.FALHA) {
+            var negado = requestValido(); negado.put("estadoOperacional", "FALHA");
+            
+            mockMvc.perform(post("/api/subestacoes").session(sessao)
+                    .header(csrf.headerName(), csrf.token()).contentType(MediaType.APPLICATION_JSON)
+                    .content(objectMapper.writeValueAsString(negado))).andExpect(status().isConflict());
+            return;
+        }
 		Map<String, Object> request = requestValido();
 		if (estado != null) {
 			request.put("estadoOperacional", estado.name());
@@ -207,7 +215,7 @@ class SubestacaoControllerTest {
 				.andExpect(status().isOk())
 				.andExpect(jsonPath("$.id").value(id))
 				.andExpect(jsonPath("$.nome").value("Subestação Central"))
-				.andExpect(jsonPath("$.estadoOperacional").value("FALHA"));
+				.andExpect(jsonPath("$.estadoOperacional").value("MANUTENCAO"));
 	}
 
 	@Test
@@ -220,6 +228,14 @@ class SubestacaoControllerTest {
 	@EnumSource(EstadoOperacional.class)
 	@NullSource
 	void deveAtualizarTodosOsCamposPreservandoId(EstadoOperacional estado) throws Exception {
+        if (estado == EstadoOperacional.FALHA) {
+            var negado = requestValido(); negado.put("estadoOperacional", "FALHA");
+            Long id = criarSubestacao();
+            mockMvc.perform(put("/api/subestacoes/{id}", id).session(sessao)
+                    .header(csrf.headerName(), csrf.token()).contentType(MediaType.APPLICATION_JSON)
+                    .content(objectMapper.writeValueAsString(negado))).andExpect(status().isConflict());
+            return;
+        }
 		Long id = criarSubestacao();
 		long total = subestacaoRepository.count();
 		Map<String, Object> request = requestValido();
@@ -282,7 +298,7 @@ class SubestacaoControllerTest {
 				.contentType(MediaType.APPLICATION_JSON).content(objectMapper.writeValueAsString(requestValido())))
 				.andExpect(status().isForbidden());
 		assertThat(subestacaoRepository.findById(id).orElseThrow().getEstadoOperacional())
-				.isEqualTo(EstadoOperacional.FALHA);
+				.isEqualTo(EstadoOperacional.MANUTENCAO);
 	}
 
 	@Test
@@ -298,7 +314,7 @@ class SubestacaoControllerTest {
 
 	private Long criarSubestacao() throws Exception {
 		Map<String, Object> request = requestValido();
-		request.put("estadoOperacional", "FALHA");
+		request.put("estadoOperacional", "MANUTENCAO");
 		MvcResult result = mockMvc.perform(post("/api/subestacoes").session(sessao)
 				.header(csrf.headerName(), csrf.token()).contentType(MediaType.APPLICATION_JSON)
 				.content(objectMapper.writeValueAsString(request)))

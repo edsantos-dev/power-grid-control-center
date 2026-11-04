@@ -19,11 +19,13 @@ import org.springframework.web.server.ResponseStatusException;
 
 @Service
 public class UsinaGeradoraService {
+    private final AtivoEmFalhaValidator bloqueios;
     private static final Set<String> PARAMETROS = Set.of("page", "size", "sort", "nome", "tipoGeracao", "estadoOperacional", "subestacaoId");
     private final UsinaGeradoraRepository repository;
     private final SubestacaoRepository subestacoes;
 
-    public UsinaGeradoraService(UsinaGeradoraRepository repository, SubestacaoRepository subestacoes) {
+    public UsinaGeradoraService(UsinaGeradoraRepository repository, SubestacaoRepository subestacoes, AtivoEmFalhaValidator bloqueios) {
+        this.bloqueios = bloqueios;
         this.repository = repository;
         this.subestacoes = subestacoes;
     }
@@ -31,6 +33,10 @@ public class UsinaGeradoraService {
     @Transactional
     @PreAuthorize("hasRole('GERENTE_OPERACOES')")
     public UsinaResponseDTO criar(UsinaRequestDTO request) {
+        bloqueios.validarCriacao(request.estadoOperacional());
+        bloqueios.bloquear(request.subestacaoId());
+        var subestacao = subestacoes.findById(request.subestacaoId()).orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Subestação não encontrada."));
+        bloqueios.validarOperacao(subestacao);
         var usina = new UsinaGeradora();
         preencher(usina, request);
         return resposta(repository.save(usina));
@@ -40,6 +46,12 @@ public class UsinaGeradoraService {
     @PreAuthorize("hasRole('GERENTE_OPERACOES')")
     public UsinaResponseDTO atualizar(Long id, UsinaRequestDTO request) {
         var usina = buscar(id);
+        Long anterior = usina.getSubestacao().getId();
+        bloqueios.bloquear(id, anterior, request.subestacaoId());
+        bloqueios.validarVinculoEstavel(anterior, usina.getSubestacao().getId());
+        bloqueios.validarAtualizacao(usina, request.estadoOperacional());
+        var nova = subestacoes.findById(request.subestacaoId()).orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Subestação não encontrada."));
+        if (!anterior.equals(request.subestacaoId())) bloqueios.validarTopologia(usina, usina.getSubestacao(), nova);
         preencher(usina, request);
         return resposta(repository.save(usina));
     }

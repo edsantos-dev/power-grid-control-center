@@ -13,7 +13,6 @@ import br.com.powergrid.controlcenter.repository.ConsumidorRepository;
 import br.com.powergrid.controlcenter.repository.MedidorInteligenteRepository;
 import br.com.powergrid.controlcenter.repository.TransformadorRepository;
 import jakarta.persistence.EntityManager;
-import jakarta.persistence.LockModeType;
 import org.hibernate.exception.ConstraintViolationException;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.http.HttpStatus;
@@ -23,6 +22,7 @@ import org.springframework.web.server.ResponseStatusException;
 
 @Service
 public class MedidorInteligenteService {
+    private final AtivoEmFalhaValidator bloqueios;
     private final MedidorInteligenteRepository repository;
     private final ConsumidorRepository consumidorRepository;
     private final TransformadorRepository transformadorRepository;
@@ -30,7 +30,8 @@ public class MedidorInteligenteService {
 
     public MedidorInteligenteService(MedidorInteligenteRepository repository,
             ConsumidorRepository consumidorRepository, TransformadorRepository transformadorRepository,
-            EntityManager entityManager) {
+            EntityManager entityManager, AtivoEmFalhaValidator bloqueios) {
+        this.bloqueios = bloqueios;
         this.repository = repository;
         this.consumidorRepository = consumidorRepository;
         this.transformadorRepository = transformadorRepository;
@@ -39,6 +40,7 @@ public class MedidorInteligenteService {
 
     @Transactional
     public MedidorResponseDTO criar(MedidorRequestDTO request) {
+        bloqueios.validarCriacao(request.estadoOperacional());
         if (repository.existsByNumeroSerie(request.numeroSerie())) throw serieDuplicada();
         MedidorInteligente medidor = new MedidorInteligente();
         medidor.setNome(request.nome());
@@ -84,7 +86,8 @@ public class MedidorInteligenteService {
 
     @Transactional
     public MedidorResponseDTO instalar(Long id, MedidorInstalacaoRequestDTO request) {
-        MedidorInteligente medidor = entityManager.find(MedidorInteligente.class, id, LockModeType.PESSIMISTIC_WRITE);
+        bloqueios.bloquear(id, request.transformadorId());
+        MedidorInteligente medidor = entityManager.find(MedidorInteligente.class, id);
         if (medidor == null) throw new ResponseStatusException(HttpStatus.NOT_FOUND, "Medidor não encontrado.");
         if (medidor.getConsumidor() != null || medidor.getTransformador() != null) {
             throw new ResponseStatusException(HttpStatus.CONFLICT, "Medidor já possui vínculo de instalação.");
@@ -93,6 +96,7 @@ public class MedidorInteligenteService {
                 new ResponseStatusException(HttpStatus.NOT_FOUND, "Consumidor não encontrado."));
         Transformador transformador = transformadorRepository.findById(request.transformadorId()).orElseThrow(() ->
                 new ResponseStatusException(HttpStatus.NOT_FOUND, "Transformador não encontrado."));
+        bloqueios.validarTopologia(medidor, transformador);
         medidor.setConsumidor(consumidor);
         medidor.setTransformador(transformador);
         medidor.setLatitude(request.latitude());

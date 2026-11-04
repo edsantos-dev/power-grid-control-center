@@ -16,18 +16,23 @@ import org.springframework.web.server.ResponseStatusException;
 
 @Service
 public class AlimentadorService {
+    private final AtivoEmFalhaValidator bloqueios;
 
 	private final AlimentadorRepository alimentadorRepository;
 	private final SubestacaoRepository subestacaoRepository;
 
-	public AlimentadorService(AlimentadorRepository alimentadorRepository, SubestacaoRepository subestacaoRepository) {
+	public AlimentadorService(AlimentadorRepository alimentadorRepository, SubestacaoRepository subestacaoRepository, AtivoEmFalhaValidator bloqueios) {
+        this.bloqueios = bloqueios;
 		this.alimentadorRepository = alimentadorRepository;
 		this.subestacaoRepository = subestacaoRepository;
 	}
 
 	@Transactional
 	public AlimentadorResponseDTO criar(AlimentadorRequestDTO request) {
-		Subestacao subestacao = encontrarSubestacao(request.subestacaoId());
+        bloqueios.validarCriacao(request.estadoOperacional());
+		bloqueios.bloquear(request.subestacaoId());
+        Subestacao subestacao = encontrarSubestacao(request.subestacaoId());
+        bloqueios.validarOperacao(subestacao);
 		Alimentador alimentador = new Alimentador();
 		preencher(alimentador, request, subestacao);
 		return toResponse(alimentadorRepository.save(alimentador));
@@ -45,12 +50,16 @@ public class AlimentadorService {
 
 	@Transactional
 	public AlimentadorResponseDTO atualizar(Long id, AlimentadorRequestDTO request) {
-		Alimentador alimentador = alimentadorRepository.buscarPorIdComBloqueio(id)
-                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Alimentador não encontrado."));
-		Subestacao subestacao = encontrarSubestacao(request.subestacaoId());
-		preencher(alimentador, request, subestacao);
-		return toResponse(alimentador);
-	}
+        Alimentador alimentador = encontrar(id);
+        Long anterior = alimentador.getSubestacao().getId();
+        bloqueios.bloquear(id, anterior, request.subestacaoId());
+        bloqueios.validarVinculoEstavel(anterior, alimentador.getSubestacao().getId());
+        bloqueios.validarAtualizacao(alimentador, request.estadoOperacional());
+        Subestacao subestacao = encontrarSubestacao(request.subestacaoId());
+        if (!anterior.equals(request.subestacaoId())) bloqueios.validarTopologia(alimentador, alimentador.getSubestacao(), subestacao);
+        preencher(alimentador, request, subestacao);
+        return toResponse(alimentador);
+    }
 
 	private Alimentador encontrar(Long id) {
 		return alimentadorRepository.findById(id)

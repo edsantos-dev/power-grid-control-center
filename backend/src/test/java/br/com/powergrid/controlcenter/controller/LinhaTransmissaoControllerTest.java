@@ -77,6 +77,14 @@ class LinhaTransmissaoControllerTest {
 	@EnumSource(EstadoOperacional.class)
 	@NullSource
 	void deveCriarEConsultarComRelacionamento(EstadoOperacional estado) throws Exception {
+        if (estado == EstadoOperacional.FALHA) {
+            var negado = requestValido(); negado.put("estadoOperacional", "FALHA");
+            
+            mockMvc.perform(post("/api/linhas-transmissao").session(sessao)
+                    .header(csrf.headerName(), csrf.token()).contentType(MediaType.APPLICATION_JSON)
+                    .content(objectMapper.writeValueAsString(negado))).andExpect(status().isConflict());
+            return;
+        }
 		Map<String, Object> request = requestValido();
 		request.put("estadoOperacional", estado);
 		MvcResult result = enviar(post("/api/linhas-transmissao"), request, 201);
@@ -120,6 +128,14 @@ class LinhaTransmissaoControllerTest {
 	@EnumSource(EstadoOperacional.class)
 	@NullSource
 	void deveEditarDadosEVinculoPreservandoId(EstadoOperacional estado) throws Exception {
+        if (estado == EstadoOperacional.FALHA) {
+            var negado = requestValido(); negado.put("estadoOperacional", "FALHA");
+            Long id = criar();
+            mockMvc.perform(put("/api/linhas-transmissao/{id}", id).session(sessao)
+                    .header(csrf.headerName(), csrf.token()).contentType(MediaType.APPLICATION_JSON)
+                    .content(objectMapper.writeValueAsString(negado))).andExpect(status().isConflict());
+            return;
+        }
 		Long id = criar();
 		Long outraSubestacaoId = salvarSubestacao();
 		Map<String, Object> request = requestValido();
@@ -151,7 +167,7 @@ class LinhaTransmissaoControllerTest {
 		LinhaTransmissaoResponseDTO criado = resposta(enviar(post("/api/linhas-transmissao"), requestValido(), 201));
 		assertThat(criado.estadoOperacional()).isEqualTo(EstadoOperacional.OPERACIONAL);
 		Map<String, Object> request = requestValido();
-		request.put("estadoOperacional", "FALHA");
+		request.put("estadoOperacional", "MANUTENCAO");
 		enviar(put("/api/linhas-transmissao/{id}", criado.id()), request, 200);
 		LinhaTransmissaoResponseDTO atualizado = resposta(enviar(
 				put("/api/linhas-transmissao/{id}", criado.id()), requestValido(), 200));

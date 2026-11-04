@@ -14,15 +14,18 @@ import org.springframework.web.server.ResponseStatusException;
 
 @Service
 public class SubestacaoService {
+    private final AtivoEmFalhaValidator bloqueios;
 
 	private final SubestacaoRepository subestacaoRepository;
 
-	public SubestacaoService(SubestacaoRepository subestacaoRepository) {
+	public SubestacaoService(SubestacaoRepository subestacaoRepository, AtivoEmFalhaValidator bloqueios) {
+        this.bloqueios = bloqueios;
 		this.subestacaoRepository = subestacaoRepository;
 	}
 
 	@Transactional
 	public SubestacaoResponseDTO criar(SubestacaoRequestDTO request) {
+        bloqueios.validarCriacao(request.estadoOperacional());
 		Subestacao subestacao = new Subestacao();
 		preencher(subestacao, request);
 		return toResponse(subestacaoRepository.save(subestacao));
@@ -40,7 +43,9 @@ public class SubestacaoService {
 
 	@Transactional
 	public SubestacaoResponseDTO atualizar(Long id, SubestacaoRequestDTO request) {
-		Subestacao subestacao = encontrar(id);
+		bloqueios.bloquear(id);
+        Subestacao subestacao = encontrar(id);
+        bloqueios.validarAtualizacao(subestacao, request.estadoOperacional());
 		preencher(subestacao, request);
 		return toResponse(subestacao);
 	}

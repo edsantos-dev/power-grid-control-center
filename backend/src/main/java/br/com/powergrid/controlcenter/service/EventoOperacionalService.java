@@ -18,8 +18,12 @@ import br.com.powergrid.controlcenter.dto.EventoOperacionalRequestDTO;
 import br.com.powergrid.controlcenter.dto.InterrupcaoRequestDTO;
 import br.com.powergrid.controlcenter.dto.EventoOperacionalResponseDTO;
 import br.com.powergrid.controlcenter.model.AtivoRede;
+import br.com.powergrid.controlcenter.model.AtivoRede.EstadoOperacional;
+import br.com.powergrid.controlcenter.repository.FalhaEquipamentoRepository;
 import br.com.powergrid.controlcenter.model.EventoOperacional;
 import br.com.powergrid.controlcenter.model.Usuario;
+import br.com.powergrid.controlcenter.model.FalhaEquipamento;
+import jakarta.persistence.LockModeType;
 import br.com.powergrid.controlcenter.repository.EventoOperacionalRepository;
 import br.com.powergrid.controlcenter.repository.UsuarioRepository;
 import br.com.powergrid.controlcenter.util.NormalizadorEmail;
@@ -39,10 +43,14 @@ public class EventoOperacionalService {
     private final EntityManager entityManager;
     private final HistoricoEventoOperacionalRepository historicos;
     private final Clock clock;
+    private final AtivoEmFalhaValidator bloqueios;
+    private final FalhaEquipamentoRepository falhas;
 
     public EventoOperacionalService(EventoOperacionalRepository repository,
             UsuarioRepository usuarioRepository, EntityManager entityManager,
-            HistoricoEventoOperacionalRepository historicos, Clock clock) {
+            HistoricoEventoOperacionalRepository historicos, Clock clock,
+            AtivoEmFalhaValidator bloqueios, FalhaEquipamentoRepository falhas) {
+        this.bloqueios = bloqueios; this.falhas = falhas;
         this.repository = repository;
         this.usuarioRepository = usuarioRepository;
         this.entityManager = entityManager;
@@ -53,8 +61,14 @@ public class EventoOperacionalService {
     @Transactional
     public EventoOperacionalResponseDTO criar(EventoOperacionalRequestDTO request) {
         Usuario registrador = usuarioAutenticado();
+        if (request.categoria() == null || !Set.of(EventoOperacional.Categoria.MANOBRA,
+                EventoOperacional.Categoria.DESLIGAMENTO_PROGRAMADO, EventoOperacional.Categoria.MANUTENCAO).contains(request.categoria())) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Categoria não permitida no cadastro manual.");
+        }
+        if (request.categoria() == EventoOperacional.Categoria.MANOBRA) bloqueios.bloquear(request.ativoId());
         AtivoRede ativo = entityManager.find(AtivoRede.class, request.ativoId());
         if (ativo == null) throw new ResponseStatusException(HttpStatus.NOT_FOUND, "Ativo não encontrado.");
+        if (request.categoria() == EventoOperacional.Categoria.MANOBRA) bloqueios.validarOperacao(ativo);
         Usuario responsavel = usuarioRepository.findById(request.responsavelUsuarioId())
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Responsável não encontrado."));
         EventoOperacional evento = new EventoOperacional();
@@ -101,9 +115,17 @@ public class EventoOperacionalService {
     @Transactional
     public Long transicionar(Long eventoId, SituacaoEventoOperacional situacaoEsperada,
             SituacaoEventoOperacional situacaoDestino, String comentario, OffsetDateTime terminoEfetivo) {
+        return transicionar(eventoId, situacaoEsperada, situacaoDestino, comentario, terminoEfetivo, null);
+    }
+
+    @Transactional
+    public Long transicionar(Long eventoId, SituacaoEventoOperacional situacaoEsperada,
+            SituacaoEventoOperacional situacaoDestino, String comentario, OffsetDateTime terminoEfetivo,
+            EstadoOperacional estadoAposReparo) {
         Usuario usuario = usuarioAutenticado();
         EventoOperacional evento = repository.buscarPorIdParaTransicao(eventoId).orElseThrow(() ->
                 new ResponseStatusException(HttpStatus.NOT_FOUND, "Evento não encontrado."));
+        entityManager.refresh(evento, LockModeType.PESSIMISTIC_WRITE);
         boolean gerente = usuario.getPerfil() == PerfilAcesso.GERENTE_OPERACOES;
         boolean executor = usuario.getPerfil() == PerfilAcesso.OPERADOR
                 || usuario.getPerfil() == PerfilAcesso.TECNICO_MANUTENCAO;
@@ -125,10 +147,19 @@ public class EventoOperacionalService {
         if (evento.getTerminoEfetivo() != null) {
             throw conflito("Evento já possui término efetivo e exige regularização antes da transição.");
         }
+        boolean falha = evento.getCategoria() == EventoOperacional.Categoria.FALHA_EQUIPAMENTO;
+        if (estadoAposReparo != null && (!concluir || !falha)) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Estado após reparo é permitido somente na conclusão de falhas.");
+        }
+        if (iniciar && evento.getCategoria() == EventoOperacional.Categoria.MANOBRA) {
+            bloqueios.bloquear(evento.getAtivo().getId());
+            bloqueios.validarOperacao(evento.getAtivo());
+        }
         boolean interrupcao = evento.getCategoria() == EventoOperacional.Categoria.INTERRUPCAO_FORNECIMENTO;
         if (terminoEfetivo != null && (!concluir || !interrupcao)) {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Término físico informado é permitido somente na conclusão de interrupções.");
         }
+        var composicaoFalha = concluir && falha ? validarConclusaoFalha(evento, estadoAposReparo) : null;
         var instanteServidor = clock.instant();
         var agora = instanteServidor.truncatedTo(ChronoUnit.MICROS).atOffset(ZoneOffset.UTC);
         if (iniciar && evento.getInicioEfetivo() == null) evento.setInicioEfetivo(agora);
@@ -147,6 +178,10 @@ public class EventoOperacionalService {
             }
             evento.setTerminoEfetivo(agora);
         }
+        if (composicaoFalha != null) {
+            composicaoFalha.setEstadoAposReparo(estadoAposReparo);
+            evento.getAtivo().setEstadoOperacional(estadoAposReparo);
+        }
         evento.setSituacao(situacaoDestino.name());
         repository.flush();
         var historico = new HistoricoEventoOperacional();
@@ -154,6 +189,22 @@ public class EventoOperacionalService {
         historico.setSituacaoAnterior(situacaoEsperada); historico.setSituacaoNova(situacaoDestino);
         historico.setAlteradoEm(agora); historico.setComentario(comentario);
         return historicos.saveAndFlush(historico).getId();
+    }
+
+    private FalhaEquipamento validarConclusaoFalha(EventoOperacional evento, EstadoOperacional estadoAposReparo) {
+        if (estadoAposReparo == null || estadoAposReparo == EstadoOperacional.FALHA) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Informe OPERACIONAL ou MANUTENCAO como estado após reparo.");
+        }
+        bloqueios.bloquear(evento.getAtivo().getId());
+        var falha = falhas.findById(evento.getId()).orElseThrow(() -> conflito("Falha sem composição exige regularização."));
+        if (falha.getEstadoAposReparo() != null) throw conflito("Falha já possui estado após reparo e exige regularização.");
+        if (evento.getAtivo().getEstadoOperacional() != EstadoOperacional.FALHA) {
+            throw conflito("Estado do ativo diverge da falha em atendimento. Regularize o registro.");
+        }
+        if (repository.existeOutraFalhaNaoConcluida(evento.getAtivo().getId(), evento.getId())) {
+            throw conflito("Outra falha não concluída impede a liberação do equipamento.");
+        }
+        return falha;
     }
 
     private ResponseStatusException conflito(String mensagem) {
