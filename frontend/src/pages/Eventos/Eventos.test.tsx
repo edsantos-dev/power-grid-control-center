@@ -4,6 +4,7 @@ import { AxiosError, AxiosHeaders, type InternalAxiosRequestConfig } from 'axios
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { AuthContext, type AuthContextValue } from '../../hooks/useAuth'
 import * as ativosApi from '../../services/ativos'
+import * as equipesApi from '../../services/equipes'
 import * as eventosApi from '../../services/eventos'
 import type { EventoOperacional } from '../../types'
 import { instanteDeDataHoraLocal } from '../../utils/formatacao'
@@ -11,6 +12,7 @@ import Eventos from '.'
 
 vi.mock('../../services/eventos')
 vi.mock('../../services/ativos')
+vi.mock('../../services/equipes')
 
 const auth: AuthContextValue = {
   usuario: { id: 7, nome: 'Operador Inicial', email: 'operador@powergrid.local', perfil: 'OPERADOR' },
@@ -32,6 +34,9 @@ const evento = (dados: Partial<EventoOperacional>): EventoOperacional => ({
   terminoPrevisto: null,
   inicioEfetivo: null,
   terminoEfetivo: null,
+  equipeDesignadaId: null,
+  versaoDesignacao: 0,
+  estadoAposReparo: null,
   ...dados,
 })
 
@@ -56,6 +61,8 @@ const linhas = async () => (await screen.findAllByRole('row')).slice(1)
 
 beforeEach(() => {
   vi.resetAllMocks()
+  vi.mocked(equipesApi.listarTodasEquipes).mockResolvedValue([])
+  vi.mocked(eventosApi.listarDesignacoes).mockResolvedValue({ content: [], page: 0, size: 20, totalElements: 0, totalPages: 0, first: true, last: true })
   vi.mocked(ativosApi.listarCatalogoAtivos).mockResolvedValue([
     { id: 10, nome: 'AL Centro', tipo: 'Alimentador' },
     { id: 11, nome: 'SE Norte', tipo: 'Subestação' },

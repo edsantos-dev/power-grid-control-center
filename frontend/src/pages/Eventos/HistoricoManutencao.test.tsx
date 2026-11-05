@@ -3,6 +3,7 @@ import userEvent from '@testing-library/user-event'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { AuthContext, type AuthContextValue } from '../../hooks/useAuth'
 import * as ativosApi from '../../services/ativos'
+import * as equipesApi from '../../services/equipes'
 import * as eventosApi from '../../services/eventos'
 import type { EventoOperacional, ManutencaoHistorico, PageResponse } from '../../types'
 import { inicioDoDiaLocal, inicioDoDiaSeguinteLocal } from '../../utils/formatacao'
@@ -10,6 +11,7 @@ import Eventos from '.'
 
 vi.mock('../../services/eventos')
 vi.mock('../../services/ativos')
+vi.mock('../../services/equipes')
 
 const auth: AuthContextValue = {
   usuario: { id: 7, nome: 'Técnico', email: 't@powergrid.local', perfil: 'TECNICO_MANUTENCAO' },
@@ -32,6 +34,9 @@ const manutencao = (dados: Partial<EventoOperacional>, ultimaTransicao: Manutenc
     terminoPrevisto: null,
     inicioEfetivo: '2026-11-01T08:10:00Z',
     terminoEfetivo: '2026-11-01T10:00:00Z',
+    equipeDesignadaId: null,
+    versaoDesignacao: 0,
+    estadoAposReparo: null,
     ...dados,
   },
   ultimaTransicao,
@@ -54,6 +59,8 @@ const dialogo = () => screen.getByRole('dialog', { name: 'Histórico de manuten�
 
 beforeEach(() => {
   vi.resetAllMocks()
+  vi.mocked(equipesApi.listarTodasEquipes).mockResolvedValue([])
+  vi.mocked(eventosApi.listarDesignacoes).mockResolvedValue({ content: [], page: 0, size: 20, totalElements: 0, totalPages: 0, first: true, last: true })
   vi.mocked(eventosApi.listarEventos).mockResolvedValue([])
   vi.mocked(ativosApi.listarCatalogoAtivos).mockResolvedValue([{ id: 10, nome: 'LT Norte-Sul', tipo: 'Linha' }])
   vi.mocked(eventosApi.listarManutencoesDoAtivo).mockResolvedValue(

@@ -32,6 +32,9 @@ const interrupcao: EventoOperacional = {
   terminoPrevisto: null,
   inicioEfetivo: '2026-11-03T10:15:00Z',
   terminoEfetivo: null,
+  equipeDesignadaId: null,
+  versaoDesignacao: 0,
+  estadoAposReparo: null,
 }
 
 function preencher(rotulo: string, valor: string) {

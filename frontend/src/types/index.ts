@@ -322,6 +322,30 @@ export type EventoOperacional = {
   terminoPrevisto: string | null
   inicioEfetivo: string | null
   terminoEfetivo: string | null
+  // A versão protege a designação contra alterações concorrentes: divergência retorna 409
+  equipeDesignadaId: number | null
+  versaoDesignacao: number
+  // Preenchido apenas na conclusão de uma falha de equipamento
+  estadoAposReparo: EstadoOperacional | null
+}
+
+// equipeId nulo retira a equipe atual
+export type DesignacaoEquipeRequest = {
+  equipeId: number | null
+  versaoDesignacaoEsperada: number
+  comentario: string
+}
+
+// Registro imutável do despacho: autor e instante vêm do servidor
+export type DesignacaoEquipe = {
+  id: number
+  eventoOperacionalId: number
+  equipeAnteriorId: number | null
+  equipeNovaId: number | null
+  usuarioId: number
+  registradoEm: string
+  comentario: string
+  versaoDesignacao: number
 }
 
 // O registrador vem da sessão e a situação inicial é definida pelo servidor
