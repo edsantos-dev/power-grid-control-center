@@ -12,6 +12,7 @@ import type {
   PageResponse,
   StatusAlertaAutomatico,
   TipoAlertaTensao,
+  TratativaAlerta,
 } from '../types'
 
 const ROTA = '/api/alertas'
@@ -24,6 +25,29 @@ export async function listarAlertasAtivos() {
 
 export async function criarAlerta(dados: AlertaRequest) {
   const { data } = await api.post<Alerta>(ROTA, dados)
+  return data
+}
+
+// O detalhe continua disponível depois da resolução
+export async function buscarAlerta(id: number) {
+  const { data } = await api.get<Alerta>(`${ROTA}/${id}`)
+  return data
+}
+
+// ABERTO → RECONHECIDO → RESOLVIDO; pular etapa ou voltar retorna 409 e repetir a ação preserva o primeiro registro
+export async function reconhecerAlerta(id: number, comentario: string) {
+  const { data } = await api.patch<Alerta>(`${ROTA}/${id}/reconhecimento`, { comentario })
+  return data
+}
+
+export async function resolverAlerta(id: number, comentario: string) {
+  const { data } = await api.patch<Alerta>(`${ROTA}/${id}/resolucao`, { comentario })
+  return data
+}
+
+// Ordem fixa do backend: alteradoEm e id decrescentes
+export async function listarTratativasAlerta(id: number, page = 0) {
+  const { data } = await api.get<PageResponse<TratativaAlerta>>(`${ROTA}/${id}/historico`, { params: { page, size: 20 } })
   return data
 }
 
