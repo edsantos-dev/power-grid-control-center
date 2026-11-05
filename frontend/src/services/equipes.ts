@@ -9,6 +9,16 @@ export async function listarEquipes(page: number, filtros: { nome?: string; situ
   return data
 }
 
+// Todas as páginas, para nomear e escolher equipes fora da tela de cadastro
+export async function listarTodasEquipes() {
+  const equipes: Equipe[] = []
+  for (let page = 0; ; page++) {
+    const { data } = await api.get<PageResponse<Equipe>>(ROTA, { params: { page, size: 100 } })
+    equipes.push(...data.content)
+    if (data.last) return equipes
+  }
+}
+
 // Escritas exclusivas do gerente e do técnico de manutenção
 export async function criarEquipe(dados: EquipeRequest) {
   const { data } = await api.post<Equipe>(ROTA, dados)

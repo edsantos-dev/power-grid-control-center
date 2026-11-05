@@ -1,5 +1,7 @@
 import api from './api'
 import type {
+  DesignacaoEquipe,
+  DesignacaoEquipeRequest,
   EventoOperacional,
   EventoOperacionalRequest,
   InterrupcaoRequest,
@@ -50,5 +52,17 @@ export async function listarManutencoesDoAtivo(ativoId: number, page: number, fi
 // Perda efetiva de fornecimento: o início físico é obrigatório e não pode ser futuro
 export async function registrarInterrupcao(dados: InterrupcaoRequest) {
   const { data } = await api.post<EventoOperacional>('/api/interrupcoes', dados)
+  return data
+}
+
+// Gerente ou operador responsável; o evento precisa estar ABERTO ou EM_ANDAMENTO e a versão precisa coincidir (409)
+export async function designarEquipe(id: number, dados: DesignacaoEquipeRequest) {
+  const { data } = await api.put<EventoOperacional>(`${ROTA}/${id}/equipe-designada`, dados)
+  return data
+}
+
+// Ordem fixa do backend: registradoEm e id decrescentes
+export async function listarDesignacoes(id: number, page = 0) {
+  const { data } = await api.get<PageResponse<DesignacaoEquipe>>(`${ROTA}/${id}/designacoes`, { params: { page, size: 20 } })
   return data
 }
