@@ -80,7 +80,7 @@ function Sidebar() {
   }
 
   return (
-    <aside className="flex h-screen w-64 flex-col border-r border-slate-800 bg-slate-900">
+    <aside className="flex h-screen w-64 shrink-0 flex-col border-r border-slate-800 bg-slate-900">
       <div className="flex h-16 items-center gap-2 border-b border-slate-800 px-6">
         <Zap className="h-6 w-6 text-blue-400" />
         <span className="text-lg font-bold text-white">GridControl</span>
