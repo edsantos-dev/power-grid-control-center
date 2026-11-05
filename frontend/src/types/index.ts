@@ -373,6 +373,8 @@ export type TransicaoEventoRequest = {
   situacaoEsperada: SituacaoEvento
   comentario: string
   terminoEfetivo: string | null
+  // Obrigatório só na conclusão de falha de equipamento: OPERACIONAL ou MANUTENCAO
+  estadoAposReparo: EstadoOperacional | null
 }
 
 // Registro imutável: autor e instante vêm do servidor
@@ -384,6 +386,31 @@ export type TransicaoEvento = {
   situacaoNova: SituacaoEvento
   alteradoEm: string
   comentario: string
+}
+
+// O registrador vem da sessão; o estado anterior é capturado e o ativo passa a FALHA na mesma transação
+export type FalhaEquipamentoRequest = {
+  ativoId: number
+  responsavelUsuarioId: number
+  descricao: string
+  criticidade: Criticidade | null
+}
+
+// A identidade é a do evento operacional da falha
+export type FalhaEquipamento = {
+  id: number
+  evento: EventoOperacional
+  estadoAnterior: EstadoOperacional
+  registradoEm: string
+  estadoAposReparo: EstadoOperacional | null
+  estadoOperacionalAtual: EstadoOperacional
+}
+
+export type FiltrosFalhas = {
+  ativoId?: number
+  situacao?: SituacaoEvento
+  dataInicio?: string
+  dataFim?: string
 }
 
 export type ManutencaoHistorico = {

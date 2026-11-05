@@ -1,13 +1,13 @@
 import { useState, type FormEvent } from 'react'
 import axios from 'axios'
-import { CampoTexto, FormularioModal } from '../../components/formulario'
+import { CampoSelect, CampoTexto, FormularioModal } from '../../components/formulario'
 import { extrairErroApi } from '../../services/api'
 import { buscarEvento, transicionarEvento } from '../../services/eventos'
-import type { EventoOperacional } from '../../types'
+import type { EstadoOperacional, EventoOperacional } from '../../types'
 import { dataHoraLocalAtual, formatarDataHora, instanteDeDataHoraLocal } from '../../utils/formatacao'
 import { CAMPO_OBRIGATORIO, removerCamposValidos } from '../../utils/validacao'
 import { SITUACAO_EVENTO_STYLES } from './constantes'
-import { exigeTerminoEfetivo, type Transicao } from './transicoes'
+import { exigeEstadoAposReparo, exigeTerminoEfetivo, type Transicao } from './transicoes'
 
 type Props = {
   evento: EventoOperacional
@@ -18,16 +18,23 @@ type Props = {
   aoDesatualizar: () => void
 }
 
-type Erros = { comentario?: string; terminoEfetivo?: string }
+type Erros = { comentario?: string; terminoEfetivo?: string; estadoAposReparo?: string }
+
+const ESTADOS_APOS_REPARO = [
+  { valor: 'OPERACIONAL', label: 'Operacional' },
+  { valor: 'MANUTENCAO', label: 'Em manutenção' },
+]
 
 function TransicaoForm({ evento, transicao, aoFechar, aoSalvar, aoDesatualizar }: Props) {
   const [comentario, setComentario] = useState('')
   const [terminoEfetivo, setTerminoEfetivo] = useState('')
+  const [estadoAposReparo, setEstadoAposReparo] = useState('')
   const [erros, setErros] = useState<Erros>({})
   const [erro, setErro] = useState('')
   const [enviando, setEnviando] = useState(false)
 
   const pedeTermino = exigeTerminoEfetivo(evento, transicao.destino)
+  const pedeEstado = exigeEstadoAposReparo(evento, transicao.destino)
 
   function validar() {
     const texto = comentario.trim()
@@ -44,6 +51,7 @@ function TransicaoForm({ evento, transicao, aoFechar, aoSalvar, aoDesatualizar }
             : terminoEfetivo < inicioLocal
               ? 'O término não pode ser anterior ao início da interrupção.'
               : undefined,
+      estadoAposReparo: pedeEstado && !estadoAposReparo ? CAMPO_OBRIGATORIO : undefined,
     })
   }
 
@@ -66,6 +74,7 @@ function TransicaoForm({ evento, transicao, aoFechar, aoSalvar, aoDesatualizar }
         situacaoDestino: transicao.destino,
         comentario: comentario.trim(),
         terminoEfetivo: pedeTermino ? instanteDeDataHoraLocal(terminoEfetivo) : null,
+        estadoAposReparo: pedeEstado ? (estadoAposReparo as EstadoOperacional) : null,
       })
       // A resposta é o registro do histórico; o evento atualizado vem de uma nova consulta
       aoSalvar(await buscarEvento(evento.id))
@@ -125,12 +134,26 @@ function TransicaoForm({ evento, transicao, aoFechar, aoSalvar, aoDesatualizar }
         />
       )}
 
+      {pedeEstado && (
+        <CampoSelect
+          id="estadoAposReparo"
+          label="Estado do ativo após o reparo"
+          placeholder="Selecione"
+          opcoes={ESTADOS_APOS_REPARO}
+          valor={estadoAposReparo}
+          aoAlterar={setEstadoAposReparo}
+          erro={erros.estadoAposReparo}
+        />
+      )}
+
       <p className="text-xs text-slate-500 sm:col-span-2">
         {transicao.destino === 'EM_ANDAMENTO'
           ? 'O início efetivo é registrado pelo servidor no momento da transição.'
           : pedeTermino
             ? 'Informe quando o fornecimento foi restabelecido.'
-            : 'O término efetivo é registrado pelo servidor no momento da conclusão.'}
+            : pedeEstado
+              ? 'A conclusão libera o ativo da falha no estado informado, na mesma transação.'
+              : 'O término efetivo é registrado pelo servidor no momento da conclusão.'}
       </p>
     </FormularioModal>
   )

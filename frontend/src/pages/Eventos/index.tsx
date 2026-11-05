@@ -1,16 +1,19 @@
 import { useEffect, useState } from 'react'
-import { Search, Calendar, User, Plus, ZapOff, History, Wrench, UsersRound } from 'lucide-react'
+import { Search, Calendar, User, Plus, ZapOff, History, Wrench, UsersRound, ShieldAlert, ListChecks } from 'lucide-react'
 import { useAuth } from '../../hooks/useAuth'
 import { extrairErroApi } from '../../services/api'
 import { listarCatalogoAtivos, type AtivoCatalogo } from '../../services/ativos'
 import { listarTodasEquipes } from '../../services/equipes'
 import { listarEventos } from '../../services/eventos'
-import type { CategoriaEvento, Equipe, EventoOperacional, SituacaoEvento } from '../../types'
+import type { CategoriaEvento, Equipe, EventoOperacional, FalhaEquipamento, SituacaoEvento } from '../../types'
+import { ESTADO_STYLES } from '../../utils/constants'
 import { formatarDataHora } from '../../utils/formatacao'
 import { CATEGORIA_LABEL, SITUACAO_EVENTO_STYLES, SITUACOES_EVENTO } from './constantes'
 import { nomeEquipe, podeDesignar } from './designacao'
 import DespachoForm from './DespachoForm'
 import EventoForm from './EventoForm'
+import FalhaForm from './FalhaForm'
+import HistoricoFalhas from './HistoricoFalhas'
 import HistoricoManutencao from './HistoricoManutencao'
 import HistoricoTransicoes from './HistoricoTransicoes'
 import InterrupcaoForm from './InterrupcaoForm'
@@ -38,6 +41,9 @@ function Eventos() {
   const [historico, setHistorico] = useState<EventoOperacional | null>(null)
   const [manutencaoAberta, setManutencaoAberta] = useState(false)
   const [emDespacho, setEmDespacho] = useState<EventoOperacional | null>(null)
+  const [falhaAberta, setFalhaAberta] = useState(false)
+  const [falhasAbertas, setFalhasAbertas] = useState(false)
+  const [versaoFalhas, setVersaoFalhas] = useState(0)
 
   async function carregar() {
     setCarregando(true)
@@ -77,7 +83,17 @@ function Eventos() {
     setInterrupcaoAberta(false)
     setEmTransicao(null)
     setEmDespacho(null)
+    setFalhaAberta(false)
+    // A consulta de falhas mostra estado do ativo e situação: qualquer gravação a desatualiza
+    setVersaoFalhas((atual) => atual + 1)
   }
+
+  function handleFalha(falha: FalhaEquipamento) {
+    handleSalvar(falha.evento)
+  }
+
+  // O backend restringe o registro de falhas a gerentes e operadores
+  const podeRegistrarFalha = usuario?.perfil === 'GERENTE_OPERACOES' || usuario?.perfil === 'OPERADOR'
 
   // A API não garante ordenação: os mais recentes ficam primeiro
   const eventosFiltrados = eventos
@@ -111,12 +127,32 @@ function Eventos() {
         <div className="flex flex-wrap gap-2">
           <button
             type="button"
+            onClick={() => setFalhasAbertas(true)}
+            className="flex items-center gap-2 rounded-lg border border-slate-700 px-4 py-2 text-sm font-semibold text-slate-300 transition hover:bg-slate-800"
+          >
+            <ListChecks className="h-4 w-4" />
+            Falhas de equipamento
+          </button>
+
+          <button
+            type="button"
             onClick={() => setManutencaoAberta(true)}
             className="flex items-center gap-2 rounded-lg border border-slate-700 px-4 py-2 text-sm font-semibold text-slate-300 transition hover:bg-slate-800"
           >
             <Wrench className="h-4 w-4" />
             Manutenções por ativo
           </button>
+
+          {podeRegistrarFalha && (
+            <button
+              type="button"
+              onClick={() => setFalhaAberta(true)}
+              className="flex items-center gap-2 rounded-lg border border-orange-500/50 px-4 py-2 text-sm font-semibold text-orange-300 transition hover:bg-orange-500/10"
+            >
+              <ShieldAlert className="h-4 w-4" />
+              Registrar falha
+            </button>
+          )}
 
           <button
             type="button"
@@ -250,6 +286,9 @@ function Eventos() {
                       {e.terminoEfetivo && (
                         <p className="mt-1 font-normal text-slate-500">Término {formatarDataHora(e.terminoEfetivo)}</p>
                       )}
+                      {e.estadoAposReparo && (
+                        <p className="mt-1 font-normal text-slate-500">Ativo após o reparo: {ESTADO_STYLES[e.estadoAposReparo].label}</p>
+                      )}
                     </td>
                     <td className="py-3">
                       <div className="flex flex-wrap gap-1.5">
@@ -326,7 +365,11 @@ function Eventos() {
         <HistoricoManutencao ativos={ativos} aoFechar={() => setManutencaoAberta(false)} aoVerTransicoes={setHistorico} />
       )}
 
-      {/* Depois do histórico de manutenção, para abrir sobre ele */}
+      {falhasAbertas && (
+        <HistoricoFalhas ativos={ativos} versao={versaoFalhas} aoFechar={() => setFalhasAbertas(false)} aoVerTransicoes={setHistorico} />
+      )}
+
+      {/* Depois dos históricos de manutenção e de falhas, para abrir sobre eles */}
       {historico && <HistoricoTransicoes evento={historico} equipes={equipes} aoFechar={() => setHistorico(null)} />}
 
       {emDespacho && (
@@ -338,6 +381,8 @@ function Eventos() {
           aoDesatualizar={carregar}
         />
       )}
+
+      {falhaAberta && <FalhaForm ativos={ativos} aoFechar={() => setFalhaAberta(false)} aoSalvar={handleFalha} />}
 
       {interrupcaoAberta && (
         <InterrupcaoForm ativos={ativos} aoFechar={() => setInterrupcaoAberta(false)} aoSalvar={handleSalvar} />
