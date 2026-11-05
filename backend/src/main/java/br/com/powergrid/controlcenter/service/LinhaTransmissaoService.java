@@ -7,6 +7,7 @@ import br.com.powergrid.controlcenter.dto.LinhaTransmissaoResponseDTO;
 import br.com.powergrid.controlcenter.model.LinhaTransmissao;
 import br.com.powergrid.controlcenter.model.AtivoRede.EstadoOperacional;
 import br.com.powergrid.controlcenter.model.Subestacao;
+import br.com.powergrid.controlcenter.repository.FonteMedicaoRepository;
 import br.com.powergrid.controlcenter.repository.LinhaTransmissaoRepository;
 import br.com.powergrid.controlcenter.repository.SubestacaoRepository;
 import org.springframework.http.HttpStatus;
@@ -20,9 +21,12 @@ public class LinhaTransmissaoService {
 
 	private final LinhaTransmissaoRepository linhaTransmissaoRepository;
 	private final SubestacaoRepository subestacaoRepository;
+    private final FonteMedicaoRepository fontes;
 
-	public LinhaTransmissaoService(LinhaTransmissaoRepository linhaTransmissaoRepository, SubestacaoRepository subestacaoRepository, AtivoEmFalhaValidator bloqueios) {
+	public LinhaTransmissaoService(LinhaTransmissaoRepository linhaTransmissaoRepository, SubestacaoRepository subestacaoRepository,
+            AtivoEmFalhaValidator bloqueios, FonteMedicaoRepository fontes) {
         this.bloqueios = bloqueios;
+        this.fontes = fontes;
 		this.linhaTransmissaoRepository = linhaTransmissaoRepository;
 		this.subestacaoRepository = subestacaoRepository;
 	}
@@ -64,9 +68,19 @@ public class LinhaTransmissaoService {
         var destino = encontrarSubestacao(request.subestacaoDestinoId());
         if (!origemAnterior.equals(request.subestacaoOrigemId()) || !destinoAnterior.equals(request.subestacaoDestinoId())) {
             bloqueios.validarTopologia(linha, linha.getSubestacaoOrigem(), linha.getSubestacaoDestino(), origem, destino);
+            validarRemocaoExtremidade(id, origemAnterior, origem.getId(), destino.getId());
+            validarRemocaoExtremidade(id, destinoAnterior, origem.getId(), destino.getId());
         }
         preencher(linha, request, origem, destino);
         return toResponse(linha);
+    }
+
+    private void validarRemocaoExtremidade(Long linhaId, Long anterior, Long novaOrigem, Long novoDestino) {
+        if (!anterior.equals(novaOrigem) && !anterior.equals(novoDestino)
+                && fontes.existsByAtivoIdAndSubestacaoReferenciaId(linhaId, anterior)) {
+            throw new ResponseStatusException(HttpStatus.CONFLICT,
+                    "A extremidade é usada como referência por uma fonte de medição da linha.");
+        }
     }
 
 	private void validar(LinhaTransmissaoRequestDTO request) {

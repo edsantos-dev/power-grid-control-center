@@ -27,14 +27,16 @@ public class FonteMedicaoService {
     private final SubestacaoRepository subestacoes;
 
     private final TransformadorRepository transformadores;
+    private final AtivoEmFalhaValidator bloqueios;
 
     public FonteMedicaoService(FonteMedicaoRepository fontes, LinhaTransmissaoRepository linhas, SubestacaoRepository subestacoes, TransformadorRepository transformadores,
-            AlertaComunicacaoRepository alertasComunicacao) {
+            AlertaComunicacaoRepository alertasComunicacao, AtivoEmFalhaValidator bloqueios) {
         this.fontes = fontes;
         this.alertasComunicacao = alertasComunicacao;
         this.linhas = linhas;
         this.subestacoes = subestacoes;
         this.transformadores = transformadores;
+        this.bloqueios = bloqueios;
     }
 
     @Transactional(propagation = Propagation.MANDATORY)
@@ -54,6 +56,7 @@ public class FonteMedicaoService {
     public FonteMedicaoResponseDTO criar(Long linhaId, FonteMedicaoRequestDTO request) {
         var linha = linhas.findById(linhaId).orElseThrow(() ->
                 new ResponseStatusException(HttpStatus.NOT_FOUND, "Linha de transmissão não encontrada."));
+        bloqueios.bloquear(linhaId);
         if (fontes.existsByIdentificador(request.identificador())) {
             throw new ResponseStatusException(HttpStatus.CONFLICT, "Identificador de fonte já cadastrado.");
         }
