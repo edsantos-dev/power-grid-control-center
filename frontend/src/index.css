@@ -4,3 +4,19 @@
 .mapa-escuro {
   filter: invert(1) hue-rotate(200deg) brightness(0.8) contrast(0.9) saturate(0.4);
 }
+
+/* O preflight do Tailwind 4 deixa o cursor padrão nos botões: restaura a mãozinha nos controles clicáveis */
+button:not(:disabled),
+[role="button"]:not([aria-disabled="true"]),
+[role="tab"],
+summary,
+select:not(:disabled),
+input[type="checkbox"]:not(:disabled),
+input[type="radio"]:not(:disabled),
+input[type="date"]:not(:disabled)::-webkit-calendar-picker-indicator {
+  cursor: pointer;
+}
+
+button:disabled {
+  cursor: not-allowed;
+}
