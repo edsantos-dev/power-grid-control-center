@@ -695,7 +695,7 @@ Como operador, quero visualizar os alertas ativos classificados por criticidade,
 - **Perfil e prioridade:** Operador. Prioridade: Alta.
 - **Status:** Em andamento.
 - **Implementação existente:** Frontend com reconhecimento, resolução e histórico de tratativas dos alertas registrados. Frontend com listagem dos alertas ativos e registro de alerta pela API. Backend com cadastro, consulta e tratativa genérica concluídos, incluindo histórico próprio, bloqueio pessimista e auditoria no dashboard. A fila global das quatro origens está concluída no backend em GET /api/alertas/ativos, com paginação, ranqueamento por criticidade e filtros topológicos.
-- **Trabalho pendente:** Revisar a integração e concluir o aceite de US20. Integrar a fila global GET /api/alertas/ativos na interface; GET /api/alertas permanece dedicado aos genéricos.
+- **Trabalho pendente:** Revisar a integração e concluir o aceite de US20. A fila global GET /api/alertas/ativos está integrada na interface (US24); GET /api/alertas permanece dedicado aos genéricos.
 - **Dependências:** PEN-06; US25; ativo cadastrado ou escopo geral; criticidade e estados ativos.
 - **Referências no frontend:** [Alertas/index.tsx](../frontend/src/pages/Alertas/index.tsx#L17) (linhas 17,42,122,156).
 
@@ -855,7 +855,7 @@ Como gerente, quero visualizar o histórico de alertas gerados por criticidade, 
 
 - **Perfil e prioridade:** Gerente de Operações. Prioridade: Baixa.
 - **Status:** Em andamento.
-- **Implementação existente:** Frontend com aba de histórico das quatro origens pela API. Frontend com filtro por nível em array local. V11, criticidades persistidas, projeção unificada e consulta Web paginada em revisão.
+- **Implementação existente:** Frontend com fila global de alertas ativos das quatro origens pela API. Frontend com aba de histórico das quatro origens pela API. Frontend com filtro por nível em array local. V11, criticidades persistidas, projeção unificada e consulta Web paginada em revisão.
 - **Trabalho pendente:** Revisão do backend, integração da interface e aceite funcional.
 - **Dependências:** US20; persistência e histórico de alertas.
 - **Referências no frontend:** [Alertas/index.tsx](../frontend/src/pages/Alertas/index.tsx#L17) (linhas 17,39).
@@ -886,6 +886,8 @@ Como gerente, quero visualizar o histórico de alertas gerados por criticidade, 
 **Verificação integrada:** AlertaDashboardControllerTest gera alertas pelas regras e serviços de origem, verifica paginação com tipos misturados, desempates, datas nulas, filtros isolados/combinados, limites temporais, descrições, precisão, reconhecimento, restabelecimento e acesso por perfil. Não foram criadas ações de alteração pela projeção. A integração do frontend e o aceite da história permanecem pendentes.
 
 **US24-T03 — interface em revisão:** A tela de alertas ganhou as abas "Ativos" e "Histórico". O histórico consome GET /api/alertas-dashboard com paginação global do backend, preservando a ordem fixa, e filtros de criticidade, origem, escopo, situação na origem e período. O período é escolhido por dia local e enviado em UTC, com início inclusivo e fim exclusivo no dia seguinte ao último selecionado; período invertido é bloqueado antes da consulta. A contagem por criticidade usa o totalElements de consultas com size=1 e os demais filtros aplicados; os cartões também filtram. Cada linha usa a identidade composta tipo/idOrigem e mostra instante (ou "Sem data"), origem, criticidade, ativo ou rede monitorada, a descrição do backend e a situação original com o instante de reconhecimento ou restabelecimento, sem converter reconhecimento em resolução. Sem correspondência, a tela exibe estado vazio. HistoricoAlertas.test.tsx cobre US24-CA01–CA03 na interface; o fluxo foi verificado no navegador com alertas reais das quatro origens.
+
+**US24 — fila global na interface (US20-T07), em revisão:** A aba "Ativos" da tela de alertas passa a consumir GET /api/alertas/ativos no lugar de GET /api/alertas, preservando a ordem do backend (criticidade, instante, origem e ID) e a paginação global. Cada item mostra a descrição montada pelo backend, a origem, o ativo afetado pelo catálogo ou pelo tipo informado, o instante, a criticidade ("Sem criticidade" quando ausente) e a situação na origem. Os filtros de criticidade, origem, escopo, tipo de ativo, subestação e período por dia local são aplicados no servidor; o filtro de subestação usa a derivação topológica do backend. Os cartões contam por criticidade com o total informado pelo backend para os demais filtros. A fila é consultada a cada 30 s sem esconder a lista, com "Atualizar agora", seguindo a cadência proposta para o monitoramento. Ações por origem: o registrado oferece reconhecimento/resolução com comentário (US20-T06); sobrecarga e tensão ATIVO oferecem reconhecimento sem comentário e saem da fila; comunicação não tem reconhecimento e sai da fila no restabelecimento. Uma ação na fila atualiza as seções por origem, e um reconhecimento ou avaliação nelas atualiza a fila. Testes de componente cobrem ordem, rótulos, filtros, contagem, período inválido, vazio, atualização periódica e ações; o fluxo foi verificado no navegador contra o backend com H2, incluindo o filtro por subestação e a saída dinâmica da fila.
 
 ### US25 — Autenticar e restringir acesso por perfil
 

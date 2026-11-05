@@ -7,6 +7,7 @@ import SecaoAlertasAutomaticos from './SecaoAlertasAutomaticos'
 
 type Props = {
   ativos: AtivoCatalogo[]
+  aoAlterar?: () => void
 }
 
 const tipoLabel: Record<TipoAlertaTensao, string> = {
@@ -20,7 +21,7 @@ const opcoesTipo = (Object.keys(tipoLabel) as TipoAlertaTensao[]).map((valor) =>
 const listar = (page: number, { status, extra }: { status?: string; extra?: string }) =>
   listarAlertasTensao(page, status as StatusAlertaAutomatico | undefined, extra as TipoAlertaTensao | undefined)
 
-function AlertasTensao({ ativos }: Props) {
+function AlertasTensao({ ativos, aoAlterar }: Props) {
   function descrever(alerta: AlertaTensao) {
     const linha = ativos.find((a) => a.id === alerta.ativoId)?.nome ?? `Linha #${alerta.ativoId}`
     const kv = (valor: number) => `${formatarNumero(valor)} kV`
@@ -43,6 +44,7 @@ function AlertasTensao({ ativos }: Props) {
       filtroExtra={{ rotulo: 'Tipo de alerta de tensão', opcoes: opcoesTipo }}
       listar={listar}
       reconhecer={reconhecerAlertaTensao}
+      aoReconhecer={aoAlterar}
       descrever={descrever}
     />
   )
