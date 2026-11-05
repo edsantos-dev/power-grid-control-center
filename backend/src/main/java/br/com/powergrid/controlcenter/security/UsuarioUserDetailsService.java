@@ -33,7 +33,7 @@ public class UsuarioUserDetailsService implements UserDetailsService {
 		Usuario usuario = usuarioRepository.findByEmail(emailNormalizado)
 				.orElseThrow(() -> new UsernameNotFoundException("Usuário não encontrado."));
 
-		if (usuario.getSenhaHash() == null || usuario.getSenhaHash().isBlank()) {
+		if (!usuario.isAtivo() || usuario.getSenhaHash() == null || usuario.getSenhaHash().isBlank()) {
 			throw new UsernameNotFoundException("Usuário não encontrado.");
 		}
 

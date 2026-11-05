@@ -19,7 +19,7 @@ class DesignacaoEquipeV16MigrationTest {
             jdbc.update("INSERT INTO ativo_rede (id, nome, estado_operacional) VALUES (1001, 'Subestação', 'OPERACIONAL')");
             jdbc.update("INSERT INTO subestacao (id) VALUES (1001)");
             jdbc.update("INSERT INTO equipe_manutencao (id, nome, situacao) VALUES (1001, 'Equipe legada', 'FORA_DE_SERVICO')");
-            Long usuario = jdbc.queryForObject("SELECT MIN(id) FROM usuario", Long.class);
+            Long usuario = UsuariosMigrationFixture.operador(jdbc);
             var inicio = OffsetDateTime.parse("2026-11-01T10:00:00.123456-03:00");
             for (int i = 0; i < 2; i++) {
                 jdbc.update("INSERT INTO evento_operacional (id, ativo_id, categoria, situacao, registrador_usuario_id,"

@@ -43,7 +43,7 @@ class UsuariosIniciaisIntegrationTest {
 			"gerente@powergrid.local, GERENTE_OPERACOES, 200",
 			"tecnico@powergrid.local, TECNICO_MANUTENCAO, 403"
 	})
-	void deveAutenticarContaDaV2EAplicarPermissaoPorMetodo(
+	void deveAutenticarContaDeTesteEAplicarPermissaoPorMetodo(
 			String email, PerfilAcesso perfil, int statusGestao) throws Exception {
 		MvcResult respostaCsrf = mockMvc.perform(get("/api/auth/csrf"))
 				.andExpect(status().isOk()).andReturn();

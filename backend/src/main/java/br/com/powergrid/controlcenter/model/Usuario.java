@@ -43,6 +43,9 @@ public class Usuario {
 	@Column(name = "senha_hash", length = 255)
 	private String senhaHash;
 
+	@Column(name = "ativo", nullable = false)
+	private boolean ativo = true;
+
 	@Enumerated(EnumType.STRING)
 	@JdbcTypeCode(SqlTypes.VARCHAR)
 	@Column(name = "perfil", nullable = false, length = 32)

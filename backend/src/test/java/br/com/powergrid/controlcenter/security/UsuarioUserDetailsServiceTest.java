@@ -83,6 +83,16 @@ class UsuarioUserDetailsServiceTest {
 				.isInstanceOf(UsernameNotFoundException.class);
 	}
 
+	@Test
+	void deveRejeitarContaInativaMesmoComHash() {
+		Usuario usuario = novoUsuario();
+		usuario.setAtivo(false);
+		when(usuarioRepository.findByEmail("operador@example.com")).thenReturn(Optional.of(usuario));
+
+		assertThatThrownBy(() -> userDetailsService.loadUserByUsername("operador@example.com"))
+				.isInstanceOf(UsernameNotFoundException.class);
+	}
+
 	private Usuario novoUsuario() {
 		Usuario usuario = new Usuario();
 		usuario.setEmail("operador@example.com");

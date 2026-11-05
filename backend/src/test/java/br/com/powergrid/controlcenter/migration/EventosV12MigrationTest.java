@@ -18,7 +18,7 @@ class EventosV12MigrationTest {
             Flyway.configure().dataSource(datasource).target("11").load().migrate();
             jdbc.update("INSERT INTO ativo_rede (id, nome, estado_operacional) VALUES (1001, 'Subestação', 'OPERACIONAL')");
             jdbc.update("INSERT INTO subestacao (id) VALUES (1001)");
-            Long usuario = jdbc.queryForObject("SELECT MIN(id) FROM usuario", Long.class);
+            Long usuario = UsuariosMigrationFixture.operador(jdbc);
             String[] estados = {" aberto ", "em_andamento", "CONCLUIDO", "IMPORTADO", null};
             var inicio = OffsetDateTime.parse("2026-01-01T10:00:00-03:00");
             for (int i = 0; i < estados.length; i++) {
