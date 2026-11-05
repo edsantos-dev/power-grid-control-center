@@ -169,6 +169,22 @@ export type Alerta = {
   situacao: SituacaoAlerta
   geradoEm: string
   ativoId: number | null
+  // Primeira autoria de cada etapa; repetir a ação não a substitui
+  reconhecidoEm: string | null
+  reconhecidoPorUsuarioId: number | null
+  resolvidoEm: string | null
+  resolvidoPorUsuarioId: number | null
+}
+
+// Registro imutável da tratativa: autor e instante vêm do servidor
+export type TratativaAlerta = {
+  id: number
+  alertaId: number
+  usuarioId: number
+  situacaoAnterior: SituacaoAlerta
+  situacaoNova: SituacaoAlerta
+  alteradoEm: string
+  comentario: string
 }
 
 export type AlertaRequest = {

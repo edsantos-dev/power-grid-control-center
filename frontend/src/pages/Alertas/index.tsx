@@ -1,16 +1,21 @@
 import { useEffect, useState } from 'react'
 import { AlertTriangle, AlertCircle, Info, CheckCircle2, Search, Plus, Network } from 'lucide-react'
+import { useAuth } from '../../hooks/useAuth'
 import { listarAlertasAtivos } from '../../services/alertas'
 import { extrairErroApi } from '../../services/api'
 import { listarCatalogoAtivos, type AtivoCatalogo } from '../../services/ativos'
 import type { Alerta, Criticidade } from '../../types'
 import { CRITICIDADE_STYLES, CRITICIDADES, SITUACAO_ALERTA_LABEL } from '../../utils/constants'
 import { formatarDataHora } from '../../utils/formatacao'
+import AcoesTratativa from './AcoesTratativa'
 import AlertaForm from './AlertaForm'
 import AlertasSobrecarga from './AlertasSobrecarga'
 import AlertasTensao from './AlertasTensao'
 import AlertasComunicacao from './AlertasComunicacao'
 import HistoricoAlertas from './HistoricoAlertas'
+import HistoricoTratativa from './HistoricoTratativa'
+import TratativaForm from './TratativaForm'
+import { descreverEtapa, type AcaoTratativa } from './tratativa'
 
 const icones: Record<Criticidade, typeof AlertTriangle> = {
   CRITICA: AlertTriangle,
@@ -20,6 +25,7 @@ const icones: Record<Criticidade, typeof AlertTriangle> = {
 }
 
 function Alertas() {
+  const { usuario } = useAuth()
   const [alertas, setAlertas] = useState<Alerta[]>([])
   const [ativos, setAtivos] = useState<AtivoCatalogo[]>([])
   const [carregando, setCarregando] = useState(true)
@@ -28,6 +34,8 @@ function Alertas() {
   const [busca, setBusca] = useState('')
   const [formularioAberto, setFormularioAberto] = useState(false)
   const [aba, setAba] = useState<'ativos' | 'historico'>('ativos')
+  const [emTratativa, setEmTratativa] = useState<{ alerta: Alerta; acao: AcaoTratativa } | null>(null)
+  const [tratativasDe, setTratativasDe] = useState<Alerta | null>(null)
 
   async function carregar() {
     setCarregando(true)
@@ -66,6 +74,16 @@ function Alertas() {
   })
 
   const contagem = (criticidade: Criticidade) => alertas.filter((a) => a.criticidade === criticidade).length
+
+  // Reconhecido continua ativo; resolvido sai da lista, como no backend
+  function handleTratativa(atualizado: Alerta) {
+    setEmTratativa(null)
+    setAlertas((atuais) =>
+      atualizado.situacao === 'RESOLVIDO'
+        ? atuais.filter((a) => a.id !== atualizado.id)
+        : atuais.map((a) => (a.id === atualizado.id ? atualizado : a))
+    )
+  }
 
   function handleSalvar() {
     setFormularioAberto(false)
@@ -164,6 +182,10 @@ function Alertas() {
               {alertasFiltrados.map((alerta) => {
                 const estilo = CRITICIDADE_STYLES[alerta.criticidade]
                 const Icon = icones[alerta.criticidade]
+                const reconhecimento =
+                  alerta.situacao === 'RECONHECIDO'
+                    ? descreverEtapa('Reconhecido', alerta.reconhecidoEm, alerta.reconhecidoPorUsuarioId, usuario)
+                    : null
 
                 return (
                   <li
@@ -181,6 +203,7 @@ function Alertas() {
                           {alerta.escopo === 'REDE_MONITORADA' && <Network className="h-3.5 w-3.5" />}
                           {descreverAfetado(alerta)} • {formatarDataHora(alerta.geradoEm)}
                         </p>
+                        {reconhecimento && <p className="mt-1 text-xs text-slate-400">{reconhecimento}</p>}
                       </div>
                     </div>
 
@@ -192,6 +215,12 @@ function Alertas() {
                       <span className={`text-xs ${alerta.situacao === 'ABERTO' ? 'text-red-400' : 'text-yellow-400'}`}>
                         {SITUACAO_ALERTA_LABEL[alerta.situacao]}
                       </span>
+                      <AcoesTratativa
+                        situacao={alerta.situacao}
+                        rotulo={alerta.tipo}
+                        aoTratar={(acao) => setEmTratativa({ alerta, acao })}
+                        aoVerHistorico={() => setTratativasDe(alerta)}
+                      />
                     </div>
                   </li>
                 )
@@ -231,6 +260,21 @@ function Alertas() {
           <AlertasTensao ativos={ativos} />
           <AlertasComunicacao ativos={ativos} />
         </>
+      )}
+
+      {emTratativa && (
+        <TratativaForm
+          id={emTratativa.alerta.id}
+          rotulo={emTratativa.alerta.tipo}
+          acao={emTratativa.acao}
+          aoFechar={() => setEmTratativa(null)}
+          aoSalvar={handleTratativa}
+          aoDesatualizar={carregar}
+        />
+      )}
+
+      {tratativasDe && (
+        <HistoricoTratativa id={tratativasDe.id} rotulo={tratativasDe.tipo} aoFechar={() => setTratativasDe(null)} />
       )}
 
       {formularioAberto && (
