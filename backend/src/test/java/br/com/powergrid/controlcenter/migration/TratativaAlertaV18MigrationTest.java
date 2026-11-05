@@ -16,10 +16,10 @@ class TratativaAlertaV18MigrationTest {
         var jdbc = new JdbcTemplate(datasource);
         try {
             Flyway.configure().dataSource(datasource).target("17").load().migrate();
+            Long operador = UsuariosMigrationFixture.operador(jdbc);
             AlertasDashboardFixture.inserir(jdbc);
             jdbc.update("INSERT INTO alerta (id, tipo, situacao, escopo) VALUES (1302, 'Legado', 'RECONHECIDO', 'REDE_MONITORADA')");
-            Long operador = jdbc.queryForObject("SELECT id FROM usuario WHERE perfil = 'OPERADOR'", Long.class);
-            Long gerente = jdbc.queryForObject("SELECT id FROM usuario WHERE perfil = 'GERENTE_OPERACOES'", Long.class);
+            Long gerente = UsuariosMigrationFixture.criar(jdbc, "GERENTE_OPERACOES");
             var reconhecimento = AlertasDashboardFixture.INSTANTE.plusMinutes(2);
             var resolucao = AlertasDashboardFixture.INSTANTE.plusMinutes(3);
             jdbc.update("INSERT INTO historico_alerta (alerta_id, usuario_id, situacao_anterior, situacao_nova, alterado_em, comentario)"

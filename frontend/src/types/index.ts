@@ -113,8 +113,6 @@ export type Consumidor = {
   id: number
   nomeRazaoSocial: string
   tipoPessoa: TipoPessoa
-  documento: string
-  enderecoCorrespondencia: string | null
 }
 
 export type ConsumidorRequest = {

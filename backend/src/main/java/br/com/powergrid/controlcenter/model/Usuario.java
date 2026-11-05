@@ -1,5 +1,7 @@
 package br.com.powergrid.controlcenter.model;
 
+import java.time.Instant;
+
 import br.com.powergrid.controlcenter.util.NormalizadorEmail;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
@@ -43,6 +45,9 @@ public class Usuario {
 	@Column(name = "senha_hash", length = 255)
 	private String senhaHash;
 
+	@Column(name = "ativo", nullable = false)
+	private boolean ativo = true;
+
 	@Enumerated(EnumType.STRING)
 	@JdbcTypeCode(SqlTypes.VARCHAR)
 	@Column(name = "perfil", nullable = false, length = 32)
@@ -50,6 +55,12 @@ public class Usuario {
 
 	@Column(name = "cargo_profissional", length = 255)
 	private String cargoProfissional;
+
+	@Column(name = "criado_por_usuario_id", updatable = false)
+	private Long criadoPorUsuarioId;
+
+	@Column(name = "criado_em", updatable = false)
+	private Instant criadoEm;
 
 	@PrePersist
 	@PreUpdate

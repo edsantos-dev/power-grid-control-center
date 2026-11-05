@@ -18,6 +18,7 @@ class AlertasV11MigrationTest {
         var jdbc = new JdbcTemplate(datasource);
         try {
             Flyway.configure().dataSource(datasource).target("10").load().migrate();
+            UsuariosMigrationFixture.operador(jdbc);
             AlertasDashboardFixture.inserir(jdbc);
             var tabelas = List.of("alerta", "alerta_sobrecarga", "alerta_tensao", "alerta_comunicacao",
                     "fonte_medicao", "medicao_linha", "medicao_transformador");

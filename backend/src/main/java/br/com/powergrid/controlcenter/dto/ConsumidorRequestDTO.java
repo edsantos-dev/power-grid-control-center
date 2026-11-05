@@ -17,4 +17,9 @@ public record ConsumidorRequestDTO(
             if (enderecoCorrespondencia.isEmpty()) enderecoCorrespondencia = null;
         }
     }
+
+    @Override
+    public String toString() {
+        return "ConsumidorRequestDTO[tipoPessoa=" + tipoPessoa + "]";
+    }
 }

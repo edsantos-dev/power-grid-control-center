@@ -10,7 +10,7 @@ spring:
       ddl-auto: validate
   flyway:
     enabled: true
-    locations: classpath:db/migration
+    locations: classpath:db/migration,classpath:db/fixtures
   sql:
     init:
       mode: never

@@ -77,9 +77,9 @@ class UsinasV13MigrationTest {
     }
 
     private void criarReferencia(JdbcTemplate jdbc, String tipo) {
-        Long usuario = jdbc.queryForObject("select min(id) from usuario", Long.class);
         switch (tipo) {
             case "EVENTO", "HISTORICO" -> {
+                Long usuario = UsuariosMigrationFixture.operador(jdbc);
                 jdbc.update("insert into evento_operacional (id, ativo_id, categoria, situacao, registrador_usuario_id, responsavel_usuario_id) values (9101, 9001, 'MANUTENCAO', 'ABERTO', ?, ?)", usuario, usuario);
                 if (tipo.equals("HISTORICO")) jdbc.update("insert into historico_evento_operacional (evento_id, usuario_id, situacao_anterior, situacao_nova, alterado_em, comentario) values (9101, ?, 'ABERTO', 'EM_ANDAMENTO', CURRENT_TIMESTAMP, 'Início registrado')", usuario);
             }

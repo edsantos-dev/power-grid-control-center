@@ -64,7 +64,7 @@ class MedicaoConsumoFluxoE2ETest {
                     "longitude", "-46.6", "capacidadeMva", "10", "alimentadorId", alimentador.id(), "dataInstalacao", "2025-01-01"), TransformadorResponseDTO.class);
             ids[2] = transformador.id();
             var consumidor = cadastrar("/api/consumidores", Map.of("nomeRazaoSocial", "Titular do consumo E2E", "tipoPessoa", "PF",
-                    "documento", "529.982.247-25"), ConsumidorResponseDTO.class);
+                    "documento", "529.982.247-25"), ConsumidorDetalheResponseDTO.class);
             ids[3] = consumidor.id();
             var estoque = cadastrar("/api/medidores", Map.of("nome", "Medidor do consumo E2E", "numeroSerie", "CONSUMO-E2E-" + UUID.randomUUID()), MedidorResponseDTO.class);
             ids[4] = estoque.id();
