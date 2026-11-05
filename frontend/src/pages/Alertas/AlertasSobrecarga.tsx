@@ -7,13 +7,14 @@ import SecaoAlertasAutomaticos from './SecaoAlertasAutomaticos'
 
 type Props = {
   ativos: AtivoCatalogo[]
+  aoAlterar?: () => void
 }
 
 // Referência estável para não disparar novas consultas a cada renderização
 const listar = (page: number, { status }: { status?: string }) =>
   listarAlertasSobrecarga(page, status as StatusAlertaAutomatico | undefined)
 
-function AlertasSobrecarga({ ativos }: Props) {
+function AlertasSobrecarga({ ativos, aoAlterar }: Props) {
   function descrever(alerta: AlertaSobrecarga) {
     const transformador = ativos.find((a) => a.id === alerta.ativoId)?.nome ?? `Transformador #${alerta.ativoId}`
 
@@ -33,6 +34,7 @@ function AlertasSobrecarga({ ativos }: Props) {
       cor={{ texto: 'text-orange-400', fundo: 'bg-orange-500/10', borda: 'border-orange-500/40' }}
       listar={listar}
       reconhecer={reconhecerAlertaSobrecarga}
+      aoReconhecer={aoAlterar}
       descrever={descrever}
     />
   )

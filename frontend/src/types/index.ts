@@ -270,6 +270,26 @@ export type AlertaHistorico = {
   descricao: string | null
 }
 
+export type TipoAtivoAlerta = 'SUBESTACAO' | 'ALIMENTADOR' | 'TRANSFORMADOR' | 'LINHA' | 'USINA' | 'MEDIDOR'
+
+// Item da fila global: só alertas que ainda exigem atenção, com a criticidade podendo faltar nos legados
+export type AlertaFila = Omit<AlertaHistorico, 'criticidade'> & {
+  criticidade: Criticidade | null
+  resolvidoEm: string | null
+  resolvidoPorUsuarioId: number | null
+  tipoAtivo: TipoAtivoAlerta | null
+}
+
+export type FiltrosFilaAlertas = {
+  tipoAlerta?: TipoAlertaHistorico
+  criticidade?: Criticidade
+  escopo?: EscopoAlerta
+  tipoAtivo?: TipoAtivoAlerta
+  subestacaoId?: number
+  dataInicio?: string
+  dataFim?: string
+}
+
 export type FiltrosHistoricoAlertas = {
   tipoAlerta?: TipoAlertaHistorico
   criticidade?: Criticidade

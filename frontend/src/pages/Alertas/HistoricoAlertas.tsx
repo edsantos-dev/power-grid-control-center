@@ -13,6 +13,7 @@ import type {
   StatusOrigemAlerta,
   TipoAlertaHistorico,
 } from '../../types'
+import { opcoes, STATUS_LABEL, TIPO_LABEL } from './rotulos'
 import { CRITICIDADE_STYLES, CRITICIDADES } from '../../utils/constants'
 import { formatarDataHora, inicioDoDiaLocal, inicioDoDiaSeguinteLocal } from '../../utils/formatacao'
 
@@ -30,24 +31,6 @@ type Valores = {
 }
 
 const vazio: Valores = { criticidade: '', tipoAlerta: '', escopo: '', statusOrigem: '', de: '', ate: '' }
-
-const TIPO_LABEL: Record<TipoAlertaHistorico, string> = {
-  GENERICO: 'Registrado',
-  SOBRECARGA: 'Sobrecarga',
-  TENSAO: 'Tensão',
-  COMUNICACAO: 'Comunicação',
-}
-
-const STATUS_LABEL: Record<StatusOrigemAlerta, string> = {
-  ABERTO: 'Aberto',
-  ATIVO: 'Ativo',
-  RECONHECIDO: 'Reconhecido',
-  RESOLVIDO: 'Resolvido',
-  RESTABELECIDO: 'Restabelecido',
-}
-
-const opcoes = <K extends string>(rotulos: Record<K, string>) =>
-  (Object.keys(rotulos) as K[]).map((valor) => ({ valor, label: rotulos[valor] }))
 
 // O período é por dia local: início inclusivo e fim exclusivo no dia seguinte ao último selecionado
 function paraFiltros(valores: Valores): FiltrosHistoricoAlertas {
