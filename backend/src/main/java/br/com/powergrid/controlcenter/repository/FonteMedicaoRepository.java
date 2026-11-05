@@ -22,5 +22,6 @@ public interface FonteMedicaoRepository extends JpaRepository<FonteMedicao, Long
     List<Long> buscarIdsParaAvaliacao(@Param("apos") Long apos, @Param("limite") Long limite, Pageable pageable);
 
     boolean existsByIdentificador(String identificador);
+    boolean existsByAtivoIdAndSubestacaoReferenciaId(Long ativoId, Long subestacaoReferenciaId);
     List<FonteMedicao> findByAtivoIdOrderByIdAsc(Long ativoId);
 }
