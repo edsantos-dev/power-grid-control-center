@@ -18,16 +18,12 @@ const maria: Consumidor = {
   id: 1,
   nomeRazaoSocial: 'Maria Fernandes',
   tipoPessoa: 'PF',
-  documento: '52998224725',
-  enderecoCorrespondencia: null,
 }
 
 const mercado: Consumidor = {
   id: 2,
   nomeRazaoSocial: 'Mercado Central Ltda',
   tipoPessoa: 'PJ',
-  documento: '12ABC34501DE35',
-  enderecoCorrespondencia: 'Av. Central, 850',
 }
 
 const medidor = (dados: Partial<Medidor>): Medidor => ({
@@ -76,23 +72,23 @@ beforeEach(() => {
 })
 
 describe('listagem', () => {
-  it('formata CPF e CNPJ alfanumerico e indica endereco ausente', async () => {
+  it('lista os resumos sem colunas de documento ou endereco', async () => {
     render(<Consumidores />)
 
     const linhaMaria = (await screen.findByText('Maria Fernandes')).closest('tr')!
-    expect(within(linhaMaria).getByText('529.982.247-25')).toBeInTheDocument()
-    expect(within(linhaMaria).getByText('Não informado')).toBeInTheDocument()
+    expect(within(linhaMaria).getByText('Pessoa física')).toBeInTheDocument()
 
     const linhaMercado = screen.getByText('Mercado Central Ltda').closest('tr')!
-    expect(within(linhaMercado).getByText('12.ABC.345/01DE-35')).toBeInTheDocument()
-    expect(screen.queryByText('Inadimplente')).not.toBeInTheDocument()
+    expect(within(linhaMercado).getByText('Pessoa jurídica')).toBeInTheDocument()
+    expect(screen.queryByRole('columnheader', { name: 'Documento' })).not.toBeInTheDocument()
+    expect(screen.queryByRole('columnheader', { name: 'Endereço de correspondência' })).not.toBeInTheDocument()
   })
 
-  it('busca pelo documento com mascara', async () => {
+  it('busca pelo nome do consumidor', async () => {
     render(<Consumidores />)
     await screen.findByText('Maria Fernandes')
 
-    await userEvent.type(screen.getByPlaceholderText('Buscar nome, documento ou endereço...'), '529.982')
+    await userEvent.type(screen.getByPlaceholderText('Buscar por nome...'), 'Fernandes')
 
     expect(screen.getByText('Maria Fernandes')).toBeInTheDocument()
     expect(screen.queryByText('Mercado Central Ltda')).not.toBeInTheDocument()

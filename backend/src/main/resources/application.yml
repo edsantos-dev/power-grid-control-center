@@ -22,6 +22,14 @@ spring:
     init:
       mode: never
 
+logging:
+  level:
+    # Parâmetros JDBC e detalhes de erros podem conter documento ou endereço.
+    org.hibernate.orm.jdbc.bind: "OFF"
+    org.hibernate.orm.jdbc.extract: "OFF"
+    org.hibernate.orm.jdbc.error: "OFF"
+    org.springframework.web.servlet.mvc.method.annotation.ExceptionHandlerExceptionResolver: INFO
+
 monitoramento:
   comunicacao:
     timeout-segundos: ${COMUNICACAO_TIMEOUT_SEGUNDOS:300}

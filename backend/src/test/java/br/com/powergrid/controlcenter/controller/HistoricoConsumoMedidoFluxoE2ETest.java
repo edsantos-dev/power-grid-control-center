@@ -68,7 +68,7 @@ class HistoricoConsumoMedidoFluxoE2ETest {
                     "longitude", "-46.6", "capacidadeMva", "10", "alimentadorId", alimentador.id(), "dataInstalacao", "2025-01-01"), TransformadorResponseDTO.class);
             ids[2] = transformador.id();
             var consumidor = cadastrar("/api/consumidores", Map.of("nomeRazaoSocial", "Titular do consumo E2E", "tipoPessoa", "PF",
-                    "documento", "529.982.247-25"), ConsumidorResponseDTO.class);
+                    "documento", "529.982.247-25"), ConsumidorDetalheResponseDTO.class);
             ids[3] = consumidor.id();
             for (String nome : List.of("A", "B")) {
                 var estoque = cadastrar("/api/medidores", Map.of("nome", "Medidor histórico " + nome,

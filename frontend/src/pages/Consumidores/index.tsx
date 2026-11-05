@@ -1,11 +1,10 @@
 import { useEffect, useState } from 'react'
-import { Search, MapPin, Plus, Router } from 'lucide-react'
+import { Search, Plus, Router } from 'lucide-react'
 import { extrairErroApi } from '../../services/api'
 import { listarConsumidores } from '../../services/consumidores'
 import type { Consumidor, TipoPessoa } from '../../types'
 import ConsumidorForm from './ConsumidorForm'
 import MedidoresDoConsumidor from './MedidoresDoConsumidor'
-import { formatarDocumento, normalizarDocumento } from './validacao'
 
 const tipoLabel: Record<TipoPessoa, string> = {
   PF: 'Pessoa física',
@@ -43,16 +42,11 @@ function Consumidores() {
     setFormularioAberto(false)
   }
 
-  // A busca aceita o documento com ou sem máscara
   const consumidoresFiltrados = consumidores
     .filter((c) => {
       const termo = busca.trim().toLowerCase()
-      const documento = normalizarDocumento(busca)
       const passaTipo = filtroTipo === 'todos' || c.tipoPessoa === filtroTipo
-      const passaBusca =
-        c.nomeRazaoSocial.toLowerCase().includes(termo) ||
-        (documento !== '' && c.documento.includes(documento)) ||
-        (c.enderecoCorrespondencia ?? '').toLowerCase().includes(termo)
+      const passaBusca = c.nomeRazaoSocial.toLowerCase().includes(termo)
       return passaTipo && passaBusca
     })
     .sort((a, b) => a.id - b.id)
@@ -108,7 +102,7 @@ function Consumidores() {
               type="text"
               value={busca}
               onChange={(e) => setBusca(e.target.value)}
-              placeholder="Buscar nome, documento ou endereço..."
+              placeholder="Buscar por nome..."
               className="w-full rounded-lg border border-slate-800 bg-slate-950 py-2 pl-9 pr-3 text-sm text-slate-200 placeholder:text-slate-500 focus:border-slate-600 focus:outline-none"
             />
           </div>
@@ -136,8 +130,6 @@ function Consumidores() {
               <tr className="border-b border-slate-800 text-left text-slate-400">
                 <th className="pb-3 font-normal">Consumidor</th>
                 <th className="pb-3 font-normal">Tipo</th>
-                <th className="pb-3 font-normal">Documento</th>
-                <th className="pb-3 font-normal">Endereço de correspondência</th>
                 <th className="pb-3 font-normal">Ações</th>
               </tr>
             </thead>
@@ -149,17 +141,6 @@ function Consumidores() {
                     <p className="mt-1 text-xs text-slate-500">#{c.id}</p>
                   </td>
                   <td className="py-3 pr-4 text-slate-300">{tipoLabel[c.tipoPessoa]}</td>
-                  <td className="py-3 pr-4 font-mono text-slate-300">{formatarDocumento(c.documento, c.tipoPessoa)}</td>
-                  <td className="py-3 pr-4 text-slate-400">
-                    {c.enderecoCorrespondencia ? (
-                      <span className="flex items-center gap-1.5">
-                        <MapPin className="h-3.5 w-3.5 text-slate-500" />
-                        {c.enderecoCorrespondencia}
-                      </span>
-                    ) : (
-                      <span className="text-slate-500">Não informado</span>
-                    )}
-                  </td>
                   <td className="py-3">
                     <button
                       type="button"

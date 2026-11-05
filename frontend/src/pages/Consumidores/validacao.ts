@@ -17,18 +17,6 @@ export function normalizarDocumento(documento: string) {
   return documento.replace(/[\s./-]/g, '').toUpperCase()
 }
 
-export function formatarDocumento(documento: string, tipo: TipoPessoa) {
-  if (tipo === 'PF' && CPF.test(documento)) {
-    return documento.replace(/^(\d{3})(\d{3})(\d{3})(\d{2})$/, '$1.$2.$3-$4')
-  }
-
-  if (tipo === 'PJ' && CNPJ.test(documento)) {
-    return documento.replace(/^(.{2})(.{3})(.{3})(.{4})(.{2})$/, '$1.$2.$3/$4-$5')
-  }
-
-  return documento
-}
-
 function validarDocumento(documento: string, tipo: TipoPessoa | '') {
   if (!documento) return CAMPO_OBRIGATORIO
   if (tipo === 'PF' && !CPF.test(documento)) return 'Informe um CPF com 11 dígitos.'

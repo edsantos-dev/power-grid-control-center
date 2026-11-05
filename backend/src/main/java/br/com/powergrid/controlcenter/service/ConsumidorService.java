@@ -3,7 +3,8 @@ package br.com.powergrid.controlcenter.service;
 import java.util.List;
 import java.util.Locale;
 import br.com.powergrid.controlcenter.dto.ConsumidorRequestDTO;
-import br.com.powergrid.controlcenter.dto.ConsumidorResponseDTO;
+import br.com.powergrid.controlcenter.dto.ConsumidorDetalheResponseDTO;
+import br.com.powergrid.controlcenter.dto.ConsumidorResumoResponseDTO;
 import br.com.powergrid.controlcenter.model.Consumidor;
 import br.com.powergrid.controlcenter.model.Consumidor.TipoPessoa;
 import br.com.powergrid.controlcenter.repository.ConsumidorRepository;
@@ -23,7 +24,7 @@ public class ConsumidorService {
     }
 
     @Transactional
-    public ConsumidorResponseDTO criar(ConsumidorRequestDTO request) {
+    public ConsumidorDetalheResponseDTO criar(ConsumidorRequestDTO request) {
         String documento = normalizarEValidar(request.documento(), request.tipoPessoa());
         if (repository.existsByDocumento(documento)) throw documentoDuplicado();
         Consumidor consumidor = new Consumidor();
@@ -47,12 +48,12 @@ public class ConsumidorService {
     }
 
     @Transactional(readOnly = true)
-    public List<ConsumidorResponseDTO> listar() {
-        return repository.findAll().stream().map(this::toResponse).toList();
+    public List<ConsumidorResumoResponseDTO> listar() {
+        return repository.findAllProjectedBy();
     }
 
     @Transactional(readOnly = true)
-    public ConsumidorResponseDTO buscarPorId(Long id) {
+    public ConsumidorDetalheResponseDTO buscarPorId(Long id) {
         return toResponse(repository.findById(id).orElseThrow(() ->
                 new ResponseStatusException(HttpStatus.NOT_FOUND, "Consumidor não encontrado.")));
     }
@@ -89,8 +90,8 @@ public class ConsumidorService {
         return new ResponseStatusException(HttpStatus.CONFLICT, "Documento já cadastrado.");
     }
 
-    private ConsumidorResponseDTO toResponse(Consumidor consumidor) {
-        return new ConsumidorResponseDTO(consumidor.getId(), consumidor.getNomeRazaoSocial(),
+    private ConsumidorDetalheResponseDTO toResponse(Consumidor consumidor) {
+        return new ConsumidorDetalheResponseDTO(consumidor.getId(), consumidor.getNomeRazaoSocial(),
                 consumidor.getTipoPessoa(), consumidor.getDocumento(), consumidor.getEnderecoCorrespondencia());
     }
 }

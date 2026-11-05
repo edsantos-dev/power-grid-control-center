@@ -2,7 +2,7 @@ package br.com.powergrid.controlcenter.controller;
 
 import java.util.LinkedHashMap;
 import java.util.Map;
-import br.com.powergrid.controlcenter.dto.ConsumidorResponseDTO;
+import br.com.powergrid.controlcenter.dto.ConsumidorResumoResponseDTO;
 import br.com.powergrid.controlcenter.dto.CsrfResponse;
 import br.com.powergrid.controlcenter.repository.ConsumidorRepository;
 import jakarta.persistence.EntityManager;
@@ -28,6 +28,7 @@ import static org.mockito.Mockito.doReturn;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.content;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.header;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 @SpringBootTest
@@ -43,13 +44,17 @@ class ConsumidorControllerTest {
 
     @BeforeEach
     void preparar() throws Exception {
+        autenticar("operador");
+    }
+
+    private void autenticar(String perfil) throws Exception {
         MvcResult inicial = mockMvc.perform(get("/api/auth/csrf")).andExpect(status().isOk()).andReturn();
         sessao = (MockHttpSession) inicial.getRequest().getSession(false);
         CsrfResponse token = objectMapper.readValue(inicial.getResponse().getContentAsString(), CsrfResponse.class);
         mockMvc.perform(post("/api/auth/login").session(sessao)
                         .contentType(MediaType.APPLICATION_FORM_URLENCODED)
                         .header(token.headerName(), token.token())
-                        .param("email", "operador@powergrid.local").param("password", "SenhaSegura123"))
+                        .param("email", perfil + "@powergrid.local").param("password", "SenhaSegura123"))
                 .andExpect(status().isOk());
         MvcResult renovado = mockMvc.perform(get("/api/auth/csrf").session(sessao)).andReturn();
         csrf = objectMapper.readValue(renovado.getResponse().getContentAsString(), CsrfResponse.class);
@@ -68,23 +73,53 @@ class ConsumidorControllerTest {
                 .andExpect(status().isOk()).andExpect(content().json("[]"));
         Map<String, Object> request = valido(tipo, "  " + documento + "  ");
         MvcResult result = enviar(request, 201);
-        ConsumidorResponseDTO response = resposta(result);
+        ConsumidorResumoResponseDTO response = resposta(result);
         assertThat(response.id()).isPositive();
         assertThat(result.getResponse().getHeader("Location"))
                 .isEqualTo("http://localhost/api/consumidores/" + response.id());
-        assertThat(response.documento()).isEqualTo(normalizado);
         assertThat(response.nomeRazaoSocial()).isEqualTo("Titular de teste");
         assertThat(response.tipoPessoa().name()).isEqualTo(tipo);
-        assertThat(response.enderecoCorrespondencia()).isEqualTo("Rua das Flores, 100");
         entityManager.flush();
         entityManager.clear();
-        assertThat(repository.findById(response.id()).orElseThrow().getDocumento()).isEqualTo(normalizado);
+        var salvo = repository.findById(response.id()).orElseThrow();
+        assertThat(salvo.getDocumento()).isEqualTo(normalizado);
+        assertThat(salvo.getEnderecoCorrespondencia()).isEqualTo("Rua das Flores, 100");
         mockMvc.perform(get("/api/consumidores/{id}", response.id()).session(sessao))
                 .andExpect(status().isOk()).andExpect(content().json(result.getResponse().getContentAsString()));
         MvcResult lista = mockMvc.perform(get("/api/consumidores").session(sessao))
                 .andExpect(status().isOk()).andReturn();
-        assertThat(objectMapper.readValue(lista.getResponse().getContentAsString(), ConsumidorResponseDTO[].class))
+        assertThat(objectMapper.readValue(lista.getResponse().getContentAsString(), ConsumidorResumoResponseDTO[].class))
                 .containsExactly(response);
+    }
+
+    @ParameterizedTest
+    @CsvSource({"gerente, true", "operador, false", "tecnico, false"})
+    void aplicaPoliticaDePrivacidadeNaCriacaoDetalheEListagem(String perfil, boolean completo) throws Exception {
+        autenticar(perfil);
+        MvcResult criacao = enviar(valido("PF", "52998224725"), 201);
+        var jsonCriacao = objectMapper.readTree(criacao.getResponse().getContentAsString());
+        long id = jsonCriacao.get("id").asLong();
+        var resumo = Map.of("id", id, "nomeRazaoSocial", "Titular de teste", "tipoPessoa", "PF");
+        Map<String, Object> esperado = new LinkedHashMap<>(resumo);
+        if (completo) {
+            esperado.put("documento", "52998224725");
+            esperado.put("enderecoCompleto", "Rua das Flores, 100");
+            assertThat(criacao.getResponse().getHeader("Cache-Control")).isEqualTo("no-store");
+        }
+        assertThat(jsonCriacao).isEqualTo(objectMapper.readTree(objectMapper.writeValueAsString(esperado)));
+
+        var detalhe = mockMvc.perform(get("/api/consumidores/{id}", id).session(sessao))
+                .andExpect(status().isOk());
+        if (completo) {
+            detalhe.andExpect(header().string("Cache-Control", "no-store"));
+        }
+        assertThat(objectMapper.readTree(detalhe.andReturn().getResponse().getContentAsString()))
+                .isEqualTo(jsonCriacao);
+
+        var listagem = mockMvc.perform(get("/api/consumidores").session(sessao))
+                .andExpect(status().isOk()).andReturn();
+        assertThat(objectMapper.readTree(listagem.getResponse().getContentAsString()))
+                .isEqualTo(objectMapper.readTree(objectMapper.writeValueAsString(java.util.List.of(resumo))));
     }
 
     @ParameterizedTest
@@ -106,7 +141,7 @@ class ConsumidorControllerTest {
     @ParameterizedTest
     @CsvSource({"PF, 529.982.247-25, 52998224725", "PJ, 12.abc.345/01de-35, 12ABC34501DE35"})
     void deveRejeitarDuplicidadeAposNormalizar(String tipo, String primeiro, String segundo) throws Exception {
-        ConsumidorResponseDTO salvo = resposta(enviar(valido(tipo, primeiro), 201));
+        ConsumidorResumoResponseDTO salvo = resposta(enviar(valido(tipo, primeiro), 201));
         enviar(valido(tipo, segundo), 409);
         assertThat(repository.count()).isEqualTo(1);
         assertThat(repository.findById(salvo.id()).orElseThrow().getDocumento()).isEqualTo(segundo);
@@ -144,10 +179,10 @@ class ConsumidorControllerTest {
     void devePermitirEnderecoNuloOuVazio() throws Exception {
         Map<String, Object> request = valido("PF", "52998224725");
         request.put("enderecoCorrespondencia", null);
-        assertThat(resposta(enviar(request, 201)).enderecoCorrespondencia()).isNull();
+        assertThat(repository.findById(resposta(enviar(request, 201)).id()).orElseThrow().getEnderecoCorrespondencia()).isNull();
         request = valido("PJ", "12ABC34501DE35");
         request.put("enderecoCorrespondencia", "   ");
-        assertThat(resposta(enviar(request, 201)).enderecoCorrespondencia()).isNull();
+        assertThat(repository.findById(resposta(enviar(request, 201)).id()).orElseThrow().getEnderecoCorrespondencia()).isNull();
     }
 
     @Test
@@ -188,7 +223,7 @@ class ConsumidorControllerTest {
                 .andExpect(status().is(esperado)).andReturn();
     }
 
-    private ConsumidorResponseDTO resposta(MvcResult result) throws Exception {
-        return objectMapper.readValue(result.getResponse().getContentAsString(), ConsumidorResponseDTO.class);
+    private ConsumidorResumoResponseDTO resposta(MvcResult result) throws Exception {
+        return objectMapper.readValue(result.getResponse().getContentAsString(), ConsumidorResumoResponseDTO.class);
     }
 }

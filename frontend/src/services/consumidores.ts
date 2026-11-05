@@ -9,8 +9,8 @@ export async function listarConsumidores() {
 }
 
 export async function criarConsumidor(dados: ConsumidorRequest) {
-  const { data } = await api.post<Consumidor>(ROTA, dados)
-  return data
+  const { data: { id, nomeRazaoSocial, tipoPessoa } } = await api.post<Consumidor>(ROTA, dados)
+  return { id, nomeRazaoSocial, tipoPessoa }
 }
 
 export async function listarMedidoresDoConsumidor(id: number) {
