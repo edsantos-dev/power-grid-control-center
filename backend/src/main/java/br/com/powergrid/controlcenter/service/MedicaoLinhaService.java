@@ -10,6 +10,9 @@ import org.springframework.util.MultiValueMap;
 import java.time.Instant;
 import java.time.temporal.ChronoUnit;
 import java.time.ZoneOffset;
+import java.util.UUID;
+import br.com.powergrid.controlcenter.dto.ResultadoIngestao;
+import br.com.powergrid.controlcenter.util.IdempotenciaMedicao;
 import br.com.powergrid.controlcenter.dto.MedicaoLinhaRequestDTO;
 import br.com.powergrid.controlcenter.dto.MedicaoLinhaResponseDTO;
 import br.com.powergrid.controlcenter.model.FonteMedicao;
@@ -49,12 +52,28 @@ public class MedicaoLinhaService {
 
     @Transactional
     public MedicaoLinhaResponseDTO ingerir(Long linhaId, MedicaoLinhaRequestDTO request) {
+        return ingerir(linhaId, request, null).medicao();
+    }
+
+    @Transactional
+    public ResultadoIngestao<MedicaoLinhaResponseDTO> ingerir(Long linhaId, MedicaoLinhaRequestDTO request, UUID chave) {
         var linhaCadastro = linhas.findById(linhaId).orElseThrow(() ->
                 new ResponseStatusException(HttpStatus.NOT_FOUND, "Linha de transmissão não encontrada."));
         FonteMedicao fonte = fontes.buscarPorIdComBloqueio(request.fonteId())
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Fonte de medição não encontrada."));
         if (!fonte.getAtivo().getId().equals(linhaId)) {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "A fonte não pertence à linha informada.");
+        }
+        String hash = null;
+        if (chave != null) {
+            hash = IdempotenciaMedicao.hash(request.medidoEm().toInstant(), request.tensaoKv(), request.correnteA(),
+                        request.potenciaAtivaMw(), request.potenciaReativaMvar(), request.frequenciaHz());
+            var existente = repository.findByFonteIdAndChaveIdempotencia(fonte.getId(), chave);
+            if (existente.isPresent()) {
+                var medicao = existente.get();
+                IdempotenciaMedicao.validarReplay(hash, medicao.getHashPayload());
+                return new ResultadoIngestao<>(toResponse(medicao), true);
+            }
         }
         if (request.tensaoKv() == null && request.correnteA() == null
                 && request.potenciaAtivaMw() == null && request.potenciaReativaMvar() == null
@@ -86,6 +105,8 @@ public class MedicaoLinhaService {
         }
         MedicaoLinha medicao = new MedicaoLinha();
         medicao.setFonte(fonte);
+        medicao.setChaveIdempotencia(chave);
+        medicao.setHashPayload(hash);
         medicao.setMedidoEm(request.medidoEm().withOffsetSameInstant(ZoneOffset.UTC));
         medicao.setRecebidoEm(agora.atOffset(ZoneOffset.UTC));
         medicao.setTensaoKv(request.tensaoKv());
@@ -100,7 +121,7 @@ public class MedicaoLinhaService {
         }
         comunicacao.registrarComunicacaoValida(fonte.getId(), medicao.getRecebidoEm());
         alertas.avaliarEGerar(medicao, referenciaTensao);
-        return toResponse(medicao);
+        return new ResultadoIngestao<>(toResponse(medicao), false);
     }
 
     @Transactional(readOnly = true)

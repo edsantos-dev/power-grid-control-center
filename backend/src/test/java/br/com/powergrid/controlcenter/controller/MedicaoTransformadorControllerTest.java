@@ -6,6 +6,7 @@ import java.time.Instant;
 import java.time.ZoneOffset;
 import java.util.LinkedHashMap;
 import java.util.Map;
+import java.util.UUID;
 import br.com.powergrid.controlcenter.dto.CsrfResponse;
 import br.com.powergrid.controlcenter.dto.MedicaoTransformadorResponseDTO;
 import br.com.powergrid.controlcenter.model.*;
@@ -243,9 +244,48 @@ class MedicaoTransformadorControllerTest {
         mockMvc.perform(post(fontesUrl(transformadorId)).session(sessao).header(csrf.headerName(), csrf.token())
                 .contentType(MediaType.APPLICATION_JSON).content(objectMapper.writeValueAsString(req))).andExpect(status().is(esperado));
     }
+    @Test
+    void retryEquivalenteReusaMedicaoERejeitaPayloadDiferente() throws Exception {
+        String chave = UUID.randomUUID().toString();
+        Long fonteId = fonte.getId();
+        var request = valido();
+        request.put("potenciaAparenteMva", new BigDecimal("20.0"));
+        var original = resposta(enviar(transformadorId, request, 201, chave));
+        entityManager.clear();
+
+        when(clock.instant()).thenReturn(AGORA.plusSeconds(360));
+        request.put("medidoEm", "2026-10-28T13:00:00Z");
+        request.put("potenciaAparenteMva", new BigDecimal("20.000000"));
+        var replay = resposta(enviar(transformadorId, request, 200, chave));
+        assertThat(replay.id()).isEqualTo(original.id());
+        assertThat(replay.recebidoEm()).isEqualTo(original.recebidoEm());
+
+        request.put("potenciaAparenteMva", new BigDecimal("20").add(BigDecimal.ONE));
+        enviar(transformadorId, request, 409, chave);
+        assertThat(entityManager.find(FonteMedicao.class, fonteId).getUltimaComunicacaoEm().toInstant())
+                .isEqualTo(AGORA);
+        assertThat(entityManager.createNativeQuery("SELECT COUNT(*) FROM medicao_transformador WHERE fonte_id = ?", Long.class)
+                .setParameter(1, fonteId).getSingleResult()).isEqualTo(1L);
+        assertThat(entityManager.createNativeQuery("SELECT COUNT(*) FROM alerta_sobrecarga WHERE ativo_id = ?", Long.class)
+                .setParameter(1, transformadorId).getSingleResult()).isEqualTo(1L);
+    }
+
+    @Test
+    void rejeitaCabecalhoQueNaoSejaUuid() throws Exception {
+        enviar(transformadorId, valido(), 400, "1-1-1-1-1");
+    }
+
     private MvcResult enviar(Long id, Map<String, Object> request, int esperado) throws Exception {
-        var result = mockMvc.perform(post(url(id)).session(sessao).header(csrf.headerName(), csrf.token())
-                .contentType(MediaType.APPLICATION_JSON).content(objectMapper.writeValueAsString(request))).andExpect(status().is(esperado));
+        return enviar(id, request, esperado, null);
+    }
+
+    private MvcResult enviar(Long id, Map<String, Object> request, int esperado, String chave) throws Exception {
+        var post = post(url(id)).session(sessao).header(csrf.headerName(), csrf.token())
+                .contentType(MediaType.APPLICATION_JSON).content(objectMapper.writeValueAsString(request));
+        if (chave != null) {
+            post.header("Idempotency-Key", chave);
+        }
+        var result = mockMvc.perform(post).andExpect(status().is(esperado));
         if (esperado >= 400) result.andExpect(jsonPath("$.status").value(esperado));
         return result.andReturn();
     }

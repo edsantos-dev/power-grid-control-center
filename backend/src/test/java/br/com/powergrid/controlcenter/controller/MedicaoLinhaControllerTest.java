@@ -6,6 +6,7 @@ import java.time.Instant;
 import java.time.ZoneOffset;
 import java.util.LinkedHashMap;
 import java.util.Map;
+import java.util.UUID;
 import br.com.powergrid.controlcenter.dto.CsrfResponse;
 import br.com.powergrid.controlcenter.dto.MedicaoLinhaResponseDTO;
 import br.com.powergrid.controlcenter.model.*;
@@ -345,9 +346,48 @@ class MedicaoLinhaControllerTest {
 
     private String url(Long id) { return "/api/linhas-transmissao/" + id + "/medicoes"; }
 
+    @Test
+    void retryEquivalenteReusaMedicaoERejeitaPayloadDiferente() throws Exception {
+        String chave = UUID.randomUUID().toString();
+        Long fonteId = fonte.getId();
+        var request = valido();
+        request.put("tensaoKv", new BigDecimal("200.0"));
+        var original = resposta(enviar(linhaId, request, 201, chave));
+        entityManager.clear();
+
+        when(clock.instant()).thenReturn(AGORA.plusSeconds(360));
+        request.put("medidoEm", "2026-10-28T13:00:00Z");
+        request.put("tensaoKv", new BigDecimal("200.000000"));
+        var replay = resposta(enviar(linhaId, request, 200, chave));
+        assertThat(replay.id()).isEqualTo(original.id());
+        assertThat(replay.recebidoEm()).isEqualTo(original.recebidoEm());
+
+        request.put("tensaoKv", new BigDecimal("200").add(BigDecimal.ONE));
+        enviar(linhaId, request, 409, chave);
+        assertThat(entityManager.find(FonteMedicao.class, fonteId).getUltimaComunicacaoEm().toInstant())
+                .isEqualTo(AGORA);
+        assertThat(entityManager.createNativeQuery("SELECT COUNT(*) FROM medicao_linha WHERE fonte_id = ?", Long.class)
+                .setParameter(1, fonteId).getSingleResult()).isEqualTo(1L);
+        assertThat(entityManager.createNativeQuery("SELECT COUNT(*) FROM alerta_tensao WHERE ativo_id = ?", Long.class)
+                .setParameter(1, linhaId).getSingleResult()).isEqualTo(1L);
+    }
+
+    @Test
+    void rejeitaCabecalhoQueNaoSejaUuid() throws Exception {
+        enviar(linhaId, valido(), 400, "1-1-1-1-1");
+    }
+
     private MvcResult enviar(Long id, Map<String, Object> request, int esperado) throws Exception {
-        var result = mockMvc.perform(post(url(id)).session(sessao).header(csrf.headerName(), csrf.token())
-                .contentType(MediaType.APPLICATION_JSON).content(objectMapper.writeValueAsString(request)))
+        return enviar(id, request, esperado, null);
+    }
+
+    private MvcResult enviar(Long id, Map<String, Object> request, int esperado, String chave) throws Exception {
+        var post = post(url(id)).session(sessao).header(csrf.headerName(), csrf.token())
+                .contentType(MediaType.APPLICATION_JSON).content(objectMapper.writeValueAsString(request));
+        if (chave != null) {
+            post.header("Idempotency-Key", chave);
+        }
+        var result = mockMvc.perform(post)
                 .andExpect(status().is(esperado));
         if (esperado >= 400) result.andExpect(jsonPath("$.status").value(esperado))
                 .andExpect(jsonPath("$.path").value(url(id))).andExpect(jsonPath("$.message").isNotEmpty());

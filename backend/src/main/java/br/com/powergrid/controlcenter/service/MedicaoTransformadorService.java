@@ -6,6 +6,9 @@ import java.time.Clock;
 import java.time.Instant;
 import java.time.temporal.ChronoUnit;
 import java.time.ZoneOffset;
+import java.util.UUID;
+import br.com.powergrid.controlcenter.dto.ResultadoIngestao;
+import br.com.powergrid.controlcenter.util.IdempotenciaMedicao;
 import br.com.powergrid.controlcenter.dto.MedicaoTransformadorRequestDTO;
 import br.com.powergrid.controlcenter.dto.MedicaoTransformadorResponseDTO;
 import br.com.powergrid.controlcenter.dto.PageResponseDTO;
@@ -44,11 +47,26 @@ public class MedicaoTransformadorService {
 
     @Transactional
     public MedicaoTransformadorResponseDTO ingerir(Long id, MedicaoTransformadorRequestDTO request) {
+        return ingerir(id, request, null).medicao();
+    }
+
+    @Transactional
+    public ResultadoIngestao<MedicaoTransformadorResponseDTO> ingerir(Long id, MedicaoTransformadorRequestDTO request, UUID chave) {
         var transformador = transformadores.findById(id).orElseThrow(() ->
                 new ResponseStatusException(HttpStatus.NOT_FOUND, "Transformador não encontrado."));
         var fonte = fontes.buscarPorIdComBloqueio(request.fonteId()).orElseThrow(() ->
                 new ResponseStatusException(HttpStatus.NOT_FOUND, "Fonte de medição não encontrada."));
         if (!fonte.getAtivo().getId().equals(id)) throw invalido("A fonte não pertence ao transformador informado.");
+        String hash = null;
+        if (chave != null) {
+            hash = IdempotenciaMedicao.hash(request.medidoEm().toInstant(), request.potenciaAparenteMva());
+            var existente = repository.findByFonteIdAndChaveIdempotencia(fonte.getId(), chave);
+            if (existente.isPresent()) {
+                var medicao = existente.get();
+                IdempotenciaMedicao.validarReplay(hash, medicao.getHashPayload());
+                return new ResultadoIngestao<>(toResponse(medicao), true);
+            }
+        }
         if (request.potenciaAparenteMva() == null || request.potenciaAparenteMva().signum() < 0) {
             throw invalido("Potência aparente deve ser informada e não negativa.");
         }
@@ -58,6 +76,8 @@ public class MedicaoTransformadorService {
         }
         MedicaoTransformador medicao = new MedicaoTransformador();
         medicao.setFonte(fonte);
+        medicao.setChaveIdempotencia(chave);
+        medicao.setHashPayload(hash);
         medicao.setMedidoEm(request.medidoEm().withOffsetSameInstant(ZoneOffset.UTC));
         medicao.setRecebidoEm(agora.atOffset(ZoneOffset.UTC));
         medicao.setPotenciaAparenteMva(request.potenciaAparenteMva());
@@ -70,7 +90,7 @@ public class MedicaoTransformadorService {
         comunicacao.registrarComunicacaoValida(fonte.getId(), medicao.getRecebidoEm());
         var response = toResponse(medicao);
         alertas.avaliarEGerar(medicao, response.cargaPercentual());
-        return response;
+        return new ResultadoIngestao<>(response, false);
     }
 
     @Transactional(readOnly = true)

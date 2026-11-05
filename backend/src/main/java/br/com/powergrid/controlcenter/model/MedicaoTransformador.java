@@ -2,6 +2,7 @@ package br.com.powergrid.controlcenter.model;
 
 import java.math.BigDecimal;
 import java.time.OffsetDateTime;
+import java.util.UUID;
 import jakarta.persistence.*;
 import lombok.EqualsAndHashCode;
 import lombok.Getter;
@@ -23,6 +24,12 @@ public class MedicaoTransformador {
     @ManyToOne(fetch = FetchType.LAZY, optional = false)
     @JoinColumn(name = "fonte_id", nullable = false)
     private FonteMedicao fonte;
+
+    @Column(name = "chave_idempotencia", updatable = false)
+    private UUID chaveIdempotencia;
+
+    @Column(name = "hash_payload", length = 64, updatable = false)
+    private String hashPayload;
 
     @Column(name = "medido_em", nullable = false)
     private OffsetDateTime medidoEm;
