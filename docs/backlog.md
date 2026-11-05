@@ -86,7 +86,7 @@ Como operador, quero cadastrar subestações com informações técnicas e local
 
 - [x] **US01-T01:** Definir o contrato de criação, campos obrigatórios, precisão, estado padrão e cenários de validação.
 - [ ] **US01-T02:** Implementar o recorte de backend com testes pertinentes e documentação.
-- [ ] **US01-T03:** Integrar a interface com testes pertinentes e documentação.
+- [x] **US01-T03:** Integrar a interface com testes pertinentes e documentação.
 - [ ] **US01-T04:** Verificar integração/aceite e apresentar resultados e limitações.
 
 **Contrato de criação:** Nome, latitude, longitude, tensão nominal, capacidade e data de instalação obrigatórios. Nome sem espaços nas extremidades, não vazio, até 255 caracteres e sem unicidade. Latitude entre -90 e 90; longitude entre -180 e 180; até sete casas decimais. Tensão e capacidade positivas, com até 13 dígitos inteiros e seis decimais. Excesso de precisão deve ser rejeitado, sem arredondamento. Data válida em YYYY-MM-DD, admitindo datas futuras. Estado opcional: OPERACIONAL quando omitido ou nulo; rejeitar valor fora de OPERACIONAL/FALHA/MANUTENCAO. ID gerado pelo sistema.
@@ -152,7 +152,7 @@ Como operador, quero cadastrar transformadores com sua capacidade operacional, p
 
 - [x] **US03-T01:** Definir contrato de cadastro estrutural, vínculo obrigatório, subestação derivada e cenários de validação.
 - [ ] **US03-T02:** Implementar o recorte de backend com testes pertinentes e documentação.
-- [ ] **US03-T03:** Integrar a interface com testes pertinentes e documentação.
+- [x] **US03-T03:** Integrar a interface com testes pertinentes e documentação.
 - [ ] **US03-T04:** Verificar integração/aceite e apresentar resultados e limitações.
 
 **US03-T02 — persistência e API em revisão:** Transformador compartilha o ID com AtivoRede, armazena capacidadeMva e referencia Alimentador obrigatório e LAZY, sem cascata. Não possui subestacaoId nem tensaoNominalKv. A V1 permanece inalterada.
@@ -184,7 +184,7 @@ Como técnico de manutenção, quero cadastrar equipes de manutenção e suas re
 
 - [x] **US04-T01:** Detalhar contrato e critérios propostos, resolver as decisões pertinentes e definir cenários de teste.
 - [x] **US04-T02:** Implementar o recorte de backend com testes pertinentes e documentação. Persistência, CRUD, integrantes, disponibilidade e concorrência implementados. A designação simples ao evento está concluída no backend em US16-T05.
-- [ ] **US04-T03:** Integrar a interface com testes pertinentes e documentação.
+- [x] **US04-T03:** Integrar a interface com testes pertinentes e documentação.
 - [ ] **US04-T04:** Verificar integração/aceite e apresentar resultados e limitações.
 
 **US04-T03 — interface em revisão:** A tela de equipes consome GET /api/equipes com paginação e filtros de nome e situação no servidor, exibindo responsabilidades, especialidades e situação. Gerente e técnico de manutenção podem criar e editar equipes (textos opcionais vazios seguem nulos), alterar a situação por PATCH /situacao e incluir ou remover integrantes; o operador apenas consulta, conforme a autorização do backend. Cada integrante é uma conta de usuário, incluída pelo ID por PUT /integrantes/{usuarioId}, pois não há consulta de usuários, e exibida com nome, perfil e início da vigência; a remoção (DELETE) encerra a vigência sem apagar o histórico. A regra de disponibilidade é a do backend: DISPONIVEL e EM_ATENDIMENTO exigem ao menos um integrante ativo, e as recusas 409, inclusive a remoção do último integrante de equipe ativa, são exibidas no painel. Membros numéricos e responsável textual simulados foram removidos. Equipes.test.tsx cobre US04-CA01–CA03 na interface.
@@ -210,7 +210,7 @@ Como gerente, quero cadastrar as usinas geradoras vinculadas à rede, para ter c
 
 - [x] **US05-T01:** Detalhar contrato e critérios propostos, resolver as decisões pertinentes e definir cenários de teste.
 - [x] **US05-T02:** Implementar o recorte de backend com testes pertinentes e documentação. Migration, persistência, DTOs, Service e endpoints implementados.
-- [ ] **US05-T03:** Integrar a interface com testes pertinentes e documentação.
+- [x] **US05-T03:** Integrar a interface com testes pertinentes e documentação.
 - [ ] **US05-T04:** Verificar integração/aceite e apresentar resultados e limitações.
 
 **US05-T03 — interface em revisão:** A tela de usinas consome GET /api/usinas com paginação e filtros de nome, tipo de geração e status aplicados no servidor, na ordem por ID do backend. Cada usina mostra tipo, capacidade máxima nominal em MW, subestação de conexão pelo nome, localização, data de instalação e status, com a coluna "Geração observada" indicando "Sem medição", para não confundir capacidade nominal com geração. Cadastro e edição (POST/PUT) aparecem apenas para o gerente, conforme a autorização do backend; o formulário exige tipo, capacidade positiva com precisão 13,6, subestação, coordenadas válidas e envia a data opcional como nula. Recusas 400/404 são exibidas. Região, geração atual e somatórios simulados foram removidos. O catálogo de ativos (services/ativos.ts) passou a incluir as usinas, que antes apareciam como "Ativo #id" em alertas e eventos. Usinas.test.tsx cobre US05-CA01–CA03 na interface.
@@ -237,7 +237,7 @@ Como operador, quero cadastrar medidores inteligentes vinculados aos consumidore
 
 - [x] **US06-T01:** Detalhar contrato e critérios propostos, resolver as decisões pertinentes e definir cenários de teste.
 - [x] **US06-T02:** Implementar o recorte de backend com testes pertinentes e documentação. Cadastro, instalação e consumo por intervalo concluídos, com fluxo E2E e integração transacional de comunicação.
-- [ ] **US06-T03:** Integrar a interface com testes pertinentes e documentação.
+- [x] **US06-T03:** Integrar a interface com testes pertinentes e documentação.
 - [ ] **US06-T04:** Verificar integração/aceite e apresentar resultados e limitações.
 
 **US06-T02 — cadastro, persistência e API:** MedidorInteligente compartilha o ID de AtivoRede; numeroSerie obrigatório e único, enderecoFornecimento opcional e vínculos opcionais com Consumidor e Transformador. MedidorInteligenteRepositoryTest cobre estoque, instalação por atualização, herança, relacionamentos, unicidade sensível a maiúsculas/minúsculas e referências inexistentes. A V1 permanece inalterada.
@@ -272,7 +272,7 @@ Como operador, quero cadastrar os consumidores da rede elétrica, para vincular 
 
 - [x] **US07-T01:** Definir contrato do titular e critérios de documento, respeitando a limitação histórica definida.
 - [ ] **US07-T02:** Implementar cadastro mínimo do titular com testes/documentação; pode preceder US06 sem concluir a consulta dos vínculos.
-- [ ] **US07-T03:** Integrar interface e consulta de vínculos após US06, com testes/documentação.
+- [x] **US07-T03:** Integrar interface e consulta de vínculos após US06, com testes/documentação.
 - [ ] **US07-T04:** Verificar aceite e apresentar resultados e limitações do MVP.
 
 **US07-T02 — persistência e API em revisão:** Consumidor mapeia as colunas existentes da V1, com documento obrigatório e único e tipoPessoa obrigatório. TipoPessoa é um enum PF/PJ persistido como VARCHAR. ConsumidorRepositoryTest cobre PF, PJ numérico/alfanumérico, consulta de existência, UNIQUE, NOT NULL e CHECK de tipo de pessoa; o CHECK é exercitado por INSERT SQL para não depender da restrição do enum Java. O titular pode existir sem medidores e sem endereço de correspondência.
@@ -304,7 +304,7 @@ Como operador, quero visualizar em tempo real a tensão e a corrente das linhas 
 
 - [ ] **US08-T01:** Detalhar contrato e critérios propostos, resolver as decisões pertinentes e definir cenários de teste.
 - [ ] **US08-T02:** Implementar o recorte de backend com testes pertinentes e documentação.
-- [ ] **US08-T03:** Integrar a interface com testes pertinentes e documentação.
+- [x] **US08-T03:** Integrar a interface com testes pertinentes e documentação.
 - [ ] **US08-T04:** Verificar integração/aceite e apresentar resultados e limitações.
 
 **US08-T02 — persistência e ingestão em revisão:** A V4 cria fonte_medicao com identificador único de até 128 caracteres, origem REAL/SIMULADA e linha obrigatória. medicao_linha referencia a fonte e armazena medidoEm, recebidoEm, tensão em kV e corrente em A. Ao menos uma grandeza deve existir; zero é válido e valores negativos são rejeitados. Grandezas usam NUMERIC(19,6); timestamps possuem fuso. Índice por fonte e instante de medição. As associações são LAZY, sem cascata. FonteMedicaoRepositoryTest e MedicaoLinhaRepositoryTest cobrem integridade e recuperação.
@@ -342,7 +342,7 @@ Como operador, quero acompanhar a potência ativa e reativa da rede, para avalia
 
 - [ ] **US09-T01:** Detalhar contrato e critérios propostos, resolver as decisões pertinentes e definir cenários de teste.
 - [ ] **US09-T02:** Implementar o recorte de backend com testes pertinentes e documentação.
-- [ ] **US09-T03:** Integrar a interface com testes pertinentes e documentação.
+- [x] **US09-T03:** Integrar a interface com testes pertinentes e documentação.
 - [ ] **US09-T04:** Verificar integração/aceite e apresentar resultados e limitações.
 
 **US09-T02 — persistência e API em revisão:** V5 adiciona potencia_ativa_mw e potencia_reativa_mvar em NUMERIC(19,6), opcionais, com sinais positivos ou negativos e rejeição de valores não finitos. O CHECK exige ao menos uma das quatro grandezas; tensão e corrente continuam não negativas. FonteMedicao referencia opcionalmente Subestacao por FK simples e associação LAZY, sem cascata. Fontes existentes preservam referência nula, sem inferência automática. Os testes de repositório cobrem potências isoladas, sinais, zero, limites numéricos e referência da fonte.
@@ -372,7 +372,7 @@ Como operador, quero monitorar a frequência e o fator de potência da rede, par
 
 - [ ] **US10-T01:** Detalhar contrato e critérios propostos, resolver as decisões pertinentes e definir cenários de teste.
 - [ ] **US10-T02:** Implementar o recorte de backend com testes pertinentes e documentação.
-- [ ] **US10-T03:** Integrar a interface com testes pertinentes e documentação.
+- [x] **US10-T03:** Integrar a interface com testes pertinentes e documentação.
 - [ ] **US10-T04:** Verificar integração/aceite e apresentar resultados e limitações.
 
 **US10-T02 — persistência e API em revisão:** V6 adiciona frequencia_hz opcional em NUMERIC(9,6), com restrição estritamente positiva e rejeição de valores não finitos. O CHECK exige ao menos uma das cinco grandezas ingeridas. Leituras anteriores podem manter frequência nula; valores positivos fora da faixa nominal são aceitos. MedicaoLinhaRepositoryTest cobre frequência isolada, limites, zero/negativos e compatibilidade de tensão, corrente e potências.
@@ -403,7 +403,7 @@ Como operador, quero visualizar a carga dos transformadores em tempo real, para 
 
 - [ ] **US11-T01:** Detalhar contrato e critérios propostos, resolver as decisões pertinentes e definir cenários de teste.
 - [ ] **US11-T02:** Implementar o recorte de backend com testes pertinentes e documentação.
-- [ ] **US11-T03:** Integrar a interface com testes pertinentes e documentação.
+- [x] **US11-T03:** Integrar a interface com testes pertinentes e documentação.
 - [ ] **US11-T04:** Verificar integração/aceite e apresentar resultados e limitações.
 
 **US11-T02 — Lote 1 em revisão:** A V7 renomeia fonte_medicao.linha_id para ativo_id, preservando os dados e substituindo a FK por referência a ativo_rede. FonteMedicao referencia AtivoRede por associação LAZY. A tabela medicao_transformador mantém fonte, instantes, potência aparente não negativa e capacidade de referência estritamente positiva, ambos NUMERIC(19,6). O snapshot é um valor persistido independente da capacidade cadastral. Não há percentual armazenado nem limitação a 100%.
@@ -435,7 +435,7 @@ Como gerente, quero acompanhar as perdas técnicas na distribuição, para ident
 
 - [x] **US12-T01:** Detalhar contrato e critérios propostos, resolver as decisões pertinentes e definir cenários de teste.
 - [x] **US12-T02:** Implementar o recorte de backend com testes pertinentes e documentação. V14, persistência, configuração, fontes, ingestão transacional, cálculo, consultas e fluxo HTTP E2E implementados.
-- [ ] **US12-T03:** Integrar a interface com testes pertinentes e documentação.
+- [x] **US12-T03:** Integrar a interface com testes pertinentes e documentação.
 - [ ] **US12-T04:** Verificar integração/aceite e apresentar resultados e limitações.
 
 **US12-T03 — interface em revisão:** A tela Relatórios substitui os relatórios fictícios pela consulta "Perdas técnicas por alimentador", que chama GET /api/alimentadores/{id}/perdas-tecnicas com o período escolhido por dia local e enviado em UTC, com fim exclusivo no dia seguinte ao último selecionado; período ausente ou invertido é bloqueado no cliente. O resultado mostra energia injetada, perda estimada, percentual ponderado pela energia e cobertura do período, além da tabela de medições consideradas com intervalo, fonte, origem, energia e o percentual de referência registrado em cada medição. DADOS_INSUFICIENTES exibe a cobertura obtida e deixa os totais como "—"; SEM_ENERGIA_INJETADA mostra energia e perda zero sem percentual. O gerente pode definir o percentual de estimativa do alimentador (PATCH /parametros-perdas), apresentado como parâmetro que vale para as próximas medições; os demais perfis não veem o campo. PerdasTecnicas.test.tsx cobre US12-CA01–CA03 na interface; o resultado conhecido foi conferido no navegador.
@@ -461,7 +461,7 @@ Como operador, quero visualizar o mapa geográfico dos ativos da rede, para loca
 
 - [x] **US13-T01:** Detalhar contrato e critérios propostos, resolver as decisões pertinentes e definir cenários de teste.
 - [x] **US13-T02:** Implementar o recorte de backend com testes pertinentes e documentação. Projeções, álgebra, GeoJSON, API, metadados e limites implementados, com fluxo E2E integrado e arquitetura documentada.
-- [ ] **US13-T03:** Integrar a interface com testes pertinentes e documentação.
+- [x] **US13-T03:** Integrar a interface com testes pertinentes e documentação.
 - [ ] **US13-T04:** Verificar integração/aceite e apresentar resultados e limitações.
 
 **US13-T03 — interface em revisão:** O Dashboard exibe o "Mapa de ativos" com react-leaflet sobre tiles escuros do CARTO/OpenStreetMap. A primeira consulta a GET /api/mapa/ativos cobre o mundo e enquadra os ativos; depois, cada movimento do mapa consulta a área visível (BBOX limitada aos intervalos geográficos, com espera de 250 ms após o arraste) e as camadas marcadas. Subestações, transformadores e usinas são pontos coloridos por tipo com os slots 1-3 da paleta de referência, validados contra a superfície escura; linhas são traços neutros tracejados, identificados como conexão simplificada entre as subestações, sem traçado real. Selecionar um ponto ou linha identifica tipo, ID, nome, estado, detalheUri e o link para o cadastro correspondente. A tela informa quantos ativos estão na área e quantos ficaram fora por falta de coordenadas, sem inventar localização; acima de 1.000 itens, o 422 do backend vira orientação para aproximar o mapa, sem truncar. Foi adicionado @types/leaflet 1.9.22 para tipar as props do react-leaflet. MapaAtivos.test.tsx cobre US13-CA01–CA03 na interface.
@@ -487,7 +487,7 @@ Como gerente, quero visualizar KPIs de disponibilidade e desempenho da rede, par
 
 - [x] **US14-T01:** Detalhar contrato e critérios propostos, resolver as decisões pertinentes e definir cenários de teste.
 - [x] **US14-T02:** Implementar o recorte de backend com testes pertinentes e documentação. Consultas, serviço, fórmulas, situações de qualidade, DTOs e API concluídos, com fluxo E2E integrado e arquitetura documentada.
-- [ ] **US14-T03:** Integrar a interface com testes pertinentes e documentação.
+- [x] **US14-T03:** Integrar a interface com testes pertinentes e documentação.
 - [ ] **US14-T04:** Verificar integração/aceite e apresentar resultados e limitações.
 
 **US14-T03 — interface em revisão:** O Dashboard substitui os cartões, o gráfico e os alertas fictícios pelos indicadores de GET /api/indicadores/operacionais, exibidos apenas ao gerente; os demais perfis veem o aviso de acesso, conforme a restrição do backend. A consulta usa por padrão os últimos sete dias por dia local até o instante atual, pois dataFim futura é recusada, com filtros de período, subestação e tipos de ativo. Os cartões mostram disponibilidade estimada com população e tempo observados, tempo interrompido, tempo médio de restabelecimento e interrupções em aberto, além do inventário por tipo e estado operacional. A tela explica a fórmula e diferencia indisponibilidade de dados de indisponibilidade do ativo: COBERTURA_NAO_AFERIDA apresenta o valor como estimativa, SEM_POPULACAO_ATIVA e DADOS_INCONSISTENTES exibem "—" com o motivo e a quantidade de registros inconsistentes, e a média sem restabelecimentos aparece como ausente, não zero. IndicadoresOperacionais.test.tsx cobre US14-CA02/CA03 na interface, incluindo o cenário conhecido de 2 h interrompidas em 10 h observadas (80%).
@@ -513,7 +513,7 @@ Como gerente, quero acompanhar gráficos históricos de consumo e perdas, para i
 
 - [x] **US15-T01:** Detalhar contrato e critérios propostos, resolver as decisões pertinentes e definir cenários de teste. Recorte de energia injetada/perdas, calendário UTC, ausência de rateio e limite de 366 pontos definidos.
 - [x] **US15-T02:** Implementar o recorte de backend com testes pertinentes e documentação. Consulta, agregação, lacunas, DTOs e API concluídos, com fluxo E2E integrado e arquitetura documentada.
-- [ ] **US15-T03:** Integrar a interface com testes pertinentes e documentação.
+- [x] **US15-T03:** Integrar a interface com testes pertinentes e documentação.
 - [ ] **US15-T04:** Verificar integração/aceite e apresentar resultados e limitações.
 - [x] **US15-T05:** Implementar histórico agregado de consumo medido por snapshot, cobertura por equipamento, MWh com nove casas, população observada não aferida e limite de 366 pontos. Consulta, projeção, serviço, DTOs e API concluídos. HistoricoConsumoMedidoFluxoE2ETest integra cadastros e cinco ingestões: 0,150000000 MWh e 0,200000000 MWh nos dias completos; total nulo no terceiro dia por ausência de leitura de um dos dois medidores.
 
@@ -525,8 +525,8 @@ Como operador, quero registrar eventos operacionais como manobras e desligamento
 
 - **Perfil e prioridade:** Operador. Prioridade: Alta.
 - **Status:** Em andamento.
-- **Implementação existente:** Frontend com listagem dos eventos e registro de manobra e desligamento programado pela API. Frontend com tabela, busca e filtro local. Backend com entidade, repositório, criação e consultas de eventos; associações obrigatórias com ativo, registrador e responsável. Designação simples de equipe concluída no backend, com versão manual e histórico próprio. Fluxo de falha de equipamento concluído no backend: composição 1:1, registro e reparo transacionais, bloqueios operacionais, consultas e E2E.
-- **Trabalho pendente:** Revisão do backend e da integração; aceite funcional. A API não possui consulta de usuários: o responsável é o usuário atual ou um ID informado. A interface de designação de equipes, consulta de sua auditoria e atendimento específico de falhas permanece pendente.
+- **Implementação existente:** Frontend com registro, consulta e conclusão de falhas de equipamento pela API. Frontend com despacho de equipe e histórico de designações pela API. Frontend com listagem dos eventos e registro de manobra e desligamento programado pela API. Frontend com tabela, busca e filtro local. Backend com entidade, repositório, criação e consultas de eventos; associações obrigatórias com ativo, registrador e responsável. Designação simples de equipe concluída no backend, com versão manual e histórico próprio. Fluxo de falha de equipamento concluído no backend: composição 1:1, registro e reparo transacionais, bloqueios operacionais, consultas e E2E.
+- **Trabalho pendente:** Revisão do backend e da integração; aceite funcional. A API não possui consulta de usuários: o responsável é o usuário atual ou um ID informado.
 - **Dependências:** PEN-06; US25; ao menos US01 para o ativo; contratos de datas e situação.
 - **Referências no frontend:** [Eventos/index.tsx](../frontend/src/pages/Eventos/index.tsx#L8) (linhas 8,21,51).
 
@@ -544,12 +544,12 @@ Como operador, quero registrar eventos operacionais como manobras e desligamento
 
 - [x] **US16-T01:** Detalhar contrato e critérios propostos, resolver as decisões pertinentes e definir cenários de teste.
 - [ ] **US16-T02:** Implementar o recorte de backend com testes pertinentes e documentação.
-- [ ] **US16-T03:** Integrar a interface com testes pertinentes e documentação.
+- [x] **US16-T03:** Integrar a interface com testes pertinentes e documentação.
 - [ ] **US16-T04:** Verificar integração/aceite e apresentar resultados e limitações.
 - [x] **US16-T05:** Implementar designação simples de equipe no backend: V16, vínculo opcional, histórico imutável no JPA, versão manual, transação, autorização, bloqueios evento → equipe, endpoints, paginação e fluxo E2E. DesignacaoEquipeControllerTest e DesignacaoEquipeFluxoE2ETest cobrem o contrato HTTP; testes de serviço, concorrência e rollback cobrem a atomicidade.
-- [ ] **US16-T06:** Integrar a interface de despacho e histórico de designações ao backend, exibindo vínculo atual e tratando conflito de versão.
+- [x] **US16-T06:** Integrar a interface de despacho e histórico de designações ao backend, exibindo vínculo atual e tratando conflito de versão.
 - [x] **US16-T07:** Concluir o backend do fluxo de falha de equipamento: V19, composição 1:1, registro e conclusão transacionais, proteção de manobras/topologia/estado, locks ordenados, consultas, contratos HTTP e testes de persistência, concorrência, rollback e E2E.
-- [ ] **US16-T08:** Integrar cadastro, consulta e conclusão de falhas na interface, exibindo estado anterior, estado após reparo e bloqueios 409.
+- [x] **US16-T08:** Integrar cadastro, consulta e conclusão de falhas na interface, exibindo estado anterior, estado após reparo e bloqueios 409.
 
 **US16-T02 — persistência e API em revisão:** Relacionamentos ManyToOne LAZY, sem cascata; datas previstas e efetivas mapeadas com fuso. EventoOperacionalRepositoryTest cobre vínculos polimórficos, obrigatoriedade, referências inexistentes e períodos previstos/efetivos. Equipe designada opcional e versão manual estão mapeadas; a V16 acrescenta histórico próprio e versão inicial zero, preservando vínculos legados sem gerar auditoria retroativa. A V1 permanece inalterada.
 
@@ -574,6 +574,10 @@ Como operador, quero registrar eventos operacionais como manobras e desligamento
 
 **Verificação integrada:** FalhaEquipamentoFluxoE2ETest inicia uma manobra, registra falha no transformador por HTTP, comprova FALHA e bloqueio 409 de instalação, conclui o atendimento em MANUTENCAO e confirma composição, evento, estado atual e auditoria. A instalação volta a ser aceita após a conclusão, sem converter MANUTENCAO em OPERACIONAL. As requisições usam sessão/CSRF e transações independentes. FalhaEquipamentoControllerTest cobre contratos, autoria, acesso por perfil, paginação, filtros, estado após reparo e leitura sem N+1. O backend está concluído; integração visual e aceite completo permanecem pendentes.
 
+**US16-T06 — interface em revisão:** A lista de eventos ganhou a coluna "Equipe", com o nome da equipe designada ou "Sem equipe". "Despachar" (sem equipe) ou "Equipe" (com equipe) aparece apenas ao gerente e ao operador responsável, em eventos ABERTO ou EM_ANDAMENTO, conforme a regra do serviço. O formulário lista somente equipes DISPONIVEL ou EM_ATENDIMENTO, exceto a já designada, oferece "Retirar a equipe atual" quando há vínculo e exige comentário de até 1.000 caracteres; envia equipeId (nulo na retirada), versaoDesignacaoEsperada e o comentário. No 409 (versão divergente, situação do evento ou equipe sem integrante ativo), a mensagem permanece no formulário, a lista é recarregada e o formulário passa a usar a versão e a equipe atuais. O histórico do evento mostra, além das transições, as designações de GET /api/eventos-operacionais/{id}/designacoes na ordem do backend, com equipe anterior e nova, autor, instante, versão e comentário, para os três perfis. As equipes são lidas de GET /api/equipes em páginas de 100; uma falha nessa leitura não impede a lista de eventos. Testes de componente cobrem regra de perfil, opções elegíveis, validação, envio, retirada, conflito de versão e histórico; o fluxo foi verificado no navegador contra o backend com H2, incluindo inclusão, conflito com outra sessão, retirada e auditoria.
+
+**US16-T08 — interface em revisão:** "Registrar falha" aparece apenas ao gerente e ao operador e envia POST /api/falhas-equipamento com ativo, responsável (o usuário atual ou um ID), descrição e criticidade opcional no domínio BAIXA/MEDIA/ALTA/CRITICA; a falha entra na lista de eventos como "Falha de equipamento" ABERTO. O atendimento usa as transições da US18: ao concluir uma falha, o formulário exige "Estado do ativo após o reparo" (Operacional ou Em manutenção) e envia estadoAposReparo; nas demais categorias e etapas o campo não aparece e segue nulo. A lista mostra o estado após o reparo nos eventos concluídos. "Falhas de equipamento", para os três perfis, consome GET /api/falhas-equipamento na ordem do backend, com filtros de ativo, situação e período de registro por dia local, e exibe estado anterior, estado após o reparo e estado operacional atual, com acesso às transições. Os bloqueios 409 do backend (falha não concluída no mesmo ativo, manobra ou topologia envolvendo ativo em falha, instalação de medidor em transformador em falha) aparecem nos formulários que os disparam; a interface não antecipa o bloqueio, pois o catálogo de ativos não traz o estado operacional. Testes de componente cobrem perfil, validação, payload, 409, estado após reparo e consulta; o fluxo foi verificado no navegador contra o backend com H2, incluindo o bloqueio de início de manobra no ativo em falha e a liberação em MANUTENCAO.
+
 ### US17 — Registrar interrupções de fornecimento
 
 Como operador, quero registrar interrupções de fornecimento com data, horário e ativo envolvido, para documentar a ocorrência e permitir análises posteriores.
@@ -595,7 +599,7 @@ Como operador, quero registrar interrupções de fornecimento com data, horário
 
 - [x] **US17-T01:** Detalhar contrato e critérios propostos, resolver as decisões pertinentes e definir cenários de teste.
 - [x] **US17-T02:** Implementar o recorte de backend com testes pertinentes e documentação. Cadastro específico, conclusão física, consultas e fluxo HTTP E2E implementados.
-- [ ] **US17-T03:** Integrar a interface com testes pertinentes e documentação.
+- [x] **US17-T03:** Integrar a interface com testes pertinentes e documentação.
 - [ ] **US17-T04:** Verificar integração/aceite e apresentar resultados e limitações.
 
 **US17-T03 — interface em revisão:** A tela de eventos oferece "Registrar interrupção", separado do registro programado, que usa POST /api/interrupcoes com ativo envolvido, descrição, responsável (usuário atual ou ID) e início físico obrigatório. O início é informado em horário local, enviado em UTC e bloqueado no cliente quando futuro; o backend continua sendo a regra oficial e suas recusas 400/404 são exibidas. A interrupção aparece na lista de eventos com a categoria "Interrupção de fornecimento", o início efetivo e a situação ABERTO definidos pelo servidor. O término é informado na conclusão, integrada pela US18. InterrupcaoForm.test.tsx cobre US17-CA01–CA03 na interface.
@@ -621,7 +625,7 @@ Como técnico de manutenção, quero atualizar a situação de um evento operaci
 
 - [ ] **US18-T01:** Detalhar contrato e critérios propostos, resolver as decisões pertinentes e definir cenários de teste.
 - [ ] **US18-T02:** Implementar o recorte de backend com testes pertinentes e documentação.
-- [ ] **US18-T03:** Integrar a interface com testes pertinentes e documentação.
+- [x] **US18-T03:** Integrar a interface com testes pertinentes e documentação.
 - [ ] **US18-T04:** Verificar integração/aceite e apresentar resultados e limitações.
 
 **US18-T02 — Lote 1 em revisão:** V12 cria historico_evento_operacional com FKs obrigatórias para evento e usuário, estados anterior/novo, instante e comentário obrigatório de até 1.000 caracteres. O CHECK permite apenas ABERTO → EM_ANDAMENTO e EM_ANDAMENTO → CONCLUIDO. HistoricoEventoOperacional usa associações LAZY sem cascata, identidade própria e imutabilidade de atualização no Hibernate. O repositório expõe inserção e leitura, sem operações de exclusão. EventoOperacional já possui os mapeamentos de inicioEfetivo/terminoEfetivo; a relação 1:N é representada pelo vínculo do histórico, sem coleção bidirecional. A alteração do evento pai é implementada pelo serviço transacional do Lote 2.
@@ -665,7 +669,7 @@ Como técnico de manutenção, quero consultar o histórico de manutenções de 
 
 - [ ] **US19-T01:** Detalhar contrato e critérios propostos, resolver as decisões pertinentes e definir cenários de teste.
 - [ ] **US19-T02:** Implementar o recorte de backend com testes pertinentes e documentação.
-- [ ] **US19-T03:** Integrar a interface com testes pertinentes e documentação.
+- [x] **US19-T03:** Integrar a interface com testes pertinentes e documentação.
 - [ ] **US19-T04:** Verificar integração/aceite e apresentar resultados e limitações.
 
 **US19-T02 — Lote 1 em revisão:** EventoOperacionalRepository busca exclusivamente MANUTENCAO do ativo informado, com filtros opcionais situacao, responsavelUsuarioId, dataInicio e dataFim sobre inicioEfetivo. Contagem e conteúdo compartilham os mesmos filtros; ordenação fixa inicioEfetivo DESC NULLS LAST/id DESC e LIMIT/OFFSET no banco. O método paginado suporta página distante sem converter o deslocamento para int e não aplica ordenação recebida pelo Pageable.
@@ -694,8 +698,8 @@ Como operador, quero visualizar os alertas ativos classificados por criticidade,
 
 - **Perfil e prioridade:** Operador. Prioridade: Alta.
 - **Status:** Em andamento.
-- **Implementação existente:** Frontend com listagem dos alertas ativos e registro de alerta pela API. Backend com cadastro, consulta e tratativa genérica concluídos, incluindo histórico próprio, bloqueio pessimista e auditoria no dashboard. A fila global das quatro origens está concluída no backend em GET /api/alertas/ativos, com paginação, ranqueamento por criticidade e filtros topológicos.
-- **Trabalho pendente:** Integrar a interface de reconhecimento, resolução e auditoria, revisar a integração e concluir o aceite de US20. Integrar a fila global GET /api/alertas/ativos na interface; GET /api/alertas permanece dedicado aos genéricos.
+- **Implementação existente:** Frontend com reconhecimento, resolução e histórico de tratativas dos alertas registrados. Frontend com listagem dos alertas ativos e registro de alerta pela API. Backend com cadastro, consulta e tratativa genérica concluídos, incluindo histórico próprio, bloqueio pessimista e auditoria no dashboard. A fila global das quatro origens está concluída no backend em GET /api/alertas/ativos, com paginação, ranqueamento por criticidade e filtros topológicos.
+- **Trabalho pendente:** Revisar a integração e concluir o aceite de US20. A fila global GET /api/alertas/ativos está integrada na interface (US24); GET /api/alertas permanece dedicado aos genéricos.
 - **Dependências:** PEN-06; US25; ativo cadastrado ou escopo geral; criticidade e estados ativos.
 - **Referências no frontend:** [Alertas/index.tsx](../frontend/src/pages/Alertas/index.tsx#L17) (linhas 17,42,122,156).
 
@@ -710,10 +714,10 @@ Como operador, quero visualizar os alertas ativos classificados por criticidade,
 
 - [x] **US20-T01:** Detalhar contrato e critérios propostos, resolver as decisões pertinentes e definir cenários de teste.
 - [x] **US20-T02:** Implementar o recorte de backend com testes pertinentes e documentação.
-- [ ] **US20-T03:** Integrar a interface com testes pertinentes e documentação.
+- [x] **US20-T03:** Integrar a interface com testes pertinentes e documentação.
 - [ ] **US20-T04:** Verificar integração/aceite e apresentar resultados e limitações.
 - [x] **US20-T05:** Implementar tratativa de alertas genéricos no backend: V17, histórico imutável no JPA, máquina de estados, autorização, bloqueio pessimista, idempotência, rollback, DTOs, endpoints e V18 com auditoria projetada na view. Testes de persistência, serviço, concorrência, Web, migration e E2E cobrem o recorte.
-- [ ] **US20-T06:** Integrar ações de reconhecimento/resolução e histórico na interface, exibindo autoria/data e tratando recusas de contrato ou estado.
+- [x] **US20-T06:** Integrar ações de reconhecimento/resolução e histórico na interface, exibindo autoria/data e tratando recusas de contrato ou estado.
 - [x] **US20-T07 (complemento US24):** Entregar a fila global de alertas ativos das quatro origens com Criteria API, elegibilidade no banco, criticidade absoluta, filtros topológicos, DTO, validação HTTP estrita e E2E de saída dinâmica da fila.
 
 **US20-T02 — backend concluído:** AlertaRepository.buscarAtivos seleciona ABERTO e RECONHECIDO e ordena CRITICA, ALTA, MEDIA e BAIXA, depois geradoEm e id decrescentes. AlertaRepositoryTest cobre as restrições de escopo da V1, vínculos, estados ativos e ordenação. O relacionamento com AtivoRede é opcional, LAZY e sem cascata.
@@ -743,6 +747,8 @@ Como operador, quero visualizar os alertas ativos classificados por criticidade,
 
 **Verificação integrada da fila:** AlertaAtivoFluxoE2ETest gera as quatro origens pelas APIs, usa criticidades controladas na massa do teste e comprova Sobrecarga → Genérico → Tensão → Comunicação. Após reconhecimento elétrico e resolução genérica, restam tensão/comunicação, preservando o histórico. Consultas com e sem subestação verificam a derivação, duas instruções SQL (contagem e página), nenhuma busca adicional de entidade e uma conexão por leitura, devolvida ao pool. A verificação usa H2 e massa funcional; não representa ensaio de carga em PostgreSQL. Integração visual da fila e aceite completo permanecem pendentes.
 
+**US20-T06 — interface em revisão:** Cada alerta ativo oferece "Reconhecer" (ABERTO) ou "Resolver" (RECONHECIDO) somente ao gerente e ao operador, com comentário obrigatório de até 1.000 caracteres validado antes do envio. O alerta reconhecido permanece na lista com "Reconhecido por … em …"; o resolvido sai da lista de ativos, como no backend. Recusas de contrato e de estado (400/409) aparecem no formulário, e o 409 recarrega a lista sem fechar o formulário, para a mensagem continuar legível. O histórico de tratativas, disponível aos três perfis, consome GET /api/alertas/{id} e GET /api/alertas/{id}/historico na ordem do backend, com autoria, instante, transição e comentário; alertas legados sem auditoria exibem apenas a situação. A autoria aparece como "você" ou pelo ID do usuário, pois a API não oferece consulta de usuários. Testes de componente cobrem perfis, validação, atualização da lista, recusa 409 e histórico; o fluxo foi verificado no navegador contra o backend com H2.
+
 ### US21 — Gerar alerta automático de sobrecarga
 
 Como operador, quero receber alertas automáticos de sobrecarga em transformadores, para agir antes que ocorra uma falha maior.
@@ -764,7 +770,7 @@ Como operador, quero receber alertas automáticos de sobrecarga em transformador
 
 - [ ] **US21-T01:** Detalhar contrato e critérios propostos, resolver as decisões pertinentes e definir cenários de teste.
 - [ ] **US21-T02:** Implementar o recorte de backend com testes pertinentes e documentação.
-- [ ] **US21-T03:** Integrar a interface com testes pertinentes e documentação.
+- [x] **US21-T03:** Integrar a interface com testes pertinentes e documentação.
 - [ ] **US21-T04:** Verificar integração/aceite e apresentar resultados e limitações.
 
 **US21-T02 — Lote 1 em revisão:** V8 cria alerta_sobrecarga com ativo_id obrigatório referenciando ativo_rede, medicao_id obrigatório/único referenciando medicao_transformador, carga_percentual NUMERIC(27,6), limiar_percentual NUMERIC(19,6) positivo e finito, status e gerado_em obrigatórios. Reconhecimento exige instante e usuário existentes; ATIVO exige ambos nulos. Status fora de ATIVO/RECONHECIDO é rejeitado. AlertaSobrecarga mapeia associações LAZY sem cascata, identidade própria e relação exclusiva com a medição. AlertaSobrecargaRepositoryTest cobre estados, unicidade, nulidade, limiar e FKs. A FK genérica garante existência do ativo; a correspondência com o transformador da medição será validada na geração pelo serviço.
@@ -798,7 +804,7 @@ Como operador, quero receber alertas de variação anormal de tensão, para evit
 
 - [ ] **US22-T01:** Detalhar contrato e critérios propostos, resolver as decisões pertinentes e definir cenários de teste.
 - [ ] **US22-T02:** Implementar o recorte de backend com testes pertinentes e documentação.
-- [ ] **US22-T03:** Integrar a interface com testes pertinentes e documentação.
+- [x] **US22-T03:** Integrar a interface com testes pertinentes e documentação.
 - [ ] **US22-T04:** Verificar integração/aceite e apresentar resultados e limitações.
 
 **US22-T02 — Lote 1 em revisão:** V9 cria alerta_tensao com ativo_id (FK ativo_rede), medicao_id (FK medicao_linha, único), tipo SUBTENSAO/SOBRETENSAO, snapshots de tensão medida e referência em NUMERIC(19,6), limites em NUMERIC(22,8), status e datas de auditoria. Referência e limites são positivos; medida é não negativa. Valores não finitos são rejeitados. O ciclo replica a US21: ATIVO com reconhecimento/usuário nulos; RECONHECIDO com ambos preenchidos. AlertaTensaoRepositoryTest cobre persistência, tipos, snapshots, ciclo, unicidade, campos obrigatórios, valores e FKs.
@@ -832,7 +838,7 @@ Como operador, quero receber alertas de perda de comunicação com dispositivos,
 
 - [ ] **US23-T01:** Detalhar contrato e critérios propostos, resolver as decisões pertinentes e definir cenários de teste.
 - [ ] **US23-T02:** Implementar o recorte de backend com testes pertinentes e documentação.
-- [ ] **US23-T03:** Integrar a interface com testes pertinentes e documentação.
+- [x] **US23-T03:** Integrar a interface com testes pertinentes e documentação.
 - [ ] **US23-T04:** Verificar integração/aceite e apresentar resultados e limitações.
 
 **US23-T02 — Lote 1 em revisão:** V10 adiciona monitorada_desde obrigatório e ultima_comunicacao_em opcional à fonte. O início é preenchido no instante da migração; o último contato histórico é o maior recebido_em entre medições de linhas e transformadores. Novas fontes recebem início UTC na persistência, sem inventar último contato. AlertaComunicacao preserva fonte, ativo, instantes de referência, tolerância positiva e detecção. StatusComunicacao distingue ATIVO e RESTABELECIDO; o CHECK exige restabelecido_em somente no segundo estado. A unicidade do episódio ativo é implementada pelo motor com bloqueio da fonte no Lote 2, sem índice parcial específico de PostgreSQL. AlertaComunicacaoRepositoryTest cobre persistência e constraints; FontesV10MigrationTest verifica preservação de fontes e leituras e recuperação do último recebimento.
@@ -853,7 +859,7 @@ Como gerente, quero visualizar o histórico de alertas gerados por criticidade, 
 
 - **Perfil e prioridade:** Gerente de Operações. Prioridade: Baixa.
 - **Status:** Em andamento.
-- **Implementação existente:** Frontend com aba de histórico das quatro origens pela API. Frontend com filtro por nível em array local. V11, criticidades persistidas, projeção unificada e consulta Web paginada em revisão.
+- **Implementação existente:** Frontend com fila global de alertas ativos das quatro origens pela API. Frontend com aba de histórico das quatro origens pela API. Frontend com filtro por nível em array local. V11, criticidades persistidas, projeção unificada e consulta Web paginada em revisão.
 - **Trabalho pendente:** Revisão do backend, integração da interface e aceite funcional.
 - **Dependências:** US20; persistência e histórico de alertas.
 - **Referências no frontend:** [Alertas/index.tsx](../frontend/src/pages/Alertas/index.tsx#L17) (linhas 17,39).
@@ -868,7 +874,7 @@ Como gerente, quero visualizar o histórico de alertas gerados por criticidade, 
 
 - [ ] **US24-T01:** Detalhar contrato e critérios propostos, resolver as decisões pertinentes e definir cenários de teste.
 - [ ] **US24-T02:** Implementar o recorte de backend com testes pertinentes e documentação.
-- [ ] **US24-T03:** Integrar a interface com testes pertinentes e documentação.
+- [x] **US24-T03:** Integrar a interface com testes pertinentes e documentação.
 - [ ] **US24-T04:** Verificar integração/aceite e apresentar resultados e limitações.
 
 **US24-T02 — Lote 1 em revisão:** V11 adiciona criticidade obrigatória nas tabelas automáticas, com domínio BAIXA/MEDIA/ALTA/CRITICA. O backfill atribui ALTA a sobrecarga/tensão e MEDIA à comunicação; a geração grava a mesma política como snapshot. Defaults no banco e nas entidades preservam a política nas gravações existentes; valores explicitamente nulos ou inválidos são rejeitados. A criticidade do alerta genérico é preservada.
@@ -884,6 +890,8 @@ Como gerente, quero visualizar o histórico de alertas gerados por criticidade, 
 **Verificação integrada:** AlertaDashboardControllerTest gera alertas pelas regras e serviços de origem, verifica paginação com tipos misturados, desempates, datas nulas, filtros isolados/combinados, limites temporais, descrições, precisão, reconhecimento, restabelecimento e acesso por perfil. Não foram criadas ações de alteração pela projeção. A integração do frontend e o aceite da história permanecem pendentes.
 
 **US24-T03 — interface em revisão:** A tela de alertas ganhou as abas "Ativos" e "Histórico". O histórico consome GET /api/alertas-dashboard com paginação global do backend, preservando a ordem fixa, e filtros de criticidade, origem, escopo, situação na origem e período. O período é escolhido por dia local e enviado em UTC, com início inclusivo e fim exclusivo no dia seguinte ao último selecionado; período invertido é bloqueado antes da consulta. A contagem por criticidade usa o totalElements de consultas com size=1 e os demais filtros aplicados; os cartões também filtram. Cada linha usa a identidade composta tipo/idOrigem e mostra instante (ou "Sem data"), origem, criticidade, ativo ou rede monitorada, a descrição do backend e a situação original com o instante de reconhecimento ou restabelecimento, sem converter reconhecimento em resolução. Sem correspondência, a tela exibe estado vazio. HistoricoAlertas.test.tsx cobre US24-CA01–CA03 na interface; o fluxo foi verificado no navegador com alertas reais das quatro origens.
+
+**US24 — fila global na interface (US20-T07), em revisão:** A aba "Ativos" da tela de alertas passa a consumir GET /api/alertas/ativos no lugar de GET /api/alertas, preservando a ordem do backend (criticidade, instante, origem e ID) e a paginação global. Cada item mostra a descrição montada pelo backend, a origem, o ativo afetado pelo catálogo ou pelo tipo informado, o instante, a criticidade ("Sem criticidade" quando ausente) e a situação na origem. Os filtros de criticidade, origem, escopo, tipo de ativo, subestação e período por dia local são aplicados no servidor; o filtro de subestação usa a derivação topológica do backend. Os cartões contam por criticidade com o total informado pelo backend para os demais filtros. A fila é consultada a cada 30 s sem esconder a lista, com "Atualizar agora", seguindo a cadência proposta para o monitoramento. Ações por origem: o registrado oferece reconhecimento/resolução com comentário (US20-T06); sobrecarga e tensão ATIVO oferecem reconhecimento sem comentário e saem da fila; comunicação não tem reconhecimento e sai da fila no restabelecimento. Uma ação na fila atualiza as seções por origem, e um reconhecimento ou avaliação nelas atualiza a fila. Testes de componente cobrem ordem, rótulos, filtros, contagem, período inválido, vazio, atualização periódica e ações; o fluxo foi verificado no navegador contra o backend com H2, incluindo o filtro por subestação e a saída dinâmica da fila.
 
 ### US25 — Autenticar e restringir acesso por perfil
 
@@ -911,7 +919,7 @@ Como usuário, quero acessar o sistema com minhas credenciais e visualizar as fu
 
 - [ ] **US25-T01:** Detalhar contrato e critérios propostos, resolver as decisões pertinentes e definir cenários de teste.
 - [ ] **US25-T02:** Implementar o recorte de backend com testes pertinentes e documentação.
-- [ ] **US25-T03:** Integrar a interface com testes pertinentes e documentação.
+- [x] **US25-T03:** Integrar a interface com testes pertinentes e documentação.
 - [ ] **US25-T04:** Verificar integração/aceite e apresentar resultados e limitações.
 - [ ] **US25-T05:** Provisionar as três contas pela V2 e validar seus logins e perfis — Em revisão.
 

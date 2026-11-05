@@ -16,6 +16,11 @@ export function podeTransicionar(evento: EventoOperacional, usuario: Usuario | n
   return evento.responsavelUsuarioId === usuario.id
 }
 
+// Na conclusão de uma falha o ativo sai de FALHA para o estado informado; FALHA não é aceito
+export function exigeEstadoAposReparo(evento: EventoOperacional, destino: SituacaoEvento) {
+  return destino === 'CONCLUIDO' && evento.categoria === 'FALHA_EQUIPAMENTO'
+}
+
 export function exigeTerminoEfetivo(evento: EventoOperacional, destino: SituacaoEvento) {
   return destino === 'CONCLUIDO' && evento.categoria === 'INTERRUPCAO_FORNECIMENTO'
 }

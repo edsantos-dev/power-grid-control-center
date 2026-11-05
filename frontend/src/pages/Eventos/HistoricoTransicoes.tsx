@@ -3,16 +3,18 @@ import Modal from '../../components/Modal'
 import { useAuth } from '../../hooks/useAuth'
 import { extrairErroApi } from '../../services/api'
 import { listarTransicoes } from '../../services/eventos'
-import type { EventoOperacional, TransicaoEvento } from '../../types'
+import type { Equipe, EventoOperacional, TransicaoEvento } from '../../types'
 import { formatarDataHora } from '../../utils/formatacao'
 import { SITUACAO_EVENTO_STYLES } from './constantes'
+import HistoricoDesignacoes from './HistoricoDesignacoes'
 
 type Props = {
   evento: EventoOperacional
+  equipes: Equipe[]
   aoFechar: () => void
 }
 
-function HistoricoTransicoes({ evento, aoFechar }: Props) {
+function HistoricoTransicoes({ evento, equipes, aoFechar }: Props) {
   const { usuario } = useAuth()
   const [transicoes, setTransicoes] = useState<TransicaoEvento[]>([])
   const [pagina, setPagina] = useState(0)
@@ -43,6 +45,7 @@ function HistoricoTransicoes({ evento, aoFechar }: Props) {
 
   return (
     <Modal titulo={`Histórico: ${evento.descricao}`} aoFechar={aoFechar}>
+      <h4 className="mb-3 text-sm font-semibold text-slate-300">Transições de situação</h4>
       <ol className="space-y-3" aria-label="Transições do evento">
         {transicoes.map((t) => (
           <li key={t.id} className="rounded-lg border border-slate-800 p-3">
@@ -75,6 +78,8 @@ function HistoricoTransicoes({ evento, aoFechar }: Props) {
           </button>
         </div>
       )}
+
+      <HistoricoDesignacoes eventoId={evento.id} equipes={equipes} />
     </Modal>
   )
 }

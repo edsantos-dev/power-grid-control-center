@@ -7,23 +7,43 @@ import type {
   AlertaComunicacao,
   AvaliacaoComunicacao,
   StatusComunicacao,
+  AlertaFila,
   AlertaHistorico,
+  FiltrosFilaAlertas,
   FiltrosHistoricoAlertas,
   PageResponse,
   StatusAlertaAutomatico,
   TipoAlertaTensao,
+  TratativaAlerta,
 } from '../types'
 
 const ROTA = '/api/alertas'
 
-// O backend devolve só ABERTO e RECONHECIDO, da maior à menor criticidade e do mais recente ao mais antigo
-export async function listarAlertasAtivos() {
-  const { data } = await api.get<Alerta[]>(ROTA)
+export async function criarAlerta(dados: AlertaRequest) {
+  const { data } = await api.post<Alerta>(ROTA, dados)
   return data
 }
 
-export async function criarAlerta(dados: AlertaRequest) {
-  const { data } = await api.post<Alerta>(ROTA, dados)
+// O detalhe continua disponível depois da resolução
+export async function buscarAlerta(id: number) {
+  const { data } = await api.get<Alerta>(`${ROTA}/${id}`)
+  return data
+}
+
+// ABERTO → RECONHECIDO → RESOLVIDO; pular etapa ou voltar retorna 409 e repetir a ação preserva o primeiro registro
+export async function reconhecerAlerta(id: number, comentario: string) {
+  const { data } = await api.patch<Alerta>(`${ROTA}/${id}/reconhecimento`, { comentario })
+  return data
+}
+
+export async function resolverAlerta(id: number, comentario: string) {
+  const { data } = await api.patch<Alerta>(`${ROTA}/${id}/resolucao`, { comentario })
+  return data
+}
+
+// Ordem fixa do backend: alteradoEm e id decrescentes
+export async function listarTratativasAlerta(id: number, page = 0) {
+  const { data } = await api.get<PageResponse<TratativaAlerta>>(`${ROTA}/${id}/historico`, { params: { page, size: 20 } })
   return data
 }
 
@@ -62,6 +82,14 @@ export async function listarAlertasComunicacao(page: number, status?: StatusComu
   const { data } = await api.get<PageResponse<AlertaComunicacao>>('/api/alertas-comunicacao', {
     params: { page, size: 20, ...(status && { status }) },
   })
+  return data
+}
+
+// Fila das quatro origens com o que ainda exige atenção: genérico ABERTO ou RECONHECIDO, automáticos ATIVO.
+// Ordem fixa: criticidade (ausente ao final), ocorridoEm decrescente, tipo e id; size máximo de 100
+export async function listarFilaAlertas(page: number, filtros: FiltrosFilaAlertas, size = 20) {
+  const params = Object.fromEntries(Object.entries({ page, size, ...filtros }).filter(([, valor]) => valor !== undefined))
+  const { data } = await api.get<PageResponse<AlertaFila>>(`${ROTA}/ativos`, { params })
   return data
 }
 

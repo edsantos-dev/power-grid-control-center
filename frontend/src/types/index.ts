@@ -167,6 +167,22 @@ export type Alerta = {
   situacao: SituacaoAlerta
   geradoEm: string
   ativoId: number | null
+  // Primeira autoria de cada etapa; repetir a ação não a substitui
+  reconhecidoEm: string | null
+  reconhecidoPorUsuarioId: number | null
+  resolvidoEm: string | null
+  resolvidoPorUsuarioId: number | null
+}
+
+// Registro imutável da tratativa: autor e instante vêm do servidor
+export type TratativaAlerta = {
+  id: number
+  alertaId: number
+  usuarioId: number
+  situacaoAnterior: SituacaoAlerta
+  situacaoNova: SituacaoAlerta
+  alteradoEm: string
+  comentario: string
 }
 
 export type AlertaRequest = {
@@ -252,6 +268,26 @@ export type AlertaHistorico = {
   descricao: string | null
 }
 
+export type TipoAtivoAlerta = 'SUBESTACAO' | 'ALIMENTADOR' | 'TRANSFORMADOR' | 'LINHA' | 'USINA' | 'MEDIDOR'
+
+// Item da fila global: só alertas que ainda exigem atenção, com a criticidade podendo faltar nos legados
+export type AlertaFila = Omit<AlertaHistorico, 'criticidade'> & {
+  criticidade: Criticidade | null
+  resolvidoEm: string | null
+  resolvidoPorUsuarioId: number | null
+  tipoAtivo: TipoAtivoAlerta | null
+}
+
+export type FiltrosFilaAlertas = {
+  tipoAlerta?: TipoAlertaHistorico
+  criticidade?: Criticidade
+  escopo?: EscopoAlerta
+  tipoAtivo?: TipoAtivoAlerta
+  subestacaoId?: number
+  dataInicio?: string
+  dataFim?: string
+}
+
 export type FiltrosHistoricoAlertas = {
   tipoAlerta?: TipoAlertaHistorico
   criticidade?: Criticidade
@@ -284,6 +320,30 @@ export type EventoOperacional = {
   terminoPrevisto: string | null
   inicioEfetivo: string | null
   terminoEfetivo: string | null
+  // A versão protege a designação contra alterações concorrentes: divergência retorna 409
+  equipeDesignadaId: number | null
+  versaoDesignacao: number
+  // Preenchido apenas na conclusão de uma falha de equipamento
+  estadoAposReparo: EstadoOperacional | null
+}
+
+// equipeId nulo retira a equipe atual
+export type DesignacaoEquipeRequest = {
+  equipeId: number | null
+  versaoDesignacaoEsperada: number
+  comentario: string
+}
+
+// Registro imutável do despacho: autor e instante vêm do servidor
+export type DesignacaoEquipe = {
+  id: number
+  eventoOperacionalId: number
+  equipeAnteriorId: number | null
+  equipeNovaId: number | null
+  usuarioId: number
+  registradoEm: string
+  comentario: string
+  versaoDesignacao: number
 }
 
 // O registrador vem da sessão e a situação inicial é definida pelo servidor
@@ -311,6 +371,8 @@ export type TransicaoEventoRequest = {
   situacaoEsperada: SituacaoEvento
   comentario: string
   terminoEfetivo: string | null
+  // Obrigatório só na conclusão de falha de equipamento: OPERACIONAL ou MANUTENCAO
+  estadoAposReparo: EstadoOperacional | null
 }
 
 // Registro imutável: autor e instante vêm do servidor
@@ -322,6 +384,31 @@ export type TransicaoEvento = {
   situacaoNova: SituacaoEvento
   alteradoEm: string
   comentario: string
+}
+
+// O registrador vem da sessão; o estado anterior é capturado e o ativo passa a FALHA na mesma transação
+export type FalhaEquipamentoRequest = {
+  ativoId: number
+  responsavelUsuarioId: number
+  descricao: string
+  criticidade: Criticidade | null
+}
+
+// A identidade é a do evento operacional da falha
+export type FalhaEquipamento = {
+  id: number
+  evento: EventoOperacional
+  estadoAnterior: EstadoOperacional
+  registradoEm: string
+  estadoAposReparo: EstadoOperacional | null
+  estadoOperacionalAtual: EstadoOperacional
+}
+
+export type FiltrosFalhas = {
+  ativoId?: number
+  situacao?: SituacaoEvento
+  dataInicio?: string
+  dataFim?: string
 }
 
 export type ManutencaoHistorico = {

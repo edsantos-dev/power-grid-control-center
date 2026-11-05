@@ -27,6 +27,8 @@ type Props<T extends AlertaAutomatico> = {
   listar: (page: number, filtros: { status?: string; extra?: string }) => Promise<PageResponse<T>>
   // Origens sem reconhecimento exibem a situação descrita por `situacao`
   reconhecer?: (id: number) => Promise<T>
+  // Avisa a página para atualizar a fila global, da qual o alerta reconhecido sai
+  aoReconhecer?: () => void
   situacao?: (alerta: T) => { texto: string; classe: string }
   descrever: (alerta: T) => { resumo: string; detalhe: string; alvo: string; complemento?: string }
 }
@@ -69,6 +71,7 @@ function SecaoAlertasAutomaticos<T extends AlertaAutomatico>({
   acoes,
   listar,
   reconhecer,
+  aoReconhecer,
   situacao,
   descrever,
 }: Props<T>) {
@@ -123,6 +126,7 @@ function SecaoAlertasAutomaticos<T extends AlertaAutomatico>({
         status === 'ATIVO' ? atuais.filter((a) => a.id !== id) : atuais.map((a) => (a.id === id ? atualizado : a))
       )
       if (status === 'ATIVO') setTotal((atual) => atual - 1)
+      aoReconhecer?.()
     } catch (error) {
       setErroReconhecimento((atuais) => ({ ...atuais, [id]: extrairErroApi(error).mensagem }))
     } finally {

@@ -10,6 +10,7 @@ import SecaoAlertasAutomaticos from './SecaoAlertasAutomaticos'
 
 type Props = {
   ativos: AtivoCatalogo[]
+  aoAlterar?: () => void
 }
 
 const filtrosStatus = [
@@ -27,7 +28,7 @@ function situacao(alerta: AlertaComunicacao) {
     : { texto: 'Restabelecido', classe: 'text-green-400' }
 }
 
-function AlertasComunicacao({ ativos }: Props) {
+function AlertasComunicacao({ ativos, aoAlterar }: Props) {
   const { usuario } = useAuth()
   const [versao, setVersao] = useState(0)
   const [avaliando, setAvaliando] = useState(false)
@@ -44,6 +45,7 @@ function AlertasComunicacao({ ativos }: Props) {
     try {
       setResultado(await avaliarComunicacao())
       setVersao((atual) => atual + 1)
+      aoAlterar?.()
     } catch (error) {
       setErro(extrairErroApi(error).mensagem)
     } finally {

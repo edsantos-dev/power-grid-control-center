@@ -4,6 +4,7 @@ import { AxiosError, AxiosHeaders, type InternalAxiosRequestConfig } from 'axios
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { AuthContext, type AuthContextValue } from '../../hooks/useAuth'
 import * as ativosApi from '../../services/ativos'
+import * as equipesApi from '../../services/equipes'
 import * as eventosApi from '../../services/eventos'
 import type { EventoOperacional, PerfilAcesso, TransicaoEvento } from '../../types'
 import { instanteDeDataHoraLocal } from '../../utils/formatacao'
@@ -12,6 +13,7 @@ import { podeTransicionar, proximaTransicao } from './transicoes'
 
 vi.mock('../../services/eventos')
 vi.mock('../../services/ativos')
+vi.mock('../../services/equipes')
 
 const evento = (dados: Partial<EventoOperacional>): EventoOperacional => ({
   id: 1,
@@ -26,6 +28,9 @@ const evento = (dados: Partial<EventoOperacional>): EventoOperacional => ({
   terminoPrevisto: null,
   inicioEfetivo: null,
   terminoEfetivo: null,
+  equipeDesignadaId: null,
+  versaoDesignacao: 0,
+  estadoAposReparo: null,
   ...dados,
 })
 
@@ -60,6 +65,8 @@ function erroHttp(status: number, message: string) {
 
 beforeEach(() => {
   vi.resetAllMocks()
+  vi.mocked(equipesApi.listarTodasEquipes).mockResolvedValue([])
+  vi.mocked(eventosApi.listarDesignacoes).mockResolvedValue({ content: [], page: 0, size: 20, totalElements: 0, totalPages: 0, first: true, last: true })
   vi.mocked(ativosApi.listarCatalogoAtivos).mockResolvedValue([{ id: 10, nome: 'AL Centro', tipo: 'Alimentador' }])
   vi.mocked(eventosApi.listarEventos).mockResolvedValue([evento({})])
 })
@@ -106,6 +113,7 @@ describe('transicao pela tela', () => {
       situacaoDestino: 'EM_ANDAMENTO',
       comentario: 'Equipe em campo',
       terminoEfetivo: null,
+      estadoAposReparo: null,
     })
   })
 
@@ -140,6 +148,7 @@ describe('transicao pela tela', () => {
       situacaoEsperada: 'EM_ANDAMENTO',
       situacaoDestino: 'CONCLUIDO',
       terminoEfetivo: instanteDeDataHoraLocal(termino),
+      estadoAposReparo: null,
     }))
   })
 
