@@ -1,7 +1,6 @@
 package br.com.powergrid.controlcenter.service;
 
-import java.math.BigDecimal;
-import java.math.RoundingMode;
+import br.com.powergrid.controlcenter.util.CalculosTelemetria;
 import java.time.Clock;
 import java.time.Instant;
 import java.time.temporal.ChronoUnit;
@@ -104,8 +103,7 @@ public class MedicaoTransformadorService {
     }
 
     private MedicaoTransformadorResponseDTO toResponse(MedicaoTransformador m) {
-        BigDecimal percentual = m.getPotenciaAparenteMva().multiply(new BigDecimal("100"))
-                .divide(m.getCapacidadeReferenciaMva(), 6, RoundingMode.HALF_EVEN);
+        var percentual = CalculosTelemetria.cargaPercentual(m.getPotenciaAparenteMva(), m.getCapacidadeReferenciaMva());
         return new MedicaoTransformadorResponseDTO(m.getId(), m.getFonte().getAtivo().getId(), m.getFonte().getId(),
                 m.getFonte().getOrigem(), m.getMedidoEm().withOffsetSameInstant(ZoneOffset.UTC),
                 m.getRecebidoEm().withOffsetSameInstant(ZoneOffset.UTC), m.getPotenciaAparenteMva(),

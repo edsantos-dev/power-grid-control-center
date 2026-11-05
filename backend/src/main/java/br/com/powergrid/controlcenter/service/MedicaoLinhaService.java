@@ -2,9 +2,7 @@ package br.com.powergrid.controlcenter.service;
 
 import java.time.Clock;
 import java.math.BigDecimal;
-import java.math.MathContext;
-import java.math.RoundingMode;
-import br.com.powergrid.controlcenter.model.SituacaoFatorPotencia;
+import br.com.powergrid.controlcenter.util.CalculosTelemetria;
 import br.com.powergrid.controlcenter.dto.PageResponseDTO;
 import org.springframework.util.MultiValueMap;
 import java.time.Instant;
@@ -138,24 +136,13 @@ public class MedicaoLinhaService {
     private MedicaoLinhaResponseDTO toResponse(MedicaoLinha medicao) {
         BigDecimal p = medicao.getPotenciaAtivaMw();
         BigDecimal q = medicao.getPotenciaReativaMvar();
-        BigDecimal fp = null;
-        SituacaoFatorPotencia situacao = SituacaoFatorPotencia.DADOS_INSUFICIENTES;
-        if (p != null && q != null) {
-            BigDecimal quadradoAparente = p.multiply(p).add(q.multiply(q));
-            if (quadradoAparente.signum() == 0) {
-                situacao = SituacaoFatorPotencia.POTENCIA_APARENTE_NULA;
-            } else {
-                BigDecimal aparente = quadradoAparente.sqrt(MathContext.DECIMAL128);
-                fp = p.abs().divide(aparente, 6, RoundingMode.HALF_EVEN);
-                situacao = SituacaoFatorPotencia.CALCULADO;
-            }
-        }
+        var fator = CalculosTelemetria.fatorPotencia(p, q);
         FonteMedicao fonte = medicao.getFonte();
         return new MedicaoLinhaResponseDTO(medicao.getId(), fonte.getAtivo().getId(), fonte.getId(), fonte.getOrigem(),
                 medicao.getMedidoEm().withOffsetSameInstant(ZoneOffset.UTC),
                 medicao.getRecebidoEm().withOffsetSameInstant(ZoneOffset.UTC), medicao.getTensaoKv(), medicao.getCorrenteA(),
                 p, q, fonte.getSubestacaoReferencia() == null ? null : fonte.getSubestacaoReferencia().getId(),
-                medicao.getFrequenciaHz(), fp, situacao);
+                medicao.getFrequenciaHz(), fator.valor(), fator.situacao());
     }
 
     private ResponseStatusException invalido(String message) {
