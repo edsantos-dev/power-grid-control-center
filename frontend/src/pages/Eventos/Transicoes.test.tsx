@@ -113,6 +113,7 @@ describe('transicao pela tela', () => {
       situacaoDestino: 'EM_ANDAMENTO',
       comentario: 'Equipe em campo',
       terminoEfetivo: null,
+      estadoAposReparo: null,
     })
   })
 
@@ -147,6 +148,7 @@ describe('transicao pela tela', () => {
       situacaoEsperada: 'EM_ANDAMENTO',
       situacaoDestino: 'CONCLUIDO',
       terminoEfetivo: instanteDeDataHoraLocal(termino),
+      estadoAposReparo: null,
     }))
   })
 
