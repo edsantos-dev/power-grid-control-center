@@ -3,6 +3,8 @@ package br.com.powergrid.controlcenter.repository;
 import java.time.OffsetDateTime;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Optional;
+import java.util.UUID;
 import org.springframework.data.domain.PageImpl;
 import org.springframework.data.jpa.domain.Specification;
 import br.com.powergrid.controlcenter.model.MedicaoLinha;
@@ -13,6 +15,8 @@ import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.JpaSpecificationExecutor;
 
 public interface MedicaoLinhaRepository extends JpaRepository<MedicaoLinha, Long>, JpaSpecificationExecutor<MedicaoLinha> {
+    Optional<MedicaoLinha> findByFonteIdAndChaveIdempotencia(Long fonteId, UUID chaveIdempotencia);
+
     default Page<MedicaoLinha> buscarPorLinhaEPeriodo(Long linhaId, OffsetDateTime inicio,
             OffsetDateTime fim, Pageable pageable) {
         Specification<MedicaoLinha> filtro = (root, query, builder) -> {

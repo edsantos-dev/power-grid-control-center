@@ -3,6 +3,7 @@ package br.com.powergrid.controlcenter.service;
 import java.math.BigDecimal;
 import java.time.OffsetDateTime;
 import java.time.ZoneOffset;
+import java.util.UUID;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
@@ -15,6 +16,7 @@ import br.com.powergrid.controlcenter.repository.FonteMedicaoRepository;
 import jakarta.persistence.EntityManager;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.CsvSource;
+import org.junit.jupiter.params.provider.ValueSource;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.jdbc.core.JdbcTemplate;
@@ -77,6 +79,83 @@ class ComunicacaoIngestaoConcorrenteTest {
             assertThat(executor.awaitTermination(30, TimeUnit.SECONDS)).isTrue();
             tx.executeWithoutResult(status -> limpar(tipo, ids));
         }
+    }
+
+    @ParameterizedTest
+    @ValueSource(strings = {"LINHA", "TRANSFORMADOR"})
+    void duasIngestoesComAMesmaChaveCriamUmaUnicaMedicaoEUmAlerta(String tipo) throws Exception {
+        var tx = new TransactionTemplate(transactionManager);
+        Long[] ids = tx.execute(status -> preparar(tipo));
+        var executor = Executors.newFixedThreadPool(2);
+        var gravou = new CountDownLatch(1);
+        var iniciou = new CountDownLatch(1);
+        var confirmar = new CountDownLatch(1);
+        var chave = UUID.randomUUID();
+        try {
+            var primeira = executor.submit(() -> tx.execute(status -> {
+                var resultado = ingerirComChave(tipo, ids, chave);
+                gravou.countDown();
+                aguardar(confirmar);
+                return resultado;
+            }));
+            aguardar(gravou);
+            var segunda = executor.submit(() -> {
+                iniciou.countDown();
+                return ingerirComChave(tipo, ids, chave);
+            });
+            aguardar(iniciou);
+            assertThrows(TimeoutException.class, () -> segunda.get(200, TimeUnit.MILLISECONDS));
+            confirmar.countDown();
+
+            assertThat(primeira.get(30, TimeUnit.SECONDS).replay()).isFalse();
+            assertThat(segunda.get(30, TimeUnit.SECONDS).replay()).isTrue();
+            verificarContagens(tipo, ids, 1);
+        } finally {
+            confirmar.countDown();
+            executor.shutdownNow();
+            assertThat(executor.awaitTermination(30, TimeUnit.SECONDS)).isTrue();
+            tx.executeWithoutResult(status -> limpar(tipo, ids));
+        }
+    }
+
+    @ParameterizedTest
+    @ValueSource(strings = {"LINHA", "TRANSFORMADOR"})
+    void rollbackLiberaChaveParaNovaIngestao(String tipo) {
+        var tx = new TransactionTemplate(transactionManager);
+        Long[] ids = tx.execute(status -> preparar(tipo));
+        var chave = UUID.randomUUID();
+        try {
+            tx.executeWithoutResult(status -> {
+                assertThat(ingerirComChave(tipo, ids, chave).replay()).isFalse();
+                status.setRollbackOnly();
+            });
+            verificarContagens(tipo, ids, 0);
+            assertThat(jdbc.queryForObject("SELECT ultima_comunicacao_em FROM fonte_medicao WHERE id = ?",
+                    OffsetDateTime.class, ids[0])).isNull();
+            assertThat(ingerirComChave(tipo, ids, chave).replay()).isFalse();
+            verificarContagens(tipo, ids, 1);
+        } finally {
+            tx.executeWithoutResult(status -> limpar(tipo, ids));
+        }
+    }
+
+    private br.com.powergrid.controlcenter.dto.ResultadoIngestao<?> ingerirComChave(String tipo, Long[] ids, UUID chave) {
+        var medido = OffsetDateTime.parse("2026-01-01T00:00:00Z");
+        if (tipo.equals("LINHA")) {
+            return linhas.ingerir(ids[1], new MedicaoLinhaRequestDTO(ids[0], medido,
+                    new BigDecimal("120"), null, null, null, null), chave);
+        }
+        return transformadores.ingerir(ids[1], new MedicaoTransformadorRequestDTO(ids[0], medido,
+                new BigDecimal("12")), chave);
+    }
+
+    private void verificarContagens(String tipo, Long[] ids, long esperado) {
+        String medicao = tipo.equals("LINHA") ? "medicao_linha" : "medicao_transformador";
+        String alerta = tipo.equals("LINHA") ? "alerta_tensao" : "alerta_sobrecarga";
+        assertThat(jdbc.queryForObject("SELECT COUNT(*) FROM " + medicao + " WHERE fonte_id = ?", Long.class, ids[0]))
+                .isEqualTo(esperado);
+        assertThat(jdbc.queryForObject("SELECT COUNT(*) FROM " + alerta + " WHERE ativo_id = ?", Long.class, ids[1]))
+                .isEqualTo(esperado);
     }
 
     private void aguardar(CountDownLatch latch) {
