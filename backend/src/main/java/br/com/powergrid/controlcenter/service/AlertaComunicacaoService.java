@@ -34,9 +34,10 @@ public class AlertaComunicacaoService {
 
     public AlertaComunicacaoService(AlertaComunicacaoRepository alertas, FonteMedicaoRepository fontes,
             Clock clock, PlatformTransactionManager transactionManager,
-            @Value("${monitoramento.comunicacao.timeout-segundos:300}") int toleranciaSegundos) {
+            @Value("${scada.monitoramento.comunicacao.timeout-segundos:${monitoramento.comunicacao.timeout-segundos:300}}")
+            int toleranciaSegundos) {
         if (toleranciaSegundos <= 0) {
-            throw new IllegalArgumentException("monitoramento.comunicacao.timeout-segundos deve ser positivo.");
+            throw new IllegalArgumentException("scada.monitoramento.comunicacao.timeout-segundos deve ser positivo.");
         }
         this.alertas = alertas;
         this.fontes = fontes;
