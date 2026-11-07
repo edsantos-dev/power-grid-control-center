@@ -351,16 +351,19 @@ class MedicaoLinhaControllerTest {
         String chave = UUID.randomUUID().toString();
         Long fonteId = fonte.getId();
         var request = valido();
+        request.put("medidoEm", "2026-10-28T10:00:00.999999789-03:00");
         request.put("tensaoKv", new BigDecimal("200.0"));
         var original = resposta(enviar(linhaId, request, 201, chave));
         entityManager.clear();
 
         when(clock.instant()).thenReturn(AGORA.plusSeconds(360));
-        request.put("medidoEm", "2026-10-28T13:00:00Z");
+        request.put("medidoEm", "2026-10-28T13:00:00.999999789Z");
         request.put("tensaoKv", new BigDecimal("200.000000"));
         var replay = resposta(enviar(linhaId, request, 200, chave));
         assertThat(replay.id()).isEqualTo(original.id());
         assertThat(replay.recebidoEm()).isEqualTo(original.recebidoEm());
+        assertThat(original.medidoEm().toInstant()).isEqualTo(Instant.parse("2026-10-28T13:00:00.999999Z"));
+        assertThat(replay.medidoEm()).isEqualTo(original.medidoEm());
 
         request.put("tensaoKv", new BigDecimal("200").add(BigDecimal.ONE));
         enviar(linhaId, request, 409, chave);

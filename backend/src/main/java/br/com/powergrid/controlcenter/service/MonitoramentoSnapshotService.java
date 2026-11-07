@@ -5,6 +5,7 @@ import java.time.Clock;
 import java.time.Instant;
 import java.time.temporal.ChronoUnit;
 import java.util.EnumMap;
+import java.util.Comparator;
 import java.util.EnumSet;
 import java.util.HashMap;
 import java.util.List;
@@ -91,8 +92,11 @@ public class MonitoramentoSnapshotService {
         var par = leituras.get(Grandeza.FATOR);
         var fator = par == null ? CalculosTelemetria.fatorPotencia(null, null)
                 : CalculosTelemetria.fatorPotencia(par.valor(), par.reativa());
+        var ultima = leituras.values().stream().map(GrandezaLinha::referencia)
+                .max(Comparator.comparing(Referencia::medidoEm).thenComparing(Referencia::medicaoId)).orElse(null);
         return new LinhaSnapshotDTO(ativo.id(), ativo.nome(), ativo.tipo(), ativo.subestacaoId(), ativo.subestacaoDestinoId(),
-                amostra(leituras.get(Grandeza.TENSAO)), amostra(leituras.get(Grandeza.CORRENTE)),
+                ultima == null ? null : ultima.origemLeitura(), ultima == null ? null : ultima.terminalReferenciaId(),
+                ativo.tensaoOperacao(), amostra(leituras.get(Grandeza.TENSAO)), amostra(leituras.get(Grandeza.CORRENTE)),
                 amostra(leituras.get(Grandeza.FREQUENCIA)), amostra(leituras.get(Grandeza.ATIVA)),
                 amostra(leituras.get(Grandeza.REATIVA)),
                 fator.valor() == null ? null : amostra(fator.valor(), par.referencia()), fator.situacao());
@@ -100,10 +104,11 @@ public class MonitoramentoSnapshotService {
 
     private TransformadorSnapshotDTO transformador(Ativo ativo, LeituraTransformador leitura) {
         if (leitura == null) {
-            return new TransformadorSnapshotDTO(ativo.id(), ativo.nome(), ativo.tipo(), ativo.subestacaoId(), null, null, null);
+            return new TransformadorSnapshotDTO(ativo.id(), ativo.nome(), ativo.tipo(), ativo.subestacaoId(),
+                    null, ativo.tensaoOperacao(), null, null, null);
         }
         return new TransformadorSnapshotDTO(ativo.id(), ativo.nome(), ativo.tipo(), ativo.subestacaoId(),
-                amostra(leitura.potencia(), leitura.referencia()), amostra(leitura.capacidade(), leitura.referencia()),
+                leitura.referencia().origemLeitura(), ativo.tensaoOperacao(), amostra(leitura.potencia(), leitura.referencia()), amostra(leitura.capacidade(), leitura.referencia()),
                 amostra(CalculosTelemetria.cargaPercentual(leitura.potencia(), leitura.capacidade()), leitura.referencia()));
     }
 
@@ -112,7 +117,8 @@ public class MonitoramentoSnapshotService {
     }
 
     private AmostraSnapshotDTO<BigDecimal> amostra(BigDecimal valor, Referencia referencia) {
-        return new AmostraSnapshotDTO<>(valor, referencia.medidoEm(), referencia.recebidoEm(), referencia.fonteId());
+        return new AmostraSnapshotDTO<>(valor, referencia.medidoEm(), referencia.recebidoEm(), referencia.fonteId(),
+                referencia.origemLeitura(), referencia.terminalReferenciaId());
     }
 
     private Set<Tipo> tipos(String filtro) {

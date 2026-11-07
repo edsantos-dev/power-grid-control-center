@@ -77,7 +77,7 @@ public class MedicaoTransformadorService {
         medicao.setFonte(fonte);
         medicao.setChaveIdempotencia(chave);
         medicao.setHashPayload(hash);
-        medicao.setMedidoEm(request.medidoEm().withOffsetSameInstant(ZoneOffset.UTC));
+        medicao.setMedidoEm(request.medidoEm().withOffsetSameInstant(ZoneOffset.UTC).truncatedTo(ChronoUnit.MICROS));
         medicao.setRecebidoEm(agora.atOffset(ZoneOffset.UTC));
         medicao.setPotenciaAparenteMva(request.potenciaAparenteMva());
         medicao.setCapacidadeReferenciaMva(transformador.getCapacidadeMva());

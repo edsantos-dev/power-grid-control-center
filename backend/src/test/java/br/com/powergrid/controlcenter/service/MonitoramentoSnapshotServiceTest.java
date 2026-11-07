@@ -79,7 +79,11 @@ class MonitoramentoSnapshotServiceTest {
         var linha = linha();
         Long fonteA = fonte(linha);
         Long fonteB = fonte(linha);
-        leituraLinha(fonteA, T0, "100", "20", "60", "3", "4");
+        em.find(FonteMedicao.class, fonteA).setOrigem(OrigemMedicao.REAL);
+        em.find(FonteMedicao.class, fonteA).setSubestacaoReferencia(origem);
+        em.find(FonteMedicao.class, fonteB).setSubestacaoReferencia(destino);
+        em.flush();
+        leituraLinha(fonteB, T0, "100", "20", "60", "3", "4");
         leituraLinha(fonteB, T1, "115", null, null, null, null);
         leituraLinha(fonteA, T1, "116", null, null, "8", null);
         leituraLinha(fonteB, AGORA.plusSeconds(1), "999", "99", null, null, "9");
@@ -90,18 +94,25 @@ class MonitoramentoSnapshotServiceTest {
         assertThat(resposta.consultadoEm()).isEqualTo(AGORA);
         assertThat(resposta.pagina().content()).hasSize(1);
         var snapshot = (LinhaSnapshotDTO) resposta.pagina().content().getFirst();
+        assertThat(snapshot.tensaoOperacao()).isEqualByComparingTo("10");
+        assertThat(snapshot.origemLeitura()).isEqualTo("REAL");
+        assertThat(snapshot.terminalReferenciaId()).isEqualTo(origem.getId());
+        assertThat(snapshot.tensaoKv().origemLeitura()).isEqualTo("REAL");
+        assertThat(snapshot.tensaoKv().terminalReferenciaId()).isEqualTo(origem.getId());
         assertThat(snapshot.tensaoKv().valor()).isEqualByComparingTo("116");
         assertThat(snapshot.tensaoKv().medidoEm()).isEqualTo(T1);
         assertThat(snapshot.tensaoKv().fonteId()).isEqualTo(fonteA);
         assertThat(snapshot.correnteA().valor()).isEqualByComparingTo("20");
         assertThat(snapshot.correnteA().medidoEm()).isEqualTo(T0);
+        assertThat(snapshot.correnteA().origemLeitura()).isEqualTo("SIMULADA");
+        assertThat(snapshot.correnteA().terminalReferenciaId()).isEqualTo(destino.getId());
         assertThat(snapshot.correnteA().recebidoEm()).isEqualTo(T0.plusSeconds(1));
         assertThat(snapshot.frequenciaHz().valor()).isEqualByComparingTo("60");
         assertThat(snapshot.potenciaAtivaMw().valor()).isEqualByComparingTo("8");
         assertThat(snapshot.potenciaReativaMvar().valor()).isEqualByComparingTo("4");
         assertThat(snapshot.fatorPotencia().valor()).isEqualByComparingTo("0.600000");
         assertThat(snapshot.fatorPotencia().medidoEm()).isEqualTo(T0);
-        assertThat(snapshot.fatorPotencia().fonteId()).isEqualTo(fonteA);
+        assertThat(snapshot.fatorPotencia().fonteId()).isEqualTo(fonteB);
         assertThat(snapshot.situacaoFatorPotencia()).isEqualTo(SituacaoFatorPotencia.CALCULADO);
     }
 
@@ -120,6 +131,10 @@ class MonitoramentoSnapshotServiceTest {
         assertThat(pagina.totalElements()).isEqualTo(2);
         var carga = (TransformadorSnapshotDTO) pagina.content().getFirst();
         assertThat(carga.ativoId()).isEqualTo(transformador.getId());
+        assertThat(carga.origemLeitura()).isEqualTo("SIMULADA");
+        assertThat(carga.tensaoOperacao()).isEqualByComparingTo("13.8");
+        assertThat(carga.potenciaAparenteMva().origemLeitura()).isEqualTo("SIMULADA");
+        assertThat(carga.potenciaAparenteMva().terminalReferenciaId()).isNull();
         assertThat(carga.subestacaoId()).isEqualTo(origem.getId());
         assertThat(carga.potenciaAparenteMva().valor()).isEqualByComparingTo("12");
         assertThat(carga.capacidadeReferenciaMva().valor()).isEqualByComparingTo("10");
@@ -175,6 +190,9 @@ class MonitoramentoSnapshotServiceTest {
                 .andExpect(jsonPath("$.totalElements").value(1))
                 .andExpect(jsonPath("$.size").value(20))
                 .andExpect(jsonPath("$.content[0].tipoAtivo").value("LINHA"))
+                .andExpect(jsonPath("$.content[0].origemLeitura").value("SIMULADA"))
+                .andExpect(jsonPath("$.content[0].tensaoOperacao").value(10))
+                .andExpect(jsonPath("$.content[0].tensaoKv.origemLeitura").value("SIMULADA"))
                 .andExpect(jsonPath("$.content[0].tensaoKv.fonteId").value(fonte.intValue()))
                 .andExpect(jsonPath("$.content[0].tensaoKv.medidoEm").value(T0.toString()));
         mvc.perform(get(rota).session(sessao).param("sort", "id")).andExpect(status().isBadRequest());
@@ -194,6 +212,7 @@ class MonitoramentoSnapshotServiceTest {
     private Transformador transformador() {
         var alimentador = new Alimentador();
         alimentador.setSubestacao(origem);
+        alimentador.setTensaoNominalKv(new BigDecimal("13.8"));
         salvar(alimentador, "Alimentador");
         var transformador = new Transformador();
         transformador.setAlimentador(alimentador);

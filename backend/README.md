@@ -48,7 +48,7 @@ Dentro de `backend/`:
 mvn spring-boot:run
 ```
 
-O servidor utiliza a porta `8080` por padrão. A `SecurityFilterChain` expõe os contratos de autenticação e exige sessão para as demais rotas. O endpoint POST /api/subestacoes cadastra subestações; os demais cadastros de ativos permanecem pendentes. Use `Ctrl+C` para encerrar.
+O servidor utiliza a porta `8080` por padrão. A `SecurityFilterChain` expõe os contratos de autenticação e exige sessão para as demais rotas. As APIs de cadastro, monitoramento, eventos, alertas, indicadores e históricos do MVP estão disponíveis. Use `Ctrl+C` para encerrar.
 
 ## Dependências
 
@@ -67,21 +67,15 @@ O servidor utiliza a porta `8080` por padrão. A `SecurityFilterChain` expõe os
 
 O `pom.xml` utiliza Java 24 e mantém a estrutura e a formatação do Spring Initializr. As versões das dependências são gerenciadas pelo parent do Spring Boot 4.1.1.
 
-## Credenciais
+## Credenciais e provisionamento seguro
 
-E-mails recebem `trim` e conversão para minúsculas com `Locale.ROOT` antes de inserções e atualizações JPA e antes da consulta de credenciais. `UsuarioUserDetailsService` carrega o usuário pelo e-mail normalizado e converte seu perfil em uma autoridade `ROLE_...`. O bean `PasswordEncoder` utiliza BCrypt.
+E-mails são normalizados com trim e minúsculas. BCrypt armazena as credenciais; usuários inativos ou sem hash não autenticam. Cada usuário possui um único perfil. A sessão HTTP usa cookie HttpOnly e CSRF.
 
-O fluxo HTTP utiliza sessão com cookie HttpOnly e proteção CSRF, sem JWT. Login e consulta do token CSRF são públicos; as demais rotas exigem autenticação. A segurança por método está habilitada com `@EnableMethodSecurity`. Futuras operações de gestão de acesso deverão usar `@PreAuthorize("hasRole('GERENTE_OPERACOES')")`; ainda não existem endpoints desse tipo. O cadastro deverá exigir senha com pelo menos oito caracteres; essa validação será implementada junto ao cadastro.
+Uma instalação nova usa B2__schema_inicial_sem_contas_demo.sql e as migrations posteriores. Ela começa sem contas. A V2 histórica conserva o checksum para bancos já migrados. No upgrade, V20 desativa as três identidades demonstrativas e remove seus hashes, preservando IDs e referências de auditoria. As fixtures com contas fictícias ficam exclusivamente em src/test/resources/db/fixtures.
 
-A migration `V2__inserir_usuarios_admin.sql` cria as contas de demonstração abaixo, com e-mails normalizados e hashes BCrypt distintos. A senha inicial de todas é `SenhaSegura123`.
+Antes de liberar o ambiente, o administrador do banco deve provisionar um GERENTE_OPERACOES real por canal controlado, com matrícula única, e-mail normalizado, ativo=true e um hash BCrypt gerado pelo PasswordEncoder. As credenciais devem ser entregues por canal privado. O projeto não executa bootstrap automático nem publica senha padrão. Validar o login desse gerente após o upgrade e reiniciar as instâncias para encerrar sessões anteriores.
 
-| E-mail | Matrícula | Perfil |
-|---|---|---|
-| `operador@powergrid.local` | `INI-001` | OPERADOR |
-| `gerente@powergrid.local` | `INI-002` | GERENTE_OPERACOES |
-| `tecnico@powergrid.local` | `INI-003` | TECNICO_MANUTENCAO |
-
-Essas credenciais são destinadas à demonstração local. A V2 é aplicada em todo banco que recebe as migrations; as credenciais devem ser substituídas antes de qualquer exposição externa. A integração React e o cadastro de usuários ficam para incrementos posteriores.
+POST /api/usuarios permite que esse gerente crie usuários com nome, email, senha e perfil. Exige sessão e CSRF. A senha deve ter ao menos 12 caracteres, até 72 bytes em UTF-8, maiúscula, minúscula, número e caractere especial. A resposta 201 omite senha/hash e inclui matrícula gerada, autor e instante UTC do cadastro. E-mail duplicado, inclusive sob concorrência, retorna 409. A V21 adiciona a auditoria de cadastro; usuários antigos não recebem autoria presumida.
 
 ## API de autenticação
 
@@ -94,7 +88,7 @@ Essas credenciais são destinadas à demonstração local. A V2 é aplicada em t
 
 Login e logout rejeitam token CSRF ausente ou inválido com 403. O login renova o identificador da sessão e invalida o token CSRF anterior. Após autenticar, o cliente deve consultar `/api/auth/csrf` novamente antes das próximas operações de escrita.
 
-O frontend deve enviar cookies com `credentials: 'include'` em todas as requisições desse fluxo e enviar o token no cabeçalho indicado por `headerName`. O CORS permite credenciais somente para a origem exata de `FRONTEND_URL`, com métodos GET, POST, PUT e OPTIONS e cabeçalhos Content-Type e X-CSRF-TOKEN. As respostas de usuário não incluem senha nem hash.
+O frontend deve enviar cookies com `credentials: 'include'` em todas as requisições desse fluxo e enviar o token no cabeçalho indicado por `headerName`. O CORS permite credenciais somente para a origem exata de `FRONTEND_URL`, com métodos GET, POST, PUT, PATCH, DELETE e OPTIONS e cabeçalhos Content-Type e X-CSRF-TOKEN. As respostas de usuário não incluem senha nem hash.
 
 ## Cadastro de subestações
 
@@ -188,7 +182,7 @@ A entrada contém nomeRazaoSocial obrigatório (trim, até 255 caracteres), tipo
 
 O documento aceita formato sem máscara ou máscara convencional. São preservados zeros iniciais; a pontuação é removida e letras convertidas para maiúsculas. CPF exige 11 dígitos; CNPJ exige 14 posições, incluindo o formato alfanumérico. Formato inválido, sequências numéricas repetidas e dígitos verificadores incorretos retornam 400. O cálculo alfanumérico utiliza os valores ASCII menos 48, conforme a [documentação da Receita Federal](https://www.gov.br/receitafederal/pt-br/centrais-de-conteudo/publicacoes/documentos-tecnicos/cnpj). A validação não consulta situação cadastral externa.
 
-Documento duplicado após normalização retorna 409, tanto na consulta prévia quanto na violação da constraint de unicidade durante a gravação. A resposta contém id, nomeRazaoSocial, tipoPessoa, documento e enderecoCorrespondencia. O cadastro não exige medidores; seus vínculos serão implementados na US06.
+Documento duplicado após normalização retorna 409, tanto na consulta prévia quanto na violação da constraint de unicidade durante a gravação. GET da listagem retorna somente id, nomeRazaoSocial e tipoPessoa para todos os perfis. GET por ID e POST retornam documento e enderecoCompleto apenas para GERENTE_OPERACOES, com Cache-Control: no-store. Operador e técnico recebem o resumo. A entrada continua aceitando enderecoCorrespondencia. O cadastro não exige medidores; seus vínculos serão implementados na US06.
 
 ## API de medidores inteligentes
 
@@ -559,3 +553,45 @@ GET /api/alertas/{id} consulta inclusive resolvidos. As respostas de alerta incl
 GET /api/alertas/{id}/historico retorna PageResponseDTO com page=0/size=20, máximo 100 e ordem alteradoEm DESC/id DESC. Não aceita sort ou filtros adicionais. Itens contêm id, alertaId, usuarioId, situacaoAnterior, situacaoNova, alteradoEm UTC e comentario. Alerta inexistente retorna 404; auditoria ausente retorna página vazia.
 
 A V17 cria o histórico e a V18 projeta sua autoria/data na view unificada, incluindo os novos campos resolvidoEm/resolvidoPorUsuarioId no dashboard. As quatro origens permanecem distintas e a consulta preserva uma linha por origem/ID. O fluxo E2E confirma a rejeição do salto, a idempotência e as duas auditorias. O backend deste recorte está concluído; integração visual e consulta operacional unificada de ativos permanecem em recortes próprios.
+
+## Ingestão idempotente e precisão temporal
+
+POST /api/linhas-transmissao/{linhaId}/medicoes e POST /api/transformadores/{id}/medicoes aceitam o cabeçalho opcional Idempotency-Key em UUID canônico. Sem ele, cada chamada válida gera uma medição para compatibilidade. O simulador deverá enviar uma chave nova por leitura física e reutilizá-la em todo retry.
+
+V22 e V23 acrescentam chave_idempotencia e hash_payload às duas tabelas, com unicidade por fonte_id/chave_idempotencia e nulidade conjunta. O SHA-256 usa o instante UTC físico e grandezas normalizadas, distingue nulo de zero e considera 1, 1.0 e 1.000000 equivalentes. Sob trava pessimista da fonte, nova chave retorna 201, replay equivalente retorna 200 e conteúdo diferente retorna 409. O replay preserva recebidoEm e não gera alerta, atualiza contato ou restabelece comunicação.
+
+MedidoEm é convertido para UTC e truncado para microssegundos antes da persistência; recebidoEm usa a mesma resolução. A resposta 201 e o replay 200 têm a mesma precisão temporal. O hash conserva o instante enviado pelo cliente para comparar a intenção original do retry.
+
+## Snapshot agregado
+
+GET /api/monitoramento/snapshot exige autenticação. Parâmetros aceitos são page, size, tipos (LINHA,TRANSFORMADOR), ativoId e subestacaoId. Padrão page=0/size=20, máximo 100, ordem fixa por ID e rejeição de sort. A raiz contém consultadoEm UTC e os campos da paginação content/page/size/totalElements/totalPages/first/last.
+
+A página de ativos é selecionada antes da telemetria. Duas consultas obtêm contagem e cadastros; até duas outras obtêm as últimas leituras dos tipos presentes. ROW_NUMBER escolhe medidoEm DESC/id DESC para cada grandeza, com corte medidoEm <= consultadoEm. São no máximo quatro consultas e uma transação de leitura REPEATABLE_READ.
+
+Tensão, corrente, frequência, P e Q conservam amostras independentes. Fator de potência usa a última leitura com P e Q juntos. Carga usa capacidadeReferenciaMva da leitura. Valores sem amostra são nulos. Cada amostra conserva fonte, instante físico e instante de recebimento. Nome e vínculos do ativo vêm do cadastro. Cada amostra também expõe origemLeitura (REAL/SIMULADA) e terminalReferenciaId Long quando aplicável. Os metadados resumidos da linha correspondem à amostra mais recente entre as grandezas selecionadas; os metadados por amostra continuam independentes. TensaoOperacao usa a tensão operacional cadastrada da linha e, no transformador, a tensão nominal do alimentador como referência derivada em kV. A referência pode ser nula se o cadastro não a informar.
+
+O teste em H2 verifica quatro consultas para páginas mistas de 2 e 10 ativos. Plano de execução e carga representativa em PostgreSQL permanecem validações da implantação.
+
+## Avaliação autônoma de comunicação e failover operacional
+
+O motor da US23 usa ultimaComunicacaoEm, ou monitoradaDesde quando não houve contato. A perda exige agora > base + timeout. Leitura antiga recebida agora atesta contato atual; replay idempotente não renova contato. O episódio pertence a alerta_comunicacao, com ciclo ATIVO → RESTABELECIDO. A recuperação não muda EstadoOperacional do ativo nem cria EventoOperacional.
+
+| Propriedade | Padrão |
+|---|---|
+| scada.monitoramento.comunicacao.enabled | false |
+| scada.monitoramento.comunicacao.fixed-delay | 30000 ms |
+| scada.monitoramento.comunicacao.timeout-segundos | 300 s |
+
+O timeout acima precede monitoramento.comunicacao.timeout-segundos, mantido por compatibilidade com COMUNICACAO_TIMEOUT_SEGUNDOS. O job usa fixedDelay após cada avaliação. O mesmo motor continua acessível por POST /api/jobs/avaliar-comunicacao para gerente/operador autenticados com CSRF.
+
+Para promover manualmente uma instância, encerrar ou desabilitar a avaliadora anterior e iniciar a substituta com as credenciais do banco configuradas. A partir da raiz, após o build, o comando opcional é:
+
+~~~bash
+java -jar backend/target/power-grid-control-center-0.0.1-SNAPSHOT.jar --scada.monitoramento.comunicacao.enabled=true --scada.monitoramento.comunicacao.fixed-delay=30000 --scada.monitoramento.comunicacao.timeout-segundos=300
+~~~
+
+A eleição e a promoção são administrativas. Réplicas secundárias devem iniciar com enabled=false. O projeto não implementa failover automático ou compartilhamento distribuído de sessões HTTP.
+
+## Encerramento do backend
+
+O escopo aprovado das US01 a US25 está implementado no backend. Aceite integrado, simulador, adaptação da grade de monitoramento e validações de implantação seguem em Pendências de Frontend e Integração Visual do backlog.

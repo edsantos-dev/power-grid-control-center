@@ -35,7 +35,7 @@ Cada ativo possui informações técnicas, localização geográfica, capacidade
 Acompanhamento contínuo das principais variáveis elétricas da rede:
 - Tensão, corrente elétrica, potência ativa e reativa
 - Frequência da rede e fator de potência
-- Consumo instantâneo e demanda elétrica
+- Consumo por intervalo em kWh e histórico agregado em MWh
 - Carga dos transformadores e perdas na distribuição
 - Estado operacional de equipamentos, disponibilidade de subestações, fluxo de energia entre regiões e funcionamento de dispositivos de proteção/automação
 
@@ -46,23 +46,16 @@ Acompanhamento contínuo das principais variáveis elétricas da rede:
 - Estatísticas de consumo, perdas técnicas, disponibilidade de ativos e qualidade do fornecimento
 
 ### Registro de Eventos Operacionais
-Rastreabilidade completa de manobras, desligamentos programados, interrupções, sobrecargas, falhas em equipamentos e manutenções, registrando data/horário, ativo envolvido, categoria, criticidade, responsável e situação da ocorrência.
+Rastreabilidade de manobras, desligamentos programados, interrupções, falhas em equipamentos e manutenções, registrando data/horário, ativo envolvido, categoria, criticidade, responsável e situação da ocorrência.
 
 ### Sistema de Alertas Inteligentes
-Geração e classificação de alertas por criticidade para eventos como:
-- Sobrecarga em transformadores
-- Queda ou elevação anormal de tensão
-- Interrupção de fornecimento
-- Falhas em subestações
-- Sobrecorrente em linhas de transmissão
-- Perda de comunicação com dispositivos inteligentes
-- Oscilações na frequência da rede
+Geração automática e classificação por criticidade para sobrecarga em transformadores, tensão anormal nas linhas e perda de comunicação das fontes. Alertas genéricos têm reconhecimento e resolução auditados. Sobrecorrente e oscilações de frequência como gatilhos automáticos permanecem ampliações futuras.
 
 ### Diferenciais (funcionalidades futuras/opcionais)
 - [ ] Simulador de rede elétrica (geração de medições em tempo real)
 - [ ] Integração com APIs públicas de previsão meteorológica
 - [ ] Geração automática de relatórios gerenciais em PDF
-- [ ] Análise histórica de indicadores operacionais
+- [x] Histórico de energia, consumo, perdas estimadas e indicadores operacionais no backend
 - [ ] Previsão de demanda energética
 - [ ] Detecção automática de perdas não técnicas (IA)
 - [ ] Identificação de sobrecargas com IA
@@ -94,7 +87,7 @@ Geração e classificação de alertas por criticidade para eventos como:
 | Migrações | Flyway |
 | Build do backend | Maven, com estrutura gerada pelo Spring Initializr |
 
-O frontend existente utiliza dados simulados. O backend possui configuração PostgreSQL/JPA/Flyway, persistência de usuários, BCrypt e autenticação HTTP por sessão, com login, logout, consulta do usuário autenticado, CORS e CSRF. A V2 provisiona um usuário de cada perfil, e a segurança por método está habilitada para restringir futuras operações de gestão de acesso ao gerente. As demais entidades Java e a integração com o frontend estão pendentes.
+O backend concluiu o escopo aprovado das US01 a US25 do MVP, incluindo cadastros, topologia, telemetria idempotente, snapshot agregado, eventos, alertas, indicadores, históricos e segurança de dados pessoais. O frontend integra as APIs principais; a grade de monitoramento ainda precisa migrar para o snapshot. O simulador reproduzível e o aceite em PostgreSQL permanecem pendentes. As tarefas visuais e limitações estão no backlog.
 
 O `pom.xml` do backend preserva a estrutura e a formatação do Spring Initializr, com Java 24 e dependências gerenciadas pelo Spring Boot 4.1.1. Os detalhes estão no [backlog](docs/backlog.md).
 
@@ -129,11 +122,11 @@ Documentação atual:
 
 As Sprints registram o planejamento de cada período. O backlog contém o estado atual das entregas e o modelo descreve os relacionamentos e as regras de domínio.
 
-- [ ] Documentação técnica
-- [ ] Modelo de dados
-- [ ] Descrição da arquitetura da solução
-- [ ] Manual de instalação e execução
-- [ ] Evidências de testes realizados
+- [x] Documentação técnica do backend
+- [x] Modelo de dados do backend
+- [x] Descrição da arquitetura da solução do backend
+- [ ] Validar o manual em ambiente compartilhado com provisionamento real e PostgreSQL
+- [x] Testes automatizados do backend versionados; aceite integrado de navegador e simulador ainda pendente
 - [ ] Apresentação final do sistema
 
 ---
