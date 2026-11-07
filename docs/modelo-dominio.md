@@ -218,7 +218,7 @@ O ciclo de referência é `ABERTO → RECONHECIDO → RESOLVIDO`. US20 considera
 
 Cada usuário possui um dos perfis: Operador, Gerente de Operações ou Técnico de Manutenção. Cargo profissional é descritivo e não concede permissões. Login e obtenção de CSRF são públicos; as demais rotas exigem usuário autenticado. Futuras operações de gestão de acesso serão restritas ao perfil GERENTE_OPERACOES por segurança de método.
 
-A autenticação utiliza sessão HTTP com cookie HttpOnly e proteção CSRF, sem JWT. O login renova o identificador da sessão e seu token CSRF; o logout invalida a sessão. As respostas de autenticação expõem somente identificador, nome, e-mail e perfil. Senhas são verificadas por BCrypt, e o cadastro exigirá no mínimo oito caracteres. A migration V2 provisiona um usuário de cada perfil com hash BCrypt previamente calculado.
+A autenticação utiliza sessão HTTP com cookie HttpOnly e proteção CSRF, sem JWT. O login renova o identificador da sessão e seu token CSRF; o logout invalida a sessão. As respostas de autenticação expõem somente identificador, nome, e-mail e perfil. Senhas são verificadas por BCrypt. O cadastro por gerente exige a política SenhaSegura de 12 caracteres e limite de 72 bytes UTF-8. A instalação limpa usa B2 sem contas de demonstração, e V20 desativa as contas legadas da V2 preservando auditoria.
 
 O estado operacional principal do ativo é `OPERACIONAL`, `FALHA` ou `MANUTENCAO`. É uma classificação resumida: não descreve simultaneamente todas as condições de um equipamento em falha durante uma manutenção.
 
@@ -233,19 +233,17 @@ Estado do ativo, conectividade, situação do evento e criticidade do alerta sã
 
 Mudanças de situação e responsabilidade devem preservar autor, instante e valores anteriores e novos. Atualizar o cadastro não executa comando físico na rede.
 
-## Detalhamentos pendentes
+## Limites e validações externas ao backend concluído
 
-| Tema | Definição necessária | Histórias |
-|---|---|---|
-| Vínculos cadastrais | Vigência, instalação, transferência e retirada de medidores de campo | US02, US03, US06 |
-| Campos de cadastro | Obrigatoriedade dos demais campos; normalização e validação dos identificadores | US01–US07, US25 |
-| Acesso | Duração da sessão; implementação das futuras operações de gestão de acesso; integração do frontend em incremento separado | US25 |
-| Ciclos de eventos | Datas obrigatórias, estado inicial, conclusão e registros retrospectivos | US16, US18 |
-| Alertas | Estados ativos, criticidade, reconhecimento, resolução e limites | US20–US24 |
-| Equipes | Integrantes, designação simples e disponibilidade | US04, US19 |
-| Indicadores | Fórmulas, períodos, fontes, qualidade e atualização | US08–US15 |
-| Geografia | Extremidades, traçados e conexão de usinas | US02, US05, US13 |
-| Histórico de fornecimento | Trocas de titular e medidor | US06, US07 |
+| Tema | Limite ou atividade remanescente |
+|---|---|
+| Histórico de fornecimento | Troca de titular, substituição/reinstalação e vigência completa de medidores são ampliações futuras |
+| Geografia | Linhas usam conexão simplificada; traçados físicos detalhados ficam fora do MVP |
+| Interface | Migração para snapshot, matriz visual de perfis e remoção de Configurações local acompanhadas no backlog |
+| Simulador | Produtor reproduzível com chaves idempotentes e cenários de comunicação ainda precisa ser versionado |
+| Implantação | Validar planos e volume em PostgreSQL, bootstrap real e promoção administrativa do scheduler |
+
+Campos, identificadores, estados, regras de equipe, fórmulas e datas do backend do MVP estão implementados. O aceite visual e de implantação não altera esse encerramento de escopo.
 
 ## Compatibilidade com os artefatos existentes
 
@@ -589,6 +587,18 @@ AlertaAtivoService e AlertaAtivoRepository mantêm conteúdo e contagem em leitu
 
 ## Falha de equipamento e proteção operacional
 
+### Composição persistida de falha_equipamento
+
+| Coluna | Regra |
+|---|---|
+| evento_operacional_id | BIGINT, PK e FK para evento_operacional; identidade compartilhada via @MapsId e @OneToOne LAZY |
+| estado_anterior | VARCHAR obrigatório; snapshot do estado do ativo antes do registro |
+| registrado_em | TIMESTAMP WITH TIME ZONE obrigatório; relógio UTC do servidor |
+| estado_apos_reparo | VARCHAR opcional até a conclusão; somente OPERACIONAL ou MANUTENCAO |
+
+A composição é salva coordenadamente com o evento de categoria FALHA_EQUIPAMENTO. Registro e reparo atualizam o evento, a composição e o estado do ativo atomicamente. Um alerta de perda de comunicação pertence a alerta_comunicacao e possui ciclo próprio.
+
+
 EstadoOperacional.FALHA já integra AtivoRede e a categoria FALHA_EQUIPAMENTO já integra EventoOperacional na V1. A V19 acrescenta a composição FalhaEquipamento, com chave compartilhada evento_operacional_id (PK/FK) e mapeamento @MapsId/OneToOne LAZY sem cascata. O estado anterior e registradoEm são snapshots não atualizáveis pelo JPA; estadoAposReparo permanece nulo até a conclusão. O CHECK aceita OPERACIONAL/FALHA/MANUTENCAO como estado anterior e somente OPERACIONAL/MANUTENCAO como estado após reparo. As entidades compartilham a identidade, sem novos flags paralelos de bloqueio.
 
 POST /api/falhas-equipamento recebe ativoId e responsavelUsuarioId obrigatórios e positivos, descricao obrigatória não branca e criticidade opcional (BAIXA/MEDIA/ALTA/CRITICA). O responsável é separado do registrador autenticado. Gerente e operador registram; o serviço bloqueia a linha do ativo, rejeita outra falha não concluída, cria evento ABERTO e composição e altera o ativo para FALHA atomicamente. O instante UTC de registro é capturado após obter o lock, com precisão de microssegundos. Uma falha não comprova interrupção de fornecimento nem gera automaticamente outro alerta.
@@ -606,3 +616,51 @@ GET /api/falhas-equipamento é paginado (page=0, size=20, máximo 100), ordenado
 FalhaEquipamentoResponseDTO contém o evento operacional e os dados da composição, distinguindo estadoAnterior, estadoAposReparo e estadoOperacionalAtual. O último consulta a condição atual do ativo, que pode mudar em um episódio posterior; os snapshots antigos permanecem preservados. EventoOperacionalResponseDTO expõe estadoAposReparo (nulo para outros eventos ou falha ainda não concluída). Na listagem geral de eventos, esses estados são carregados em lote. O mapper manual compartilhado preserva as datas UTC e evita divergência entre falha, evento e manutenção.
 
 O E2E utiliza transações HTTP independentes com sessão e CSRF: inicia manobra, registra falha em transformador, observa 409 ao instalar medidor, conclui em MANUTENCAO e confirma auditoria e liberação da restrição específica de falha. Esse estado cadastral não representa comando de energização.
+
+## Encerramento do escopo de backend — US01 a US25
+
+Os 25 escopos de backend aprovados para o MVP estão concluídos. O backlog separa a implementação de API do aceite integrado, das telas pendentes, do simulador e da validação de implantação em PostgreSQL.
+
+### Telemetria idempotente — V22 e V23
+
+MedicaoLinha e MedicaoTransformador incluem chave_idempotencia UUID opcional e hash_payload VARCHAR(64). A nulidade é conjunta e há restrição UNIQUE(fonte_id, chave_idempotencia) em cada tabela. A mesma chave pode existir em fontes distintas; leituras sem chave continuam permitidas durante a transição.
+
+O cabeçalho Idempotency-Key recebe UUID canônico. O SHA-256 usa versão do formato, instante físico em UTC e grandezas em ordem definida, com valores decimais normalizados. Zero e nulo são diferentes; 1, 1.0 e 1.000000 são equivalentes. Fuso diferente para o mesmo instante produz a mesma identidade de conteúdo. Campos derivados do cadastro e do servidor não compõem o hash.
+
+O serviço valida o vínculo fonte/ativo e obtém bloqueio pessimista da fonte antes de consultar a chave. Chave nova salva medição, comunicação e alertas na mesma transação e retorna 201. Mesmo hash retorna 200 com a leitura persistida. Outro conteúdo retorna 409. O replay não altera recebidoEm, não cria outro alerta e não restabelece comunicação. Rollback libera a chave para uma nova tentativa. A restrição no banco complementa a serialização dos serviços.
+
+MedidoEm é convertido para UTC e truncado para microssegundos antes do INSERT; recebidoEm usa o mesmo limite. Isso evita divergência de resolução entre resposta 201 e replay 200. O hash compara o instante original enviado no payload, sem truncamento, preservando a diferença entre solicitações fisicamente distintas.
+
+### Snapshot agregado e metadados por amostra
+
+GET /api/monitoramento/snapshot retorna consultadoEm UTC e o envelope de paginação do projeto. O backend primeiro pagina linhas e transformadores, com filtro opcional por tipos, ativoId e subestacaoId, ordem fixa por ID, page=0, size=20 e máximo 100. A linha pertence às duas subestações de extremidade para fins do filtro; a subestação do transformador é derivada pelo alimentador.
+
+Uma consulta obtém a contagem e outra a página cadastral. Até duas consultas adicionais recuperam a telemetria dos IDs presentes. ROW_NUMBER particiona por ativo/grandeza e ordena medidoEm DESC/id DESC; o corte exclui leituras físicas posteriores a consultadoEm. Somente os registros vencedores retornam ao Java. O número máximo é quatro consultas por página, em leitura REPEATABLE_READ, e independe do total de ativos da página.
+
+As grandezas de linha são independentes temporalmente. Tensão nova não apaga corrente antiga. O fator de potência vem da última amostra que contenha P e Q juntos, aplicando os mesmos estados e HALF_EVEN da ingestão. Transformadores retornam potência aparente, capacidade de referência da amostra e carga percentual calculada por esse snapshot. A capacidade cadastral atual não recalcula a carga histórica.
+
+Cada amostra expõe valor, fonteId, medidoEm, recebidoEm, origemLeitura como REAL/SIMULADA e terminalReferenciaId quando aplicável. Os IDs são Long, como as FKs BIGINT da base. Na linha, o terminal é a subestacao_referencia_id da fonte e pode ser nulo. No transformador, o terminal é nulo.
+
+LinhaSnapshotDTO também expõe origemLeitura e terminalReferenciaId da amostra mais recente entre as grandezas selecionadas, desempatada pelo ID da medição. Esses campos resumidos não substituem os metadados individuais quando as grandezas vêm de fontes distintas. TransformadorSnapshotDTO usa a fonte da última potência aparente. Sem leitura, a origem e o terminal resumidos ficam nulos.
+
+TensaoOperacao está em kV. Na linha vem de linha_transmissao.tensao_operacao_kv. No transformador é a referência derivada de alimentador.tensao_nominal_kv, podendo ser nula quando esse campo cadastral não estiver preenchido. Não representa um novo atributo persistido nem especifica separadamente os enrolamentos do transformador.
+
+Os testes verificam amostras parciais de fontes REAL/SIMULADA e terminais diferentes, empates de instante, exclusão de leituras futuras, carga baseada em snapshot, filtros e quantidade fixa de consultas em H2. O plano e o volume representativo em PostgreSQL continuam validações de implantação.
+
+### Job autônomo de comunicação — US23
+
+AgendamentoComunicacao é habilitado somente com scada.monitoramento.comunicacao.enabled=true. Usa @Scheduled com fixedDelayString configurável e padrão de 30000 ms entre o fim de uma avaliação e o início da próxima. O timeout positivo usa scada.monitoramento.comunicacao.timeout-segundos, com padrão 300 s e fallback para a propriedade legada monitoramento.comunicacao.timeout-segundos.
+
+O job e POST /api/jobs/avaliar-comunicacao chamam o mesmo motor. A avaliação fixa o instante UTC, percorre fontes em lotes de 100 e aplica uma transação e bloqueio pessimista por fonte. A referência é ultimaComunicacaoEm, ou monitoradaDesde antes do primeiro contato. Só agora > referência + timeout abre o episódio ATIVO. Igualdade exata não gera alerta. Uma fonte tem no máximo um episódio ATIVO pela serialização do motor.
+
+A ingestão nova atualiza a comunicação e restabelece o episódio na mesma transação da medição. Leituras históricas recebidas agora comprovam contato atual; a atualidade física da grandeza é avaliada por medidoEm. Replay idempotente não renova o contato nem restabelece o episódio. O E2E comprova o limite de 300 s, a perda, o replay mantendo ATIVO e a nova leitura produzindo RESTABELECIDO.
+
+O agendamento fica desligado por padrão e nas réplicas secundárias. A promoção manual de uma única instância é descrita no README do backend. Não há eleição automática de líder nem garantia de failover de sessão HTTP no MVP.
+
+### Segurança e provisionamento consolidados
+
+B2 cria bancos novos sem contas demonstrativas. V20 desativa as contas legadas da V2 e remove hashes, preservando identidades e referências. V2 mantém seu checksum histórico. O primeiro gerente real é provisionado administrativamente; após autenticar, ele usa POST /api/usuarios com CSRF para cadastrar os demais usuários.
+
+V21 acrescenta criado_por_usuario_id e criado_em em Usuario, com FK para o autor e preenchimento conjunto. Registros anteriores mantêm ambos nulos. Matrícula é gerada pela aplicação no cadastro da API. SenhaSegura exige 12 caracteres, até 72 bytes UTF-8 e classes de caracteres; o valor inválido nunca integra a resposta. BCrypt persiste o hash e contas inativas não autenticam.
+
+ConsumidorResumoResponseDTO retorna id, nomeRazaoSocial e tipoPessoa nas listagens de todos os perfis. No detalhe e na criação, somente gerente recebe ConsumidorDetalheResponseDTO com documento e enderecoCompleto e Cache-Control: no-store. Operador e técnico recebem o resumo. A entrada permanece enderecoCorrespondencia, refletindo a coluna da V1.

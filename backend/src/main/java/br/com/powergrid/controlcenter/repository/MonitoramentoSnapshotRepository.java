@@ -21,19 +21,22 @@ import org.springframework.stereotype.Repository;
 public class MonitoramentoSnapshotRepository {
     private static final String LINHAS = """
             SELECT a.id, a.nome, 'LINHA' AS tipo,
-                   l.subestacao_origem_id AS subestacao_id, l.subestacao_destino_id
+                   l.subestacao_origem_id AS subestacao_id, l.subestacao_destino_id,
+                   l.tensao_operacao_kv AS tensao_operacao
               FROM linha_transmissao l JOIN ativo_rede a ON a.id = l.id
             """;
     private static final String TRANSFORMADORES = """
             SELECT a.id, a.nome, 'TRANSFORMADOR' AS tipo,
-                   al.subestacao_id, CAST(NULL AS BIGINT) AS subestacao_destino_id
+                   al.subestacao_id, CAST(NULL AS BIGINT) AS subestacao_destino_id,
+                   al.tensao_nominal_kv AS tensao_operacao
               FROM transformador t JOIN ativo_rede a ON a.id = t.id
               JOIN alimentador al ON al.id = t.alimentador_id
             """;
     private static final String ULTIMAS_GRANDEZAS_LINHA = """
-            SELECT ativo_id, fonte_id, medido_em, recebido_em, grandeza, valor, reativa
+            SELECT medicao_id, ativo_id, fonte_id, medido_em, recebido_em, origem_leitura, terminal_referencia_id, grandeza, valor, reativa
               FROM (
-                    SELECT f.ativo_id, m.fonte_id, m.medido_em, m.recebido_em, g.grandeza,
+                    SELECT m.id AS medicao_id, f.ativo_id, m.fonte_id, m.medido_em, m.recebido_em, g.grandeza,
+                           f.origem AS origem_leitura, f.subestacao_referencia_id AS terminal_referencia_id,
                            CASE g.grandeza
                                WHEN 'TENSAO' THEN m.tensao_kv
                                WHEN 'CORRENTE' THEN m.corrente_a
@@ -60,9 +63,11 @@ public class MonitoramentoSnapshotRepository {
              WHERE posicao = 1
             """;
     private static final String ULTIMA_LEITURA_TRANSFORMADOR = """
-            SELECT ativo_id, fonte_id, medido_em, recebido_em, potencia_aparente_mva, capacidade_referencia_mva
+            SELECT medicao_id, ativo_id, fonte_id, medido_em, recebido_em, origem_leitura, terminal_referencia_id,
+                   potencia_aparente_mva, capacidade_referencia_mva
               FROM (
-                    SELECT f.ativo_id, m.fonte_id, m.medido_em, m.recebido_em,
+                    SELECT m.id AS medicao_id, f.ativo_id, m.fonte_id, m.medido_em, m.recebido_em,
+                           f.origem AS origem_leitura, CAST(NULL AS BIGINT) AS terminal_referencia_id,
                            m.potencia_aparente_mva, m.capacidade_referencia_mva,
                            ROW_NUMBER() OVER (PARTITION BY f.ativo_id ORDER BY m.medido_em DESC, m.id DESC) AS posicao
                       FROM fonte_medicao f JOIN medicao_transformador m ON m.fonte_id = f.id
@@ -105,7 +110,8 @@ public class MonitoramentoSnapshotRepository {
         var ativos = jdbc.sql("SELECT *" + origem + " ORDER BY id LIMIT :limite OFFSET :offset")
                 .params(parametros)
                 .query((rs, n) -> new Ativo(rs.getLong("id"), rs.getString("nome"), Tipo.valueOf(rs.getString("tipo")),
-                        rs.getLong("subestacao_id"), rs.getObject("subestacao_destino_id", Long.class)))
+                        rs.getLong("subestacao_id"), rs.getObject("subestacao_destino_id", Long.class),
+                        rs.getBigDecimal("tensao_operacao")))
                 .list();
         return new PaginaAtivos(ativos, total);
     }
@@ -125,7 +131,8 @@ public class MonitoramentoSnapshotRepository {
     }
 
     private Referencia referencia(ResultSet rs) throws SQLException {
-        return new Referencia(rs.getLong("fonte_id"), rs.getObject("medido_em", OffsetDateTime.class).toInstant(),
+        return new Referencia(rs.getLong("medicao_id"), rs.getString("origem_leitura"),
+                rs.getObject("terminal_referencia_id", Long.class), rs.getLong("fonte_id"), rs.getObject("medido_em", OffsetDateTime.class).toInstant(),
                 rs.getObject("recebido_em", OffsetDateTime.class).toInstant());
     }
 
@@ -133,9 +140,10 @@ public class MonitoramentoSnapshotRepository {
         TENSAO, CORRENTE, FREQUENCIA, ATIVA, REATIVA, FATOR
     }
 
-    public record Ativo(Long id, String nome, Tipo tipo, Long subestacaoId, Long subestacaoDestinoId) {}
+    public record Ativo(Long id, String nome, Tipo tipo, Long subestacaoId, Long subestacaoDestinoId, BigDecimal tensaoOperacao) {}
     public record PaginaAtivos(List<Ativo> ativos, long total) {}
-    public record Referencia(Long fonteId, Instant medidoEm, Instant recebidoEm) {}
+    public record Referencia(Long medicaoId, String origemLeitura, Long terminalReferenciaId, Long fonteId,
+            Instant medidoEm, Instant recebidoEm) {}
     public record GrandezaLinha(Long ativoId, Grandeza grandeza, Referencia referencia, BigDecimal valor, BigDecimal reativa) {}
     public record LeituraTransformador(Long ativoId, Referencia referencia, BigDecimal potencia, BigDecimal capacidade) {}
 }

@@ -105,7 +105,7 @@ public class MedicaoLinhaService {
         medicao.setFonte(fonte);
         medicao.setChaveIdempotencia(chave);
         medicao.setHashPayload(hash);
-        medicao.setMedidoEm(request.medidoEm().withOffsetSameInstant(ZoneOffset.UTC));
+        medicao.setMedidoEm(request.medidoEm().withOffsetSameInstant(ZoneOffset.UTC).truncatedTo(ChronoUnit.MICROS));
         medicao.setRecebidoEm(agora.atOffset(ZoneOffset.UTC));
         medicao.setTensaoKv(request.tensaoKv());
         medicao.setCorrenteA(request.correnteA());
