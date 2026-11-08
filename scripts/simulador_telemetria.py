@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import logging
+from decimal import Decimal
 from typing import Any
 from urllib.parse import unquote, urlsplit
 from uuid import UUID
@@ -97,6 +98,22 @@ class ScadaClient:
         self._csrf_header = None
         self._csrf_token = None
 
+    def renovar_csrf(self) -> None:
+        self._obter_csrf()
+
+    def get_json(self, endpoint: str, params: dict[str, Any] | None = None) -> Any:
+        response = self._request("GET", endpoint, params=params)
+        if response.status_code != 200:
+            raise ScadaHTTPError(endpoint, response.status_code)
+        return response.json(parse_float=Decimal)
+
+    def avaliar_comunicacao(self) -> dict[str, Any]:
+        endpoint = "/api/jobs/avaliar-comunicacao"
+        response = self._request("POST", endpoint, headers=self._headers_csrf())
+        if response.status_code != 200:
+            raise ScadaHTTPError(endpoint, response.status_code)
+        return response.json()
+
     def _obter_csrf(self) -> None:
         response = self._request("GET", "/api/auth/csrf")
         if response.status_code != 200:
@@ -135,3 +152,9 @@ class ScadaClient:
             allow_redirects=False,
             **kwargs,
         )
+
+
+if __name__ == "__main__":
+    from roteiro_telemetria import main
+
+    raise SystemExit(main())

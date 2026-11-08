@@ -5,6 +5,7 @@ import json
 import logging
 import threading
 import unittest
+from decimal import Decimal
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from urllib.parse import parse_qs
 from uuid import uuid4
@@ -34,6 +35,9 @@ class ScadaClientTest(unittest.TestCase):
             def do_GET(self):
                 token = "after-login" if state["authenticated"] else "before-login"
                 state["requests"].append(("GET", self.path))
+                if self.path == "/api/monitoramento/snapshot?ativoId=1":
+                    self.respond(200, {"carga": 12.345678})
+                    return
                 if state["mode"] == "json":
                     self.respond(200, {"token": token, "headerName": "X-CSRF-TOKEN"},
                                  {"Set-Cookie": "JSESSIONID=initial; Path=/"} if not state["authenticated"] else {})
@@ -61,6 +65,9 @@ class ScadaClientTest(unittest.TestCase):
                     return
                 if state["mode"] == "json" and "JSESSIONID=renewed" not in self.headers.get("Cookie", ""):
                     self.respond(401, {})
+                    return
+                if self.path == "/api/jobs/avaliar-comunicacao":
+                    self.respond(200, {"toleranciaSegundos": 300})
                     return
                 key = self.headers.get("Idempotency-Key")
                 if not key:
@@ -153,6 +160,15 @@ class ScadaClientTest(unittest.TestCase):
         with self.assertRaises(ValueError):
             self.client.send_medicao("https://example.test/api/medicoes", {}, uuid4())
         self.assertEqual(len(self.state["requests"]), before)
+
+    def test_consulta_preserva_decimal_e_envia_filtros(self):
+        self.authenticate()
+        snapshot = self.client.get_json("/api/monitoramento/snapshot", {"ativoId": 1})
+        self.assertEqual(snapshot["carga"], Decimal("12.345678"))
+
+    def test_dispara_motor_manual_com_sessao_e_csrf_renovados(self):
+        self.authenticate()
+        self.assertEqual(self.client.avaliar_comunicacao(), {"toleranciaSegundos": 300})
 
 
 if __name__ == "__main__":
