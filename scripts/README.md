@@ -2,6 +2,12 @@
 
 Produtor Python 3.10+ para a API SCADA. As medições são identificadas como simuladas pela fonte cadastrada no backend.
 
+## Status e ambiente backend
+
+**Simulador e aceite funcional em PostgreSQL: CONCLUÍDOS.** O roteiro validou ingestão 201, replay 200, conflito 409, perda após 305 segundos, replay sem renovar contato e recuperação por uma nova leitura com atualização do snapshot. O aceite visual das telas é responsabilidade da integração frontend.
+
+Antes de preparar o Python, suba a API com PostgreSQL seguindo o [README do backend](../backend/README.md). Para criar o administrador exclusivamente local, use a flag `--scada.provisionamento.admin-local.enabled=true` descrita no manual. Ela fica desligada por padrão, não redefine contas existentes e é bloqueada no perfil prod. A V24 fornece a topologia demonstrativa; confira os IDs dos ativos e fontes nas APIs antes de preencher o arquivo local.
+
 ## Preparação
 
 Na raiz do projeto, com PowerShell:
@@ -67,4 +73,4 @@ SEMENTE reproduz a sequência de grandezas. Timestamps usam relógio atual, UTC 
 .\.venv\Scripts\python.exe -B -m unittest discover -s scripts -p "test_*.py" -v
 ```
 
-Os testes locais verificam o protocolo HTTP com servidor de teste e a orquestração com relógio/esperas controlados. O aceite contra a API real depende do provisionamento e do banco do ambiente.
+Os testes locais verificam o protocolo HTTP com servidor de teste e a orquestração com relógio/esperas controlados. O aceite funcional contra a API real em PostgreSQL foi concluído. Para reproduzi-lo em outro ambiente, configure o provisionamento, as fontes e o banco conforme os manuais.

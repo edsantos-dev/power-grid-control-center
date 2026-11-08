@@ -274,7 +274,7 @@ Os diagramas anteriores precisam ser sincronizados com este modelo e com o schem
 
 A V12 introduz HistoricoEventoOperacional com identidade própria, associações obrigatórias N:1 para EventoOperacional e Usuario, situações anterior/nova, alteradoEm e comentario de até 1.000 caracteres. As associações são LAZY, sem cascata de persistência ou exclusão. A atualização do histórico é imutável no Hibernate; o repositório não expõe exclusão. A FK preserva os vínculos de auditoria. Não há coleção bidirecional no evento.
 
-SituacaoEventoOperacional define ABERTO, EM_ANDAMENTO e CONCLUIDO. O CHECK do histórico permite somente ABERTO → EM_ANDAMENTO e EM_ANDAMENTO → CONCLUIDO. O estado do evento pai e as datas efetivas continuam com os mapeamentos existentes; a atualização conjunta com o histórico será responsabilidade do serviço transacional. Este histórico é independente dos alertas e da view da US24.
+SituacaoEventoOperacional define ABERTO, EM_ANDAMENTO e CONCLUIDO. O CHECK do histórico permite somente ABERTO → EM_ANDAMENTO e EM_ANDAMENTO → CONCLUIDO. O estado do evento pai e as datas efetivas continuam com os mapeamentos existentes; a atualização conjunta com o histórico é executada pelo serviço transacional. Este histórico é independente dos alertas e da view da US24.
 
 A migração normaliza a grafia de situações conhecidas sem alterar datas nem inventar usuário ou instante de ações passadas. Estados desconhecidos/nulos são preservados para tratamento explícito no fluxo de negócio, e nenhum histórico retroativo é criado. Não há novas restrições de ciclo sobre o evento pai neste lote; as comparações temporais já presentes na V1 permanecem válidas.
 
@@ -447,7 +447,7 @@ MedicaoEnergiaAlimentadorRepository.buscarParaHistorico retorna MedicaoEnergiaHi
 
 A contenção na janela macro não assegura contenção no dia ou mês: uma leitura de 23:00 a 01:00 pode ser retornada integralmente para uma janela de dois dias. O motor de agregação verifica as fronteiras de cada ponto, sem repartir essa energia ou atribuí-la integralmente ao início da leitura. Pontos sem cobertura completa têm valores nulos e situação DADOS_INSUFICIENTES; zero é reservado para energia efetivamente medida com cobertura completa. O percentual agregado é ponderado pela energia, utilizando os snapshots e arredondando apenas o resultado final.
 
-O backend do recorte de energia injetada e perdas estimadas está concluído, com projeção, consulta, calendário, cobertura, lacunas, DTOs, API e fluxo E2E integrado. A integração visual permanece pendente e consumo medido continua adiado. Não há migration ou novo índice; eventual mudança de índices dependerá da análise do plano de execução no PostgreSQL.
+O backend do recorte de energia injetada e perdas estimadas está concluído, com projeção, consulta, calendário, cobertura, lacunas, DTOs, API e fluxo E2E integrado. A integração visual permanece pendente; o consumo medido está concluído no contrato dedicado da US15. Não há migration ou novo índice; eventual mudança de índices dependerá da análise do plano de execução no PostgreSQL.
 
 ### Agregação temporal e calendário UTC
 
@@ -619,7 +619,7 @@ O E2E utiliza transações HTTP independentes com sessão e CSRF: inicia manobra
 
 ## Encerramento do escopo de backend — US01 a US25
 
-Os 25 escopos de backend aprovados para o MVP estão concluídos. O backlog separa a implementação de API do aceite integrado, das telas pendentes, do simulador e da validação de implantação em PostgreSQL.
+Os 25 escopos de backend aprovados para o MVP estão concluídos. O simulador e o aceite funcional em PostgreSQL estão concluídos. O backlog separa essas entregas das telas pendentes, do aceite visual e das ampliações de implantação/desempenho.
 
 ### Telemetria idempotente — V22 e V23
 
@@ -659,7 +659,7 @@ O agendamento fica desligado por padrão e nas réplicas secundárias. A promoç
 
 ### Segurança e provisionamento consolidados
 
-B2 cria bancos novos sem contas demonstrativas. V20 desativa as contas legadas da V2 e remove hashes, preservando identidades e referências. V2 mantém seu checksum histórico. O primeiro gerente real é provisionado administrativamente; após autenticar, ele usa POST /api/usuarios com CSRF para cadastrar os demais usuários.
+B2 cria bancos novos sem contas demonstrativas. V20 desativa as contas legadas da V2 e remove hashes, preservando identidades e referências. V2 mantém seu checksum histórico. Em produção, o primeiro gerente real é provisionado administrativamente; após autenticar, ele usa POST /api/usuarios com CSRF para cadastrar os demais usuários. No desenvolvimento local, ProvisionadorAdminLocal pode criar a conta demonstrativa com habilitação explícita de scada.provisionamento.admin-local.enabled=true, somente fora do perfil prod e sem modificar um e-mail já existente. O procedimento e as credenciais locais estão no README do backend.
 
 V21 acrescenta criado_por_usuario_id e criado_em em Usuario, com FK para o autor e preenchimento conjunto. Registros anteriores mantêm ambos nulos. Matrícula é gerada pela aplicação no cadastro da API. SenhaSegura exige 12 caracteres, até 72 bytes UTF-8 e classes de caracteres; o valor inválido nunca integra a resposta. BCrypt persiste o hash e contas inativas não autenticam.
 

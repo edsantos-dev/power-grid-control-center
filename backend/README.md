@@ -24,7 +24,7 @@ cd backend
 mvn verify -Dsurefire.useFile=false -DdisableXmlReport=true -Dmaven.test.redirectTestOutputToFile=false
 ```
 
-O comando compila o projeto, executa os testes de contexto, persistência, credenciais e integração HTTP e gera o JAR em `target/`. Os resultados são exibidos no terminal, sem relatórios TXT/XML. Os testes utilizam JUnit Jupiter 6 e AssertJ; a persistência utiliza H2 em memória, com as mesmas migrations Flyway usadas pela aplicação.
+O comando compila o projeto, executa os testes de contexto, persistência, credenciais e integração HTTP e gera o JAR em `target/`. Os resultados são exibidos no terminal, sem relatórios TXT/XML. Os testes utilizam JUnit Jupiter 6 e AssertJ; a persistência utiliza H2 em memória. `src/test/resources/application.yml` define `spring.flyway.target=23`, aplicando o schema até a V23 e isolando o seed demonstrativo V24 das assertivas de contagem e dos cenários vazios. A aplicação continua aplicando a V24; seu arquivo e checksum permanecem preservados. Testes específicos de upgrade definem explicitamente seus alvos históricos.
 
 ## Banco de dados
 
@@ -34,7 +34,7 @@ Crie o banco PostgreSQL e disponibilize credenciais de um usuário com permissã
 |---|---|
 | `DB_URL` | `jdbc:postgresql://localhost:5432/power_grid_control_center` |
 | `DB_USERNAME` | `postgres` |
-| `DB_PASSWORD` | Obrigatória, sem valor padrão |
+| `DB_PASSWORD` | `1234` como fallback intencional para desenvolvimento local; configure a credencial do ambiente compartilhado |
 | `SERVER_PORT` | `8080` |
 | `FRONTEND_URL` | `http://localhost:5173` |
 
@@ -73,9 +73,21 @@ E-mails são normalizados com trim e minúsculas. BCrypt armazena as credenciais
 
 Uma instalação nova usa B2__schema_inicial_sem_contas_demo.sql e as migrations posteriores. Ela começa sem contas. A V2 histórica conserva o checksum para bancos já migrados. No upgrade, V20 desativa as três identidades demonstrativas e remove seus hashes, preservando IDs e referências de auditoria. As fixtures com contas fictícias ficam exclusivamente em src/test/resources/db/fixtures.
 
-Antes de liberar o ambiente, o administrador do banco deve provisionar um GERENTE_OPERACOES real por canal controlado, com matrícula única, e-mail normalizado, ativo=true e um hash BCrypt gerado pelo PasswordEncoder. As credenciais devem ser entregues por canal privado. O projeto não executa bootstrap automático nem publica senha padrão. Validar o login desse gerente após o upgrade e reiniciar as instâncias para encerrar sessões anteriores.
+Antes de liberar o ambiente, o administrador do banco deve provisionar um GERENTE_OPERACOES real por canal controlado, com matrícula única, e-mail normalizado, ativo=true e um hash BCrypt gerado pelo PasswordEncoder. As credenciais devem ser entregues por canal privado. Em produção, o projeto não executa o provisionador local. Validar o login desse gerente após o upgrade e reiniciar as instâncias para encerrar sessões anteriores.
 
 POST /api/usuarios permite que esse gerente crie usuários com nome, email, senha e perfil. Exige sessão e CSRF. A senha deve ter ao menos 12 caracteres, até 72 bytes em UTF-8, maiúscula, minúscula, número e caractere especial. A resposta 201 omite senha/hash e inclui matrícula gerada, autor e instante UTC do cadastro. E-mail duplicado, inclusive sob concorrência, retorna 409. A V21 adiciona a auditoria de cadastro; usuários antigos não recebem autoria presumida.
+
+### Administrador de desenvolvimento local
+
+O provisionador é opcional e exige `--scada.provisionamento.admin-local.enabled=true`. Após `mvn verify`, execute a partir da raiz do repositório:
+
+```powershell
+java -jar backend/target/power-grid-control-center-0.0.1-SNAPSHOT.jar --scada.provisionamento.admin-local.enabled=true
+```
+
+Se o e-mail ainda não existir, cria `admin@powergrid.com`, perfil `GERENTE_OPERACOES`, ativo, com senha local `Admin@Power2026` armazenada em BCrypt. Se já existir, preserva a conta, inclusive senha e estado ativo/inativo. A flag fica desligada por padrão e `@Profile("!prod")` impede a execução no perfil `prod`, mesmo com a flag habilitada. Essa conta serve à demonstração local; o provisionamento real continua pelo procedimento administrativo acima.
+
+O fallback `${DB_PASSWORD:1234}` é uma decisão aprovada para facilitar o desenvolvimento local e permanece na configuração.
 
 ## API de autenticação
 
@@ -192,7 +204,7 @@ GET `/api/medidores` lista os cadastros; GET `/api/medidores/{id}` consulta por 
 
 PATCH `/api/medidores/{id}/instalacao` exige consumidorId e transformadorId positivos existentes, latitude [-90, 90], longitude [-180, 180] com até sete casas decimais e dataInstalacao não futura. Endereço de fornecimento é opcional (trim, vazio convertido em nulo). Validação inválida retorna 400; referência inexistente 404; presença prévia de qualquer vínculo de instalação 409. A operação preserva ID, série e estado operacional, e usa transação com bloqueio de escrita do medidor. Não há transferência ou reinstalação neste recorte.
 
-Todas as rotas exigem sessão; POST e PATCH exigem CSRF. O CORS permite PATCH para a origem configurada em FRONTEND_URL. Telemetria e integração com frontend permanecem pendentes.
+Todas as rotas exigem sessão; POST e PATCH exigem CSRF. O CORS permite PATCH para a origem configurada em FRONTEND_URL. A telemetria de consumo e sua integração transacional de comunicação estão concluídas; a integração visual é acompanhada no backlog.
 
 ## Medidores por consumidor
 
@@ -297,14 +309,14 @@ POST /api/jobs/avaliar-comunicacao não exige corpo e requer sessão, CSRF e per
 
 A avaliação usa um único instante UTC, percorre IDs em lotes de 100 até o maior ID observado no início e confirma uma transação por fonte, mantendo o bloqueio durante a consulta/criação do episódio. Fontes cadastradas durante a execução podem ficar para a próxima avaliação. Perda exige agora > base + timeout; igualdade ainda está dentro da tolerância. A base é ultimaComunicacaoEm ou monitoradaDesde. A resposta contém avaliadoEm, toleranciaSegundos, fontesAvaliadas, alertasCriados e alertasAtivosExistentes. Repetições não duplicam episódios ativos nem alteram seus snapshots. Uma falha interrompe a execução, mas não reverte fontes já confirmadas.
 
-GET /api/alertas-comunicacao exige sessão e retorna PageResponseDTO, page=0/size=20, máximo 100, ordem detectadoEm DESC/id DESC; sort é rejeitado. Filtros opcionais fonteId/ativoId positivos, status ATIVO/RESTABELECIDO e dataInicio inclusiva/dataFim exclusiva em ISO 8601 com offset, sobre detectadoEm. Parâmetros inválidos, vazios ou repetidos retornam 400. GET /api/alertas-comunicacao/{id} retorna detalhe ou 404. Todos os instantes do DTO são normalizados para UTC. Nenhum scheduler é executado automaticamente.
+GET /api/alertas-comunicacao exige sessão e retorna PageResponseDTO, page=0/size=20, máximo 100, ordem detectadoEm DESC/id DESC; sort é rejeitado. Filtros opcionais fonteId/ativoId positivos, status ATIVO/RESTABELECIDO e dataInicio inclusiva/dataFim exclusiva em ISO 8601 com offset, sobre detectadoEm. Parâmetros inválidos, vazios ou repetidos retornam 400. GET /api/alertas-comunicacao/{id} retorna detalhe ou 404. Todos os instantes do DTO são normalizados para UTC. O scheduler fica desligado por padrão e pode ser habilitado conforme a seção de avaliação autônoma de comunicação.
 
 
 ### Restabelecimento automático de comunicação
 
 As ingestões de linhas e transformadores adquirem o bloqueio da fonte antes de capturar recebidoEm. FonteMedicaoService.registrarComunicacaoValida exige a transação da ingestão e usa o mesmo instante UTC, com precisão de microssegundos, para ultimaComunicacaoEm e restabelecidoEm. Um episódio ATIVO passa para RESTABELECIDO; episódios anteriores mantêm seus snapshots e instante de restabelecimento. Leituras históricas válidas comprovam contato pelo recebimento atual.
 
-Medição, contato, recuperação e geração de alertas elétricos são atômicos. Falhas posteriores ou leituras rejeitadas não confirmam contato nem restabelecimento. Job e ingestões usam a mesma ordem de bloqueio da fonte; uma nova ausência após a tolerância pode gerar outro episódio. Comunicação restabelecida não implica normalidade elétrica. O recorte atual atende fontes de linhas e transformadores; comunicação de medidores e integração com o frontend permanecem pendentes.
+Medição, contato, recuperação e geração de alertas elétricos são atômicos. Falhas posteriores ou leituras rejeitadas não confirmam contato nem restabelecimento. Job e ingestões usam a mesma ordem de bloqueio da fonte; uma nova ausência após a tolerância pode gerar outro episódio. Comunicação restabelecida não implica normalidade elétrica. O registro transacional de comunicação também atende a telemetria dos medidores e a energia dos alimentadores; a integração visual permanece no backlog.
 
 
 ## Projeção unificada de alertas — US24
@@ -506,7 +518,7 @@ São somadas somente leituras integralmente contidas em cada ponto. Não há rat
 
 Cada perda estimada usa energia × percentualPerdaReferencia / 100. O percentual do ponto é ponderado pela energia; a consulta mensal usa as leituras originais, sem somar dias arredondados. BigDecimal preserva precisão intermediária; somente os resultados finais recebem seis casas com HALF_EVEN. O serviço usa projeções escalares em uma consulta, agrupa em Java e lê sob REPEATABLE_READ. Não há migration, novos índices, cache ou scheduler. Energia injetada e perdas estimadas não representam consumo medido dos consumidores.
 
-HistoricoEnergiaFluxoE2ETest valida o cadastro e a ingestão por HTTP com autenticação e CSRF, seguidos de consulta de cinco dias em UTC. Os Dias 1, 2 e 4 retornam OK com 100/50/200 MWh e perdas de 4,4/2,5/4 MWh; os Dias 3 e 5 permanecem na lista com DADOS_INSUFICIENTES e valores nulos. O primeiro dia combina snapshots de 3,5% e 5%, produzindo percentual ponderado de 4,4%. Alterar o parâmetro atual para 9% não altera os resultados históricos. O backend deste recorte está concluído; integração visual e consumo medido permanecem fora da entrega atual.
+HistoricoEnergiaFluxoE2ETest valida o cadastro e a ingestão por HTTP com autenticação e CSRF, seguidos de consulta de cinco dias em UTC. Os Dias 1, 2 e 4 retornam OK com 100/50/200 MWh e perdas de 4,4/2,5/4 MWh; os Dias 3 e 5 permanecem na lista com DADOS_INSUFICIENTES e valores nulos. O primeiro dia combina snapshots de 3,5% e 5%, produzindo percentual ponderado de 4,4%. Alterar o parâmetro atual para 9% não altera os resultados históricos. O backend deste recorte está concluído; a integração visual permanece no backlog e o consumo medido está concluído no contrato dedicado da US15.
 
 ## Telemetria de consumo dos medidores — US06
 
@@ -518,7 +530,7 @@ A ingestão obtém bloqueio pessimista no medidor e depois na fonte. Consulta a 
 
 RecebidoEm é capturado após os bloqueios, pelo relógio UTC do servidor. A leitura e FonteMedicaoService.registrarComunicacaoValida compartilham a transação: ultimaComunicacaoEm e eventual restabelecidoEm recebem o mesmo instante. Falhas posteriores desfazem consumo, contato e restabelecimento; requisições rejeitadas não confirmam contato. O job manual da US23 avalia também essas fontes. O tipo REAL é uma classificação da origem, não autenticação de hardware.
 
-GET /api/medidores/{id}/medicoes-consumo/{medicaoId} é permitido a todos os usuários autenticados e retorna consumo, origem, período, recebidoEm e snapshots persistidos. Medidor/medição inexistente ou leitura de outro medidor retorna 404. Mudanças cadastrais posteriores não recalculam as referências históricas. Troca/reinstalação e agregações de consumo da US15 permanecem fora deste incremento. O fluxo E2E integrado está implementado.
+GET /api/medidores/{id}/medicoes-consumo/{medicaoId} é permitido a todos os usuários autenticados e retorna consumo, origem, período, recebidoEm e snapshots persistidos. Medidor/medição inexistente ou leitura de outro medidor retorna 404. Mudanças cadastrais posteriores não recalculam as referências históricas. Troca/reinstalação permanecem fora do MVP; as agregações de consumo da US15 estão concluídas no endpoint de histórico de consumo medido. O fluxo E2E integrado está implementado.
 
 MedicaoConsumoFluxoE2ETest cobre toda a cadeia por HTTP: subestação, alimentador, transformador, titular, medidor em estoque, instalação e fonte. Com relógio controlado, o job detecta ausência após 300 segundos e a leitura posterior de 150,5 kWh restaura a comunicação. A consulta individual confirma os snapshots de consumidor, transformador, alimentador e subestação; a base confirma ultimaComunicacaoEm e restabelecidoEm iguais ao recebidoEm. O backend deste complemento da US06 está concluído; o histórico agregado de consumo foi implementado na US15 e a integração visual permanece pendente.
 
@@ -556,7 +568,7 @@ A V17 cria o histórico e a V18 projeta sua autoria/data na view unificada, incl
 
 ## Ingestão idempotente e precisão temporal
 
-POST /api/linhas-transmissao/{linhaId}/medicoes e POST /api/transformadores/{id}/medicoes aceitam o cabeçalho opcional Idempotency-Key em UUID canônico. Sem ele, cada chamada válida gera uma medição para compatibilidade. O simulador deverá enviar uma chave nova por leitura física e reutilizá-la em todo retry.
+POST /api/linhas-transmissao/{linhaId}/medicoes e POST /api/transformadores/{id}/medicoes aceitam o cabeçalho opcional Idempotency-Key em UUID canônico. Sem ele, cada chamada válida gera uma medição para compatibilidade. O simulador envia uma chave nova por leitura física e reutilizá-la em todo retry.
 
 V22 e V23 acrescentam chave_idempotencia e hash_payload às duas tabelas, com unicidade por fonte_id/chave_idempotencia e nulidade conjunta. O SHA-256 usa o instante UTC físico e grandezas normalizadas, distingue nulo de zero e considera 1, 1.0 e 1.000000 equivalentes. Sob trava pessimista da fonte, nova chave retorna 201, replay equivalente retorna 200 e conteúdo diferente retorna 409. O replay preserva recebidoEm e não gera alerta, atualiza contato ou restabelece comunicação.
 
@@ -594,4 +606,6 @@ A eleição e a promoção são administrativas. Réplicas secundárias devem in
 
 ## Encerramento do backend
 
-O escopo aprovado das US01 a US25 está implementado no backend. Aceite integrado, simulador, adaptação da grade de monitoramento e validações de implantação seguem em Pendências de Frontend e Integração Visual do backlog.
+O escopo aprovado das US01 a US25 está implementado no backend. O Simulador e o aceite funcional em PostgreSQL estão **CONCLUÍDOS**: ingestão 201, replay 200, conflito 409, episódio ATIVO após timeout, replay preservando a perda e nova leitura produzindo RESTABELECIDO com snapshot atualizado. Esse aceite funcional não representa benchmark de carga nem aceite visual.
+
+Para reproduzir o cenário, siga o [manual do simulador](../scripts/README.md). A adaptação da grade de monitoramento, as telas e o aceite de navegador seguem na seção Pendências de Frontend e Integração Visual do [backlog](../docs/backlog.md). A otimização das consultas permanece adiada.
