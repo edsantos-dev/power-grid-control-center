@@ -9,6 +9,7 @@ import br.com.powergrid.controlcenter.dto.AlertaResponseDTO;
 import br.com.powergrid.controlcenter.repository.AlertaRepository;
 import java.time.OffsetDateTime;
 import java.time.ZoneOffset;
+import java.time.temporal.ChronoUnit;
 import br.com.powergrid.controlcenter.model.Alerta;
 import br.com.powergrid.controlcenter.model.Criticidade;
 import br.com.powergrid.controlcenter.model.EscopoAlerta;
@@ -93,9 +94,9 @@ class AlertaControllerTest {
     void deveCriarAlertaDeRedeComHorarioUtcESituacaoInicial(Criticidade criticidade) throws Exception {
         Map<String, Object> request = requestValido();
         request.put("criticidade", criticidade);
-        OffsetDateTime antes = OffsetDateTime.now(ZoneOffset.UTC);
+        OffsetDateTime antes = OffsetDateTime.now(ZoneOffset.UTC).truncatedTo(ChronoUnit.MICROS);
         AlertaResponseDTO response = resposta(enviar(request, 201));
-        OffsetDateTime depois = OffsetDateTime.now(ZoneOffset.UTC);
+        OffsetDateTime depois = OffsetDateTime.now(ZoneOffset.UTC).truncatedTo(ChronoUnit.MICROS);
         assertThat(response.id()).isPositive();
         assertThat(response.tipo()).isEqualTo("Falha de comunicação");
         assertThat(response.criticidade()).isEqualTo(criticidade);
@@ -204,7 +205,7 @@ class AlertaControllerTest {
         request.put("id", Long.MAX_VALUE);
         request.put("geradoEm", "2000-01-01T00:00:00Z");
         request.put("situacao", "RESOLVIDO");
-        OffsetDateTime antes = OffsetDateTime.now(ZoneOffset.UTC);
+        OffsetDateTime antes = OffsetDateTime.now(ZoneOffset.UTC).truncatedTo(ChronoUnit.MICROS);
         AlertaResponseDTO response = resposta(enviar(request, 201));
         assertThat(response.id()).isNotEqualTo(Long.MAX_VALUE);
         assertThat(response.situacao()).isEqualTo(SituacaoAlerta.ABERTO);
