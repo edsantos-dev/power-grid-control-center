@@ -1,9 +1,10 @@
 import { useCallback, useEffect, useState } from 'react'
 import { RefreshCw } from 'lucide-react'
 import { extrairErroApi } from '../../services/api'
-import { listarLinhas, listarMedicoesLinha } from '../../services/linhas'
+import { listarMedicoesLinha } from '../../services/linhas'
+import { consultarSnapshot } from '../../services/monitoramento'
 import { listarSubestacoes } from '../../services/subestacoes'
-import type { LinhaTransmissao, MedicaoLinha, Subestacao } from '../../types'
+import type { MedicaoLinha, SnapshotMonitoramento, Subestacao } from '../../types'
 import CargaTransformadores from './CargaTransformadores'
 import CelulaLeitura from './CelulaLeitura'
 import GraficoSerie from './GraficoSerie'
@@ -11,17 +12,15 @@ import {
   CADENCIA_MS,
   descreverIdade,
   FREQUENCIA_NOMINAL_HZ,
+  fatorPotenciaDoSnapshot,
   GRANDEZAS_LINHA,
-  ultimoFatorPotencia,
-  ultimaLeitura,
+  leituraDaAmostra,
+  linhaComLeitura,
   type Leitura,
 } from './monitoramento'
 
-type Medicoes = { estado: 'pronta'; lista: MedicaoLinha[] } | { estado: 'erro' }
-
 function Monitoramento() {
-  const [linhas, setLinhas] = useState<LinhaTransmissao[]>([])
-  const [medicoes, setMedicoes] = useState<Record<number, Medicoes>>({})
+  const [snapshot, setSnapshot] = useState<SnapshotMonitoramento | null>(null)
   const [serie, setSerie] = useState<MedicaoLinha[]>([])
   const [linhaSelecionada, setLinhaSelecionada] = useState<number | null>(null)
   const [carregando, setCarregando] = useState(true)
@@ -42,20 +41,11 @@ function Monitoramento() {
     return `Referência: ${nome}`
   }
 
-  // Cada linha consulta suas leituras recentes; a falha de uma não esconde as demais
+  // Uma única consulta traz a última leitura de cada grandeza de todas as linhas e transformadores.
+  // Se uma atualização falhar, as leituras anteriores continuam na tela junto com o aviso.
   const atualizar = useCallback(async () => {
     try {
-      const lista = await listarLinhas()
-      const resultados = await Promise.allSettled(lista.map((l) => listarMedicoesLinha(l.id)))
-      setLinhas([...lista].sort((a, b) => a.id - b.id))
-      setMedicoes(
-        Object.fromEntries(
-          lista.map((l, i) => {
-            const resultado = resultados[i]
-            return [l.id, resultado.status === 'fulfilled' ? { estado: 'pronta', lista: resultado.value } : { estado: 'erro' }]
-          })
-        )
-      )
+      setSnapshot(await consultarSnapshot())
       setErro('')
     } catch (error) {
       setErro(extrairErroApi(error).mensagem)
@@ -75,7 +65,10 @@ function Monitoramento() {
     return () => clearInterval(intervalo)
   }, [automatico, atualizar])
 
-  const linhaGrafico = linhaSelecionada ?? linhas[0]?.id ?? null
+  const linhas = snapshot?.linhas ?? []
+  // A idade das leituras é medida contra o relógio do servidor, que também carimba o snapshot
+  const referencia = snapshot ? new Date(snapshot.consultadoEm).getTime() : atualizadoEm
+  const linhaGrafico = linhaSelecionada ?? (linhas.find(linhaComLeitura) ?? linhas[0])?.ativoId ?? null
 
   // A série do gráfico acompanha a mesma cadência das leituras
   useEffect(() => {
@@ -91,7 +84,7 @@ function Monitoramento() {
     }
   }, [linhaGrafico, atualizadoEm])
 
-  const linhaDoGrafico = linhas.find((l) => l.id === linhaGrafico)
+  const linhaDoGrafico = linhas.find((l) => l.ativoId === linhaGrafico)
   // Só grandezas medidas no período ganham gráfico; as demais são listadas numa nota
   const grandezasComDados = GRANDEZAS_LINHA.filter((g) => serie.some((m) => m[g.campo] !== null))
   const grandezasSemDados = GRANDEZAS_LINHA.filter((g) => !grandezasComDados.includes(g))
@@ -151,49 +144,37 @@ function Monitoramento() {
               </tr>
             </thead>
             <tbody>
-              {linhas.map((linha) => {
-                const estado = medicoes[linha.id]
-
-                return (
+              {linhas.map((linha) => (
                   <tr
-                    key={linha.id}
-                    aria-selected={linha.id === linhaGrafico}
-                    className={`border-b border-slate-800/60 align-top last:border-0 ${linha.id === linhaGrafico ? 'bg-slate-800/40' : ''}`}
+                    key={linha.ativoId}
+                    aria-selected={linha.ativoId === linhaGrafico}
+                    className={`border-b border-slate-800/60 align-top last:border-0 ${linha.ativoId === linhaGrafico ? 'bg-slate-800/40' : ''}`}
                   >
                     <td className="py-3 pr-4">
-                      <button type="button" onClick={() => setLinhaSelecionada(linha.id)} className="text-left text-slate-200 hover:underline">
+                      <button type="button" onClick={() => setLinhaSelecionada(linha.ativoId)} className="text-left text-slate-200 hover:underline">
                         {linha.nome}
                       </button>
-                      <p className="mt-1 text-xs text-slate-500">Operação {linha.tensaoOperacaoKv} kV</p>
+                      <p className="mt-1 text-xs text-slate-500">Operação {linha.tensaoOperacao} kV</p>
                     </td>
 
                     {GRANDEZAS_LINHA.map((g) => {
-                      const fator = g.campo === 'fatorPotencia' && estado?.estado === 'pronta' ? ultimoFatorPotencia(estado.lista) : null
-                      const leitura =
-                        estado?.estado !== 'pronta'
-                          ? null
-                          : g.campo === 'fatorPotencia'
-                            ? fator?.tipo === 'calculado' ? fator.leitura : null
-                            : ultimaLeitura(estado.lista, g.campo)
+                      const fator = g.campo === 'fatorPotencia' ? fatorPotenciaDoSnapshot(linha) : null
+                      const leitura = g.campo === 'fatorPotencia' ? (fator?.tipo === 'calculado' ? fator.leitura : null) : leituraDaAmostra(linha[g.campo])
 
                       return (
                         <td key={g.campo} className="py-3 pr-4">
-                          {!estado ? (
-                            <span className="text-xs text-slate-500">...</span>
-                          ) : estado.estado === 'erro' ? (
-                            <span className="text-xs text-slate-500">Indisponível</span>
-                          ) : fator?.tipo === 'indefinido' ? (
+                          {fator?.tipo === 'indefinido' ? (
                             <div className="text-xs">
                               <p className="text-slate-300">Indefinido</p>
                               <p className="mt-0.5 text-slate-500">P e Q iguais a zero</p>
-                              <p className="mt-0.5 text-slate-500">{descreverIdade(fator.medidoEm, atualizadoEm)}</p>
+                              <p className="mt-0.5 text-slate-500">{descreverIdade(fator.medidoEm, referencia)}</p>
                             </div>
                           ) : (
                             <CelulaLeitura
                               leitura={leitura}
                               unidade={g.unidade}
-                              agora={atualizadoEm}
-                              referenciaKv={g.campo === 'tensaoKv' ? linha.tensaoOperacaoKv : undefined}
+                              agora={referencia}
+                              referenciaKv={g.campo === 'tensaoKv' ? linha.tensaoOperacao : undefined}
                               nota={g.comTerminal ? terminal(leitura) : g.campo === 'frequenciaHz' ? `Nominal ${FREQUENCIA_NOMINAL_HZ} Hz` : g.campo === 'fatorPotencia' ? 'Calculado de P e Q' : undefined}
                             />
                           )}
@@ -201,8 +182,7 @@ function Monitoramento() {
                       )
                     })}
                   </tr>
-                )
-              })}
+              ))}
             </tbody>
           </table>
 
@@ -258,7 +238,13 @@ function Monitoramento() {
         </section>
       )}
 
-      <CargaTransformadores atualizadoEm={atualizadoEm} />
+      <CargaTransformadores
+        transformadores={snapshot?.transformadores ?? []}
+        agora={referencia}
+        atualizadoEm={atualizadoEm}
+        carregando={carregando}
+        erro={snapshot ? '' : erro}
+      />
     </div>
   )
 }
