@@ -92,8 +92,25 @@ class ConsumidorControllerTest {
                 .containsExactly(response);
     }
 
+    @Test
+    void tecnicoConsultaApenasOResumoENaoCriaConsumidor() throws Exception {
+        autenticar("gerente");
+        long id = objectMapper.readTree(enviar(valido("PF", "52998224725"), 201).getResponse().getContentAsString()).get("id").asLong();
+        var resumo = Map.of("id", id, "nomeRazaoSocial", "Titular de teste", "tipoPessoa", "PF");
+
+        autenticar("tecnico");
+        enviar(valido("PF", "11144477735"), 403);
+        var detalhe = mockMvc.perform(get("/api/consumidores/{id}", id).session(sessao)).andExpect(status().isOk()).andReturn();
+        assertThat(objectMapper.readTree(detalhe.getResponse().getContentAsString()))
+                .isEqualTo(objectMapper.readTree(objectMapper.writeValueAsString(resumo)));
+        var listagem = mockMvc.perform(get("/api/consumidores").session(sessao)).andExpect(status().isOk()).andReturn();
+        assertThat(objectMapper.readTree(listagem.getResponse().getContentAsString()))
+                .isEqualTo(objectMapper.readTree(objectMapper.writeValueAsString(java.util.List.of(resumo))));
+        assertThat(repository.count()).isEqualTo(1);
+    }
+
     @ParameterizedTest
-    @CsvSource({"gerente, true", "operador, false", "tecnico, false"})
+    @CsvSource({"gerente, true", "operador, false"})
     void aplicaPoliticaDePrivacidadeNaCriacaoDetalheEListagem(String perfil, boolean completo) throws Exception {
         autenticar(perfil);
         MvcResult criacao = enviar(valido("PF", "52998224725"), 201);

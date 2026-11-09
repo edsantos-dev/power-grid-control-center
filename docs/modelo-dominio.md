@@ -218,6 +218,30 @@ O ciclo de referência é `ABERTO → RECONHECIDO → RESOLVIDO`. US20 considera
 
 Cada usuário possui um dos perfis: Operador, Gerente de Operações ou Técnico de Manutenção. Cargo profissional é descritivo e não concede permissões. Login e obtenção de CSRF são públicos; as demais rotas exigem usuário autenticado. Futuras operações de gestão de acesso serão restritas ao perfil GERENTE_OPERACOES por segurança de método.
 
+### Matriz de acesso por perfil
+
+O backend é a autoridade das permissões: recusa com 403 a operação fora do perfil, e o frontend apenas esconde o que o perfil não pode usar. **Gerente** gerencia; **Operador** opera a rede e os eventos; **Técnico de Manutenção** cuida de equipes e atende eventos. Cada história de usuário já nomeia o perfil principal.
+
+| Operação | Gerente | Operador | Técnico |
+|---|---|---|---|
+| Consultas gerais da rede, leituras, alertas, eventos, equipes e mapa | Sim | Sim | Sim |
+| Consultar o consumidor completo (documento e endereço); os demais recebem o resumo | Sim | Resumo | Resumo |
+| Cadastrar e editar subestações, linhas, alimentadores, transformadores e medidores (inclui instalação) e cadastrar consumidores | Sim | Sim | **Não** |
+| Cadastrar e editar usinas | Sim | Não | Não |
+| Criar e editar equipes, incluir e remover integrantes, alterar situação | Sim | Não | Sim |
+| Criar eventos e interrupções | Sim | Sim | Sim |
+| Mudar a situação de um evento | Sim | Se for o responsável | Se for o responsável |
+| Despachar equipe para um evento | Sim | Se for o responsável | Não |
+| Registrar falha de equipamento | Sim | Sim | Não |
+| Reconhecer e resolver alertas registrados | Sim | Sim | Não |
+| Reconhecer alertas automáticos de sobrecarga e tensão | Sim | Sim | Sim |
+| Avaliar a comunicação sob demanda | Sim | Sim | Não |
+| Cadastrar fontes e ingerir energia e consumo | Sim | Sim | Não |
+| KPIs, histórico de energia, histórico de consumo medido e parâmetro de perdas | Sim | Não | Não |
+| Cadastrar usuários | Sim | Não | Não |
+
+Os cadastros da rede passaram a negar escrita ao técnico de manutenção: o perfil precisa consultar ativos para atender eventos e manutenções, mas não os altera. A restrição está nos métodos de escrita dos controladores de subestação, linha, alimentador, transformador, medidor e consumidor, e CadastrosRedePerfilControllerTest cobre os bloqueios sem alteração de dados e a consulta pelo técnico.
+
 A autenticação utiliza sessão HTTP com cookie HttpOnly e proteção CSRF, sem JWT. O login renova o identificador da sessão e seu token CSRF; o logout invalida a sessão. As respostas de autenticação expõem somente identificador, nome, e-mail e perfil. Senhas são verificadas por BCrypt. O cadastro por gerente exige a política SenhaSegura de 12 caracteres e limite de 72 bytes UTF-8. A instalação limpa usa B2 sem contas de demonstração, e V20 desativa as contas legadas da V2 preservando auditoria.
 
 O estado operacional principal do ativo é `OPERACIONAL`, `FALHA` ou `MANUTENCAO`. É uma classificação resumida: não descreve simultaneamente todas as condições de um equipamento em falha durante uma manutenção.
@@ -663,4 +687,4 @@ B2 cria bancos novos sem contas demonstrativas. V20 desativa as contas legadas d
 
 V21 acrescenta criado_por_usuario_id e criado_em em Usuario, com FK para o autor e preenchimento conjunto. Registros anteriores mantêm ambos nulos. Matrícula é gerada pela aplicação no cadastro da API. SenhaSegura exige 12 caracteres, até 72 bytes UTF-8 e classes de caracteres; o valor inválido nunca integra a resposta. BCrypt persiste o hash e contas inativas não autenticam.
 
-ConsumidorResumoResponseDTO retorna id, nomeRazaoSocial e tipoPessoa nas listagens de todos os perfis. No detalhe e na criação, somente gerente recebe ConsumidorDetalheResponseDTO com documento e enderecoCompleto e Cache-Control: no-store. Operador e técnico recebem o resumo. A entrada permanece enderecoCorrespondencia, refletindo a coluna da V1.
+ConsumidorResumoResponseDTO retorna id, nomeRazaoSocial e tipoPessoa nas listagens de todos os perfis. No detalhe e na criação, somente gerente recebe ConsumidorDetalheResponseDTO com documento e enderecoCompleto e Cache-Control: no-store. Operador e técnico recebem o resumo; o técnico não cria titulares. A entrada permanece enderecoCorrespondencia, refletindo a coluna da V1.

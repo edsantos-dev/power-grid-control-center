@@ -8,6 +8,7 @@ import br.com.powergrid.controlcenter.dto.AlimentadorResponseDTO;
 import br.com.powergrid.controlcenter.service.AlimentadorService;
 import jakarta.validation.Valid;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -37,11 +38,13 @@ public class AlimentadorController {
 		return alimentadorService.buscarPorId(id);
 	}
 
+	@PreAuthorize("hasAnyRole('GERENTE_OPERACOES', 'OPERADOR')")
 	@PutMapping("/{id}")
 	public AlimentadorResponseDTO atualizar(@PathVariable Long id, @Valid @RequestBody AlimentadorRequestDTO request) {
 		return alimentadorService.atualizar(id, request);
 	}
 
+	@PreAuthorize("hasAnyRole('GERENTE_OPERACOES', 'OPERADOR')")
 	@PostMapping
 	public ResponseEntity<AlimentadorResponseDTO> criar(@Valid @RequestBody AlimentadorRequestDTO request) {
 		AlimentadorResponseDTO response = alimentadorService.criar(request);

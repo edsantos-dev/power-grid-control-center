@@ -8,6 +8,7 @@ import br.com.powergrid.controlcenter.dto.LinhaTransmissaoResponseDTO;
 import br.com.powergrid.controlcenter.service.LinhaTransmissaoService;
 import jakarta.validation.Valid;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -37,11 +38,13 @@ public class LinhaTransmissaoController {
 		return linhaTransmissaoService.buscarPorId(id);
 	}
 
+	@PreAuthorize("hasAnyRole('GERENTE_OPERACOES', 'OPERADOR')")
 	@PutMapping("/{id}")
 	public LinhaTransmissaoResponseDTO atualizar(@PathVariable Long id, @Valid @RequestBody LinhaTransmissaoRequestDTO request) {
 		return linhaTransmissaoService.atualizar(id, request);
 	}
 
+	@PreAuthorize("hasAnyRole('GERENTE_OPERACOES', 'OPERADOR')")
 	@PostMapping
 	public ResponseEntity<LinhaTransmissaoResponseDTO> criar(@Valid @RequestBody LinhaTransmissaoRequestDTO request) {
 		LinhaTransmissaoResponseDTO response = linhaTransmissaoService.criar(request);

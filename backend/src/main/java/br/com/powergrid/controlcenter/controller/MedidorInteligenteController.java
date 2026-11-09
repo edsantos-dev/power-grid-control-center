@@ -8,6 +8,7 @@ import br.com.powergrid.controlcenter.dto.MedidorResponseDTO;
 import br.com.powergrid.controlcenter.service.MedidorInteligenteService;
 import jakarta.validation.Valid;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PatchMapping;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -26,6 +27,7 @@ public class MedidorInteligenteController {
         this.service = service;
     }
 
+    @PreAuthorize("hasAnyRole('GERENTE_OPERACOES', 'OPERADOR')")
     @PostMapping
     public ResponseEntity<MedidorResponseDTO> criar(@Valid @RequestBody MedidorRequestDTO request) {
         MedidorResponseDTO response = service.criar(request);
@@ -44,6 +46,7 @@ public class MedidorInteligenteController {
         return service.buscarPorId(id);
     }
 
+    @PreAuthorize("hasAnyRole('GERENTE_OPERACOES', 'OPERADOR')")
     @PatchMapping("/{id}/instalacao")
     public MedidorResponseDTO instalar(@PathVariable Long id,
             @Valid @RequestBody MedidorInstalacaoRequestDTO request) {
