@@ -8,6 +8,7 @@ import br.com.powergrid.controlcenter.dto.SubestacaoResponseDTO;
 import br.com.powergrid.controlcenter.service.SubestacaoService;
 import jakarta.validation.Valid;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -37,11 +38,13 @@ public class SubestacaoController {
 		return subestacaoService.buscarPorId(id);
 	}
 
+	@PreAuthorize("hasAnyRole('GERENTE_OPERACOES', 'OPERADOR')")
 	@PutMapping("/{id}")
 	public SubestacaoResponseDTO atualizar(@PathVariable Long id, @Valid @RequestBody SubestacaoRequestDTO request) {
 		return subestacaoService.atualizar(id, request);
 	}
 
+	@PreAuthorize("hasAnyRole('GERENTE_OPERACOES', 'OPERADOR')")
 	@PostMapping
 	public ResponseEntity<SubestacaoResponseDTO> criar(@Valid @RequestBody SubestacaoRequestDTO request) {
 		SubestacaoResponseDTO response = subestacaoService.criar(request);

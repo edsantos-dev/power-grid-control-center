@@ -51,6 +51,7 @@ public class ConsumidorController {
 		return medidorService.listarPorConsumidor(id);
 	}
 
+	@PreAuthorize("hasAnyRole('GERENTE_OPERACOES', 'OPERADOR')")
 	@PostMapping
 	public ResponseEntity<?> criar(@Valid @RequestBody ConsumidorRequestDTO request, Authentication autenticacao) {
 		ConsumidorDetalheResponseDTO response = consumidorService.criar(request);

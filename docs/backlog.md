@@ -916,7 +916,7 @@ Como usuário, quero acessar o sistema com minhas credenciais e visualizar as fu
 - [ ] **US25-CA01:** Credenciais válidas levam ao dashboard e inválidas exibem erro (S4, p. 4).
 - [x] **US25-CA02:** Armazenar senha com hash (S4, p. 4).
 - [ ] **US25-CA03:** Rotas internas só abrem a usuário autenticado (S4, p. 4).
-- [ ] **US25-CA04:** Operador, Gerente e Técnico acessam somente telas permitidas ao perfil (S4, p. 4); política inicial: autenticação nas rotas privadas e perfil GERENTE_OPERACOES nas futuras operações de gestão de acesso. A aplicação dessa política nas telas fica fora desta PR.
+- [ ] **US25-CA04:** Operador, Gerente e Técnico acessam somente telas permitidas ao perfil (S4, p. 4); política inicial: autenticação nas rotas privadas e perfil GERENTE_OPERACOES nas futuras operações de gestão de acesso. A matriz de operações por perfil está na seção "Matriz de acesso por perfil" de docs/modelo-dominio.md; os cadastros da rede passaram a negar escrita ao técnico de manutenção no backend. A aplicação nas telas é a tarefa seguinte.
 - [x] **US25-CA05:** Um perfil por usuário no MVP; cargo não concede permissões.
 - [x] **US25-CA06:** Normalizar e-mail com trim e minúsculas antes de salvar e durante a tentativa de login.
 - [x] **US25-CA07:** Cadastro exige no mínimo 12 caracteres, até 72 bytes UTF-8, maiúscula, minúscula, número e caractere especial. Bean Validation retorna mensagens sem expor a senha; persistência usa BCrypt.

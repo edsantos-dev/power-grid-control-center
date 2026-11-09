@@ -8,6 +8,7 @@ import br.com.powergrid.controlcenter.dto.TransformadorResponseDTO;
 import br.com.powergrid.controlcenter.service.TransformadorService;
 import jakarta.validation.Valid;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -37,11 +38,13 @@ public class TransformadorController {
 		return transformadorService.buscarPorId(id);
 	}
 
+	@PreAuthorize("hasAnyRole('GERENTE_OPERACOES', 'OPERADOR')")
 	@PutMapping("/{id}")
 	public TransformadorResponseDTO atualizar(@PathVariable Long id, @Valid @RequestBody TransformadorRequestDTO request) {
 		return transformadorService.atualizar(id, request);
 	}
 
+	@PreAuthorize("hasAnyRole('GERENTE_OPERACOES', 'OPERADOR')")
 	@PostMapping
 	public ResponseEntity<TransformadorResponseDTO> criar(@Valid @RequestBody TransformadorRequestDTO request) {
 		TransformadorResponseDTO response = transformadorService.criar(request);

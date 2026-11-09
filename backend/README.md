@@ -104,7 +104,7 @@ O frontend deve enviar cookies com `credentials: 'include'` em todas as requisi�
 
 ## Cadastro de subestações
 
-`POST /api/subestacoes` recebe JSON, exige sessão autenticada e token CSRF renovado após o login. Todos os perfis autenticados seguem a política geral de acesso.
+`POST /api/subestacoes` recebe JSON, exige sessão autenticada e token CSRF renovado após o login. Gerente e operador cadastram e editam; o técnico de manutenção apenas consulta e recebe 403 nas escritas, regra que vale também para linhas, alimentadores, transformadores, medidores e consumidores (matriz completa em docs/modelo-dominio.md).
 
 ```json
 {
@@ -188,7 +188,7 @@ GET `/api/alertas` retorna 200 com alertas ABERTO e RECONHECIDO, ordenados por C
 
 ## API de consumidores
 
-POST `/api/consumidores` cria um titular e retorna 201 com Location. GET da coleção e GET `/{id}` retornam 200; ID inexistente retorna 404. Exigem sessão autenticada; POST também exige CSRF.
+POST `/api/consumidores` cria um titular e retorna 201 com Location. GET da coleção e GET `/{id}` retornam 200; ID inexistente retorna 404. Exigem sessão autenticada; POST também exige CSRF e é restrito a GERENTE_OPERACOES e OPERADOR (o técnico recebe 403, mas consulta o resumo).
 
 A entrada contém nomeRazaoSocial obrigatório (trim, até 255 caracteres), tipoPessoa PF/PJ, documento obrigatório e enderecoCorrespondencia opcional (trim, vazio convertido em nulo). Telefone e e-mail não integram a V1.
 
