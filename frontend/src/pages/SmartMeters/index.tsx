@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import { Search, Plus, PlugZap } from 'lucide-react'
+import { Search, Plus, PlugZap, Zap } from 'lucide-react'
 import { CadeiaRede, Fornecimento } from '../../components/medidores'
 import { listarAlimentadores } from '../../services/alimentadores'
 import { extrairErroApi } from '../../services/api'
@@ -11,6 +11,7 @@ import type { Alimentador, Consumidor, Medidor, Subestacao, Transformador } from
 import { ESTADO_STYLES } from '../../utils/constants'
 import { formatarData } from '../../utils/formatacao'
 import { nomesPorId } from '../../utils/rede'
+import ConsumoMedidor from './ConsumoMedidor'
 import InstalacaoForm from './InstalacaoForm'
 import MedidorForm from './MedidorForm'
 
@@ -39,6 +40,7 @@ function Smartmeters() {
   const [busca, setBusca] = useState('')
   const [cadastroAberto, setCadastroAberto] = useState(false)
   const [instalando, setInstalando] = useState<Medidor | null>(null)
+  const [consumoDe, setConsumoDe] = useState<Medidor | null>(null)
 
   async function carregar() {
     setCarregando(true)
@@ -222,17 +224,28 @@ function Smartmeters() {
                       </span>
                     </td>
                     <td className="py-3">
-                      {!estaInstalado(m) && (
+                      <div className="flex flex-wrap gap-1.5">
+                        {!estaInstalado(m) && (
+                          <button
+                            type="button"
+                            onClick={() => setInstalando(m)}
+                            aria-label={`Instalar ${m.nome}`}
+                            className="flex items-center gap-1.5 rounded-lg border border-slate-700 px-2.5 py-1.5 text-xs text-slate-300 transition hover:bg-slate-800 hover:text-white"
+                          >
+                            <PlugZap className="h-3.5 w-3.5" />
+                            Instalar
+                          </button>
+                        )}
                         <button
                           type="button"
-                          onClick={() => setInstalando(m)}
-                          aria-label={`Instalar ${m.nome}`}
+                          onClick={() => setConsumoDe(m)}
+                          aria-label={`Consumo de ${m.nome}`}
                           className="flex items-center gap-1.5 rounded-lg border border-slate-700 px-2.5 py-1.5 text-xs text-slate-300 transition hover:bg-slate-800 hover:text-white"
                         >
-                          <PlugZap className="h-3.5 w-3.5" />
-                          Instalar
+                          <Zap className="h-3.5 w-3.5" />
+                          Consumo
                         </button>
-                      )}
+                      </div>
                     </td>
                   </tr>
                 )
@@ -268,6 +281,8 @@ function Smartmeters() {
       {cadastroAberto && (
         <MedidorForm aoFechar={() => setCadastroAberto(false)} aoSalvar={handleSalvar} />
       )}
+
+      {consumoDe && <ConsumoMedidor medidor={consumoDe} consumidores={consumidores} nomes={nomes} aoFechar={() => setConsumoDe(null)} />}
 
       {instalando && (
         <InstalacaoForm

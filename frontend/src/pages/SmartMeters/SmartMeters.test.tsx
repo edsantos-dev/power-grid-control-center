@@ -229,3 +229,75 @@ describe('instalacao', () => {
     expect(await screen.findByText('Medidor já possui vínculo de instalação.')).toBeInTheDocument()
   })
 })
+
+describe('consumo individual', () => {
+  const medicao = {
+    id: 900,
+    medidorId: 51,
+    fonteId: 4,
+    origem: 'SIMULADA' as const,
+    inicioPeriodo: '2026-11-03T12:00:00Z',
+    fimPeriodo: '2026-11-03T13:00:00Z',
+    recebidoEm: '2026-11-03T13:01:00Z',
+    consumoKwh: 12.345,
+    consumidorId: 1,
+    transformadorId: 30,
+    alimentadorId: 10,
+    subestacaoId: 1,
+  }
+
+  async function abrir() {
+    render(<Smartmeters />)
+    await userEvent.click(within(await linhaDoMedidor('Medidor Casa')).getByRole('button', { name: 'Consumo de Medidor Casa' }))
+    return screen.getByRole('dialog', { name: 'Consumo de Medidor Casa' })
+  }
+
+  it('exige um numero de medicao valido antes de consultar', async () => {
+    const dialogo = await abrir()
+
+    await userEvent.click(within(dialogo).getByRole('button', { name: 'Consultar' }))
+    expect(within(dialogo).getByText('Informe o número da medição, um inteiro maior que zero.')).toBeInTheDocument()
+
+    preencher('Número da medição', '0')
+    await userEvent.click(within(dialogo).getByRole('button', { name: 'Consultar' }))
+    expect(medidoresApi.consultarMedicaoConsumo).not.toHaveBeenCalled()
+  })
+
+  it('mostra consumo em kWh, periodo, origem e os vinculos da leitura com nomes', async () => {
+    vi.mocked(medidoresApi.consultarMedicaoConsumo).mockResolvedValue(medicao)
+    const dialogo = await abrir()
+
+    preencher('Número da medição', ' 900 ')
+    await userEvent.click(within(dialogo).getByRole('button', { name: 'Consultar' }))
+
+    const dados = await within(dialogo).findByLabelText('Medição de consumo')
+    expect(medidoresApi.consultarMedicaoConsumo).toHaveBeenCalledWith(51, 900)
+    expect(dados).toHaveTextContent('12,345 kWh')
+    expect(dados).toHaveTextContent('Simulada')
+    expect(dados).toHaveTextContent('Maria Fernandes')
+    expect(dados).toHaveTextContent('T-01 → AL Centro → SE Central')
+  })
+
+  it('mostra o identificador quando o vinculo da leitura nao tem nome conhecido e vinculo nulo como traco', async () => {
+    vi.mocked(medidoresApi.consultarMedicaoConsumo).mockResolvedValue({ ...medicao, consumidorId: 99, transformadorId: null, alimentadorId: null, subestacaoId: null })
+    const dialogo = await abrir()
+
+    preencher('Número da medição', '900')
+    await userEvent.click(within(dialogo).getByRole('button', { name: 'Consultar' }))
+
+    const dados = await within(dialogo).findByLabelText('Medição de consumo')
+    expect(dados).toHaveTextContent('Consumidor #99')
+    expect(dados).toHaveTextContent('— → — → —')
+  })
+
+  it('exibe a recusa do servidor para medicao inexistente ou de outro medidor', async () => {
+    vi.mocked(medidoresApi.consultarMedicaoConsumo).mockRejectedValue(erroHttp(404, 'Medição de consumo não encontrada.'))
+    const dialogo = await abrir()
+
+    preencher('Número da medição', '777')
+    await userEvent.click(within(dialogo).getByRole('button', { name: 'Consultar' }))
+
+    expect(await within(dialogo).findByText('Medição de consumo não encontrada.')).toBeInTheDocument()
+    expect(within(dialogo).queryByLabelText('Medição de consumo')).not.toBeInTheDocument()
+  })
+})
