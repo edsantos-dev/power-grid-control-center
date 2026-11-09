@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react'
+import { useAuth } from '../../hooks/useAuth'
 import { Search, Plus, PlugZap, Zap } from 'lucide-react'
 import { CadeiaRede, Fornecimento } from '../../components/medidores'
 import { listarAlimentadores } from '../../services/alimentadores'
@@ -11,6 +12,7 @@ import type { Alimentador, Consumidor, Medidor, Subestacao, Transformador } from
 import { ESTADO_STYLES } from '../../utils/constants'
 import { formatarData } from '../../utils/formatacao'
 import { nomesPorId } from '../../utils/rede'
+import { podeCadastrarRede } from '../../utils/acesso'
 import ConsumoMedidor from './ConsumoMedidor'
 import InstalacaoForm from './InstalacaoForm'
 import MedidorForm from './MedidorForm'
@@ -29,6 +31,8 @@ function estaInstalado(medidor: Medidor) {
 }
 
 function Smartmeters() {
+  const { usuario } = useAuth()
+  const podeEscrever = podeCadastrarRede(usuario)
   const [medidores, setMedidores] = useState<Medidor[]>([])
   const [consumidores, setConsumidores] = useState<Consumidor[]>([])
   const [transformadores, setTransformadores] = useState<Transformador[]>([])
@@ -118,6 +122,7 @@ function Smartmeters() {
           </p>
         </div>
 
+        {podeEscrever && (
         <button
           type="button"
           onClick={() => setCadastroAberto(true)}
@@ -126,6 +131,7 @@ function Smartmeters() {
           <Plus className="h-4 w-4" />
           Novo medidor
         </button>
+        )}
       </div>
 
       <div className="grid gap-6 md:grid-cols-2 xl:grid-cols-4">
@@ -225,7 +231,7 @@ function Smartmeters() {
                     </td>
                     <td className="py-3">
                       <div className="flex flex-wrap gap-1.5">
-                        {!estaInstalado(m) && (
+                        {podeEscrever && !estaInstalado(m) && (
                           <button
                             type="button"
                             onClick={() => setInstalando(m)}

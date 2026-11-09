@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react'
+import { useAuth } from '../../hooks/useAuth'
 import { Search, Pencil, Plus, Building2, Gauge } from 'lucide-react'
 import { listarAlimentadores } from '../../services/alimentadores'
 import { extrairErroApi } from '../../services/api'
@@ -7,6 +8,7 @@ import { consultarUltimaMedicao, listarTransformadores } from '../../services/tr
 import type { Alimentador, EstadoOperacional, MedicaoTransformador, Subestacao, Transformador } from '../../types'
 import { ESTADO_STYLES } from '../../utils/constants'
 import { formatarData, formatarDataHora, formatarNumero, formatarPercentual } from '../../utils/formatacao'
+import { podeCadastrarRede } from '../../utils/acesso'
 import TransformadorForm from './TransformadorForm'
 
 type Carga =
@@ -44,6 +46,8 @@ function CelulaCarga({ carga }: { carga: Carga | undefined }) {
 }
 
 function Transformadores() {
+  const { usuario } = useAuth()
+  const podeEscrever = podeCadastrarRede(usuario)
   const [transformadores, setTransformadores] = useState<Transformador[]>([])
   const [alimentadores, setAlimentadores] = useState<Alimentador[]>([])
   const [subestacoes, setSubestacoes] = useState<Subestacao[]>([])
@@ -142,6 +146,7 @@ function Transformadores() {
           </p>
         </div>
 
+        {podeEscrever && (
         <button
           type="button"
           onClick={() => abrirFormulario(null)}
@@ -150,6 +155,7 @@ function Transformadores() {
           <Plus className="h-4 w-4" />
           Novo transformador
         </button>
+        )}
       </div>
 
       <div className="grid gap-6 md:grid-cols-2 xl:grid-cols-4">
@@ -216,7 +222,7 @@ function Transformadores() {
                 <th className="pb-3 font-normal">Carga</th>
                 <th className="pb-3 font-normal">Instalação</th>
                 <th className="pb-3 font-normal">Status</th>
-                <th className="pb-3 font-normal">Ações</th>
+                {podeEscrever && <th className="pb-3 font-normal">Ações</th>}
               </tr>
             </thead>
             <tbody>
@@ -247,6 +253,7 @@ function Transformadores() {
                         {status.label}
                       </span>
                     </td>
+                    {podeEscrever && (
                     <td className="py-3">
                       <button
                         type="button"
@@ -257,6 +264,7 @@ function Transformadores() {
                         <Pencil className="h-4 w-4" />
                       </button>
                     </td>
+                    )}
                   </tr>
                 )
               })}

@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react'
+import { useAuth } from '../../hooks/useAuth'
 import { Search, MapPin, Pencil, Plus, ArrowRight } from 'lucide-react'
 import { extrairErroApi } from '../../services/api'
 import { listarLinhas } from '../../services/linhas'
@@ -6,9 +7,12 @@ import { listarSubestacoes } from '../../services/subestacoes'
 import type { EstadoOperacional, LinhaTransmissao, Subestacao } from '../../types'
 import { ESTADO_STYLES } from '../../utils/constants'
 import { formatarData, formatarNumero } from '../../utils/formatacao'
+import { podeCadastrarRede } from '../../utils/acesso'
 import LinhaForm from './LinhaForm'
 
 function Linhas() {
+  const { usuario } = useAuth()
+  const podeEscrever = podeCadastrarRede(usuario)
   const [linhas, setLinhas] = useState<LinhaTransmissao[]>([])
   const [subestacoes, setSubestacoes] = useState<Subestacao[]>([])
   const [carregando, setCarregando] = useState(true)
@@ -82,6 +86,7 @@ function Linhas() {
           </p>
         </div>
 
+        {podeEscrever && (
         <button
           type="button"
           onClick={() => abrirFormulario(null)}
@@ -90,6 +95,7 @@ function Linhas() {
           <Plus className="h-4 w-4" />
           Nova linha
         </button>
+        )}
       </div>
 
       <div className="grid gap-6 md:grid-cols-2 xl:grid-cols-4">
@@ -158,7 +164,7 @@ function Linhas() {
                 <th className="pb-3 font-normal">Extensão (km)</th>
                 <th className="pb-3 font-normal">Instalação</th>
                 <th className="pb-3 font-normal">Status</th>
-                <th className="pb-3 font-normal">Ações</th>
+                {podeEscrever && <th className="pb-3 font-normal">Ações</th>}
               </tr>
             </thead>
             <tbody>
@@ -197,6 +203,7 @@ function Linhas() {
                         {status.label}
                       </span>
                     </td>
+                    {podeEscrever && (
                     <td className="py-3">
                       <button
                         type="button"
@@ -207,6 +214,7 @@ function Linhas() {
                         <Pencil className="h-4 w-4" />
                       </button>
                     </td>
+                    )}
                   </tr>
                 )
               })}

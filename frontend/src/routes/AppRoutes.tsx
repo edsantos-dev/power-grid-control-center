@@ -1,4 +1,5 @@
 import { BrowserRouter, Navigate, Route, Routes } from 'react-router-dom'
+import RotaPorPerfil from './RotaPorPerfil'
 import RotaPrivada from './RotaPrivada'
 import Login from '../pages/Login'
 import Dashboard from '../pages/Dashboard'
@@ -29,7 +30,6 @@ function AppRoutes() {
             <Route path="/monitoramento" element={<Monitoramento />} />
             <Route path="/alertas" element={<Alertas />} />
             <Route path="/eventos" element={<Eventos />} />
-            <Route path="/usinas" element={<Usinas />} />
             <Route path="/subestacoes" element={<Subestacoes />} />
             <Route path="/transformadores" element={<Transformadores />} />
             <Route path="/linhas" element={<Linhas />} />
@@ -37,7 +37,12 @@ function AppRoutes() {
             <Route path="/smartmeters" element={<SmartMeters />} />
             <Route path="/consumidores" element={<Consumidores />} />
             <Route path="/equipes" element={<Equipes />} />
-            <Route path="/relatorios" element={<Relatorios />} />
+
+            {/* Telas restritas ao gerente: os demais perfis voltam ao dashboard */}
+            <Route element={<RotaPorPerfil />}>
+              <Route path="/usinas" element={<Usinas />} />
+              <Route path="/relatorios" element={<Relatorios />} />
+            </Route>
           </Route>
         </Route>
 

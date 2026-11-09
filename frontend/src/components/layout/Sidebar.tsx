@@ -17,6 +17,8 @@ import {
   ChevronRight,
 } from 'lucide-react'
 import { Link, useLocation } from 'react-router-dom'
+import { useAuth } from '../../hooks/useAuth'
+import { podeAcessarTela } from '../../utils/acesso'
 
 type NavItem = {
   label: string
@@ -62,6 +64,11 @@ const navGroups: NavGroup[] = [
 
 function Sidebar() {
   const location = useLocation()
+  const { usuario } = useAuth()
+  // Cada perfil vê no menu apenas as telas que pode usar; grupos sem telas somem
+  const grupos = navGroups
+    .map((g) => ({ ...g, items: g.items.filter((item) => podeAcessarTela(usuario, item.path)) }))
+    .filter((g) => g.items.length > 0)
   const [openGroups, setOpenGroups] = useState<string[]>(
     navGroups.map((g) => g.label) // todos abertos por padrão
   )
@@ -80,7 +87,7 @@ function Sidebar() {
       </div>
 
       <nav className="flex-1 space-y-1 overflow-y-auto px-3 py-4">
-        {navGroups.map((group) => {
+        {grupos.map((group) => {
           const isOpen = openGroups.includes(group.label)
 
           return (

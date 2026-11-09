@@ -1,13 +1,17 @@
 import { useEffect, useState } from 'react'
+import { useAuth } from '../../hooks/useAuth'
 import { Search, MapPin, Pencil, Plus } from 'lucide-react'
 import { extrairErroApi } from '../../services/api'
 import { listarSubestacoes } from '../../services/subestacoes'
 import type { EstadoOperacional, Subestacao } from '../../types'
 import { ESTADO_STYLES } from '../../utils/constants'
 import { formatarData, formatarNumero } from '../../utils/formatacao'
+import { podeCadastrarRede } from '../../utils/acesso'
 import SubestacaoForm from './SubestacaoForm'
 
 function Subestacoes() {
+  const { usuario } = useAuth()
+  const podeEscrever = podeCadastrarRede(usuario)
   const [subestacoes, setSubestacoes] = useState<Subestacao[]>([])
   const [carregando, setCarregando] = useState(true)
   const [erro, setErro] = useState('')
@@ -70,6 +74,7 @@ function Subestacoes() {
           </p>
         </div>
 
+        {podeEscrever && (
         <button
           type="button"
           onClick={() => abrirFormulario(null)}
@@ -78,6 +83,7 @@ function Subestacoes() {
           <Plus className="h-4 w-4" />
           Nova subestação
         </button>
+        )}
       </div>
 
       <div className="grid gap-6 md:grid-cols-2 xl:grid-cols-4">
@@ -143,7 +149,7 @@ function Subestacoes() {
                 <th className="pb-3 font-normal">Capacidade (MVA)</th>
                 <th className="pb-3 font-normal">Instalação</th>
                 <th className="pb-3 font-normal">Status</th>
-                <th className="pb-3 font-normal">Ações</th>
+                {podeEscrever && <th className="pb-3 font-normal">Ações</th>}
               </tr>
             </thead>
             <tbody>
@@ -171,6 +177,7 @@ function Subestacoes() {
                         {status.label}
                       </span>
                     </td>
+                    {podeEscrever && (
                     <td className="py-3">
                       <button
                         type="button"
@@ -181,6 +188,7 @@ function Subestacoes() {
                         <Pencil className="h-4 w-4" />
                       </button>
                     </td>
+                    )}
                   </tr>
                 )
               })}

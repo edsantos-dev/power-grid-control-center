@@ -1,8 +1,10 @@
 import { useEffect, useState } from 'react'
+import { useAuth } from '../../hooks/useAuth'
 import { Search, Plus, Router } from 'lucide-react'
 import { extrairErroApi } from '../../services/api'
 import { listarConsumidores } from '../../services/consumidores'
 import type { Consumidor, TipoPessoa } from '../../types'
+import { podeCadastrarRede } from '../../utils/acesso'
 import ConsumidorForm from './ConsumidorForm'
 import MedidoresDoConsumidor from './MedidoresDoConsumidor'
 
@@ -12,6 +14,8 @@ const tipoLabel: Record<TipoPessoa, string> = {
 }
 
 function Consumidores() {
+  const { usuario } = useAuth()
+  const podeEscrever = podeCadastrarRede(usuario)
   const [consumidores, setConsumidores] = useState<Consumidor[]>([])
   const [carregando, setCarregando] = useState(true)
   const [erro, setErro] = useState('')
@@ -67,6 +71,7 @@ function Consumidores() {
           </p>
         </div>
 
+        {podeEscrever && (
         <button
           type="button"
           onClick={() => setFormularioAberto(true)}
@@ -75,6 +80,7 @@ function Consumidores() {
           <Plus className="h-4 w-4" />
           Novo consumidor
         </button>
+        )}
       </div>
 
       <div className="grid gap-6 md:grid-cols-3">
