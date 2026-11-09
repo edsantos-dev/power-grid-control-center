@@ -120,3 +120,44 @@ describe('US25', () => {
     expect(window.location.pathname).toBe('/dashboard')
   })
 })
+
+describe('telas por perfil', () => {
+  const tecnico = { ...usuario, id: 3, nome: 'Técnico Inicial', email: 'tecnico@powergrid.local', perfil: 'TECNICO_MANUTENCAO' } as const
+  const operador = { ...usuario, id: 2, nome: 'Operador Inicial', email: 'operador@powergrid.local', perfil: 'OPERADOR' } as const
+
+  it('mostra todas as telas ao gerente e mantem o acesso direto a usinas e relatorios', async () => {
+    vi.mocked(authApi.consultarUsuarioAutenticado).mockResolvedValue(usuario)
+
+    abrirEm('/usinas')
+
+    expect(await screen.findByRole('link', { name: 'Usinas' })).toBeInTheDocument()
+    expect(screen.getByRole('link', { name: 'Relatórios' })).toBeInTheDocument()
+    expect(window.location.pathname).toBe('/usinas')
+  })
+
+  it.each([
+    ['operador', operador],
+    ['tecnico', tecnico],
+  ])('esconde usinas e relatorios do menu do %s', async (_nome, perfil) => {
+    vi.mocked(authApi.consultarUsuarioAutenticado).mockResolvedValue(perfil)
+
+    abrirEm('/dashboard')
+
+    expect(await screen.findByRole('link', { name: 'Equipes' })).toBeInTheDocument()
+    expect(screen.getByRole('link', { name: 'Subestações' })).toBeInTheDocument()
+    expect(screen.queryByRole('link', { name: 'Usinas' })).not.toBeInTheDocument()
+    expect(screen.queryByRole('link', { name: 'Relatórios' })).not.toBeInTheDocument()
+  })
+
+  it.each([
+    ['/usinas', operador],
+    ['/relatorios', tecnico],
+  ])('volta ao dashboard quando %s e aberta direto por perfil sem acesso', async (caminho, perfil) => {
+    vi.mocked(authApi.consultarUsuarioAutenticado).mockResolvedValue(perfil)
+
+    abrirEm(caminho)
+
+    expect(await screen.findByText(perfil.nome)).toBeInTheDocument()
+    expect(window.location.pathname).toBe('/dashboard')
+  })
+})

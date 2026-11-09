@@ -1,6 +1,7 @@
-import { fireEvent, render, screen, within } from '@testing-library/react'
+import { fireEvent, screen, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
+import { render } from '../../test/auth'
 import * as alimentadoresApi from '../../services/alimentadores'
 import * as subestacoesApi from '../../services/subestacoes'
 import * as transformadoresApi from '../../services/transformadores'
@@ -179,5 +180,21 @@ describe('edicao', () => {
       30,
       expect.objectContaining({ alimentadorId: 11, estadoOperacional: 'MANUTENCAO' })
     )
+  })
+})
+
+describe('perfil tecnico', () => {
+  it('consulta sem as acoes de cadastro, edicao ou instalacao', async () => {
+    render(<Transformadores />, { perfil: 'TECNICO_MANUTENCAO' })
+    await vi.waitFor(() => expect(screen.queryByText(/^Carregando/)).not.toBeInTheDocument())
+
+    expect(screen.queryAllByRole('button', { name: /^(Nova|Novo|Editar|Instalar)/ })).toHaveLength(0)
+  })
+
+  it('mantem as acoes de cadastro para o gerente', async () => {
+    render(<Transformadores />, { perfil: 'GERENTE_OPERACOES' })
+    await vi.waitFor(() => expect(screen.queryByText(/^Carregando/)).not.toBeInTheDocument())
+
+    expect(screen.queryAllByRole('button', { name: /^(Nova|Novo)/ }).length).toBeGreaterThan(0)
   })
 })

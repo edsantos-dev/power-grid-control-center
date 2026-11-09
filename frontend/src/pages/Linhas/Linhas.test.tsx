@@ -1,6 +1,7 @@
-import { fireEvent, render, screen, within } from '@testing-library/react'
+import { fireEvent, screen, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
+import { render } from '../../test/auth'
 import * as linhasApi from '../../services/linhas'
 import * as subestacoesApi from '../../services/subestacoes'
 import type { LinhaTransmissao, Subestacao } from '../../types'
@@ -149,5 +150,21 @@ describe('edicao', () => {
       20,
       expect.objectContaining({ latitude: null, longitude: null, estadoOperacional: 'MANUTENCAO' })
     )
+  })
+})
+
+describe('perfil tecnico', () => {
+  it('consulta sem as acoes de cadastro, edicao ou instalacao', async () => {
+    render(<Linhas />, { perfil: 'TECNICO_MANUTENCAO' })
+    await vi.waitFor(() => expect(screen.queryByText(/^Carregando/)).not.toBeInTheDocument())
+
+    expect(screen.queryAllByRole('button', { name: /^(Nova|Novo|Editar|Instalar)/ })).toHaveLength(0)
+  })
+
+  it('mantem as acoes de cadastro para o gerente', async () => {
+    render(<Linhas />, { perfil: 'GERENTE_OPERACOES' })
+    await vi.waitFor(() => expect(screen.queryByText(/^Carregando/)).not.toBeInTheDocument())
+
+    expect(screen.queryAllByRole('button', { name: /^(Nova|Novo)/ }).length).toBeGreaterThan(0)
   })
 })

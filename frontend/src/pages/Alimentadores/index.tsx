@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react'
+import { useAuth } from '../../hooks/useAuth'
 import { Search, MapPin, Pencil, Plus, Building2 } from 'lucide-react'
 import { listarAlimentadores } from '../../services/alimentadores'
 import { extrairErroApi } from '../../services/api'
@@ -6,9 +7,12 @@ import { listarSubestacoes } from '../../services/subestacoes'
 import type { Alimentador, EstadoOperacional, Subestacao } from '../../types'
 import { ESTADO_STYLES } from '../../utils/constants'
 import { formatarData, formatarNumero } from '../../utils/formatacao'
+import { podeCadastrarRede } from '../../utils/acesso'
 import AlimentadorForm from './AlimentadorForm'
 
 function Alimentadores() {
+  const { usuario } = useAuth()
+  const podeEscrever = podeCadastrarRede(usuario)
   const [alimentadores, setAlimentadores] = useState<Alimentador[]>([])
   const [subestacoes, setSubestacoes] = useState<Subestacao[]>([])
   const [carregando, setCarregando] = useState(true)
@@ -79,6 +83,7 @@ function Alimentadores() {
           </p>
         </div>
 
+        {podeEscrever && (
         <button
           type="button"
           onClick={() => abrirFormulario(null)}
@@ -87,6 +92,7 @@ function Alimentadores() {
           <Plus className="h-4 w-4" />
           Novo alimentador
         </button>
+        )}
       </div>
 
       <div className="grid gap-6 md:grid-cols-2 xl:grid-cols-4">
@@ -152,7 +158,7 @@ function Alimentadores() {
                 <th className="pb-3 font-normal">Tensão (kV)</th>
                 <th className="pb-3 font-normal">Instalação</th>
                 <th className="pb-3 font-normal">Status</th>
-                <th className="pb-3 font-normal">Ações</th>
+                {podeEscrever && <th className="pb-3 font-normal">Ações</th>}
               </tr>
             </thead>
             <tbody>
@@ -185,6 +191,7 @@ function Alimentadores() {
                         {status.label}
                       </span>
                     </td>
+                    {podeEscrever && (
                     <td className="py-3">
                       <button
                         type="button"
@@ -195,6 +202,7 @@ function Alimentadores() {
                         <Pencil className="h-4 w-4" />
                       </button>
                     </td>
+                    )}
                   </tr>
                 )
               })}

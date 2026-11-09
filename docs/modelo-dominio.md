@@ -242,6 +242,21 @@ O backend é a autoridade das permissões: recusa com 403 a operação fora do p
 
 Os cadastros da rede passaram a negar escrita ao técnico de manutenção: o perfil precisa consultar ativos para atender eventos e manutenções, mas não os altera. A restrição está nos métodos de escrita dos controladores de subestação, linha, alimentador, transformador, medidor e consumidor, e CadastrosRedePerfilControllerTest cobre os bloqueios sem alteração de dados e a consulta pelo técnico.
 
+Na interface, o menu e as rotas seguem a mesma matriz: cada perfil vê apenas as telas que pode usar, e quem digita o endereço de uma tela restrita volta ao dashboard. **Consulta** significa tela visível sem as ações de escrita.
+
+| Tela | Gerente | Operador | Técnico |
+|---|---|---|---|
+| Dashboard (mapa; KPIs só para o gerente) | Consulta | Consulta | Consulta |
+| Monitoramento | Consulta | Consulta | Consulta |
+| Alertas | Trata e registra | Trata e registra | Consulta |
+| Eventos | Opera | Opera | Atende como responsável |
+| Subestações, linhas, alimentadores, transformadores, medidores e consumidores | Cadastra e edita | Cadastra e edita | Consulta |
+| Equipes | Gerencia | Consulta | Gerencia |
+| Usinas | Cadastra e edita | Oculta | Oculta |
+| Relatórios | Consulta | Oculta | Oculta |
+
+O cadastro de usuários permanece exclusivamente pela API (POST /api/usuarios, gerente): não há tela nem atalho para ele no MVP.
+
 A autenticação utiliza sessão HTTP com cookie HttpOnly e proteção CSRF, sem JWT. O login renova o identificador da sessão e seu token CSRF; o logout invalida a sessão. As respostas de autenticação expõem somente identificador, nome, e-mail e perfil. Senhas são verificadas por BCrypt. O cadastro por gerente exige a política SenhaSegura de 12 caracteres e limite de 72 bytes UTF-8. A instalação limpa usa B2 sem contas de demonstração, e V20 desativa as contas legadas da V2 preservando auditoria.
 
 O estado operacional principal do ativo é `OPERACIONAL`, `FALHA` ou `MANUTENCAO`. É uma classificação resumida: não descreve simultaneamente todas as condições de um equipamento em falha durante uma manutenção.
@@ -263,7 +278,7 @@ Mudanças de situação e responsabilidade devem preservar autor, instante e val
 |---|---|
 | Histórico de fornecimento | Troca de titular, substituição/reinstalação e vigência completa de medidores são ampliações futuras |
 | Geografia | Linhas usam conexão simplificada; traçados físicos detalhados ficam fora do MVP |
-| Interface | Migração para snapshot, matriz visual de perfis e remoção de Configurações local acompanhadas no backlog |
+| Interface | Snapshot de monitoramento, matriz visual de perfis e remoção de Configurações aplicados; o aceite visual é acompanhado no backlog |
 | Simulador | Produtor reproduzível com chaves idempotentes e cenários de comunicação ainda precisa ser versionado |
 | Implantação | Validar planos e volume em PostgreSQL, bootstrap real e promoção administrativa do scheduler |
 

@@ -1,7 +1,8 @@
-import { fireEvent, render, screen, within } from '@testing-library/react'
+import { fireEvent, screen, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { AxiosError, AxiosHeaders, type InternalAxiosRequestConfig } from 'axios'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
+import { render } from '../../test/auth'
 import * as alimentadoresApi from '../../services/alimentadores'
 import * as consumidoresApi from '../../services/consumidores'
 import * as medidoresApi from '../../services/medidores'
@@ -299,5 +300,21 @@ describe('consumo individual', () => {
 
     expect(await within(dialogo).findByText('Medição de consumo não encontrada.')).toBeInTheDocument()
     expect(within(dialogo).queryByLabelText('Medição de consumo')).not.toBeInTheDocument()
+  })
+})
+
+describe('perfil tecnico', () => {
+  it('consulta sem as acoes de cadastro, edicao ou instalacao', async () => {
+    render(<Smartmeters />, { perfil: 'TECNICO_MANUTENCAO' })
+    await vi.waitFor(() => expect(screen.queryByText(/^Carregando/)).not.toBeInTheDocument())
+
+    expect(screen.queryAllByRole('button', { name: /^(Nova|Novo|Editar|Instalar)/ })).toHaveLength(0)
+  })
+
+  it('mantem as acoes de cadastro para o gerente', async () => {
+    render(<Smartmeters />, { perfil: 'GERENTE_OPERACOES' })
+    await vi.waitFor(() => expect(screen.queryByText(/^Carregando/)).not.toBeInTheDocument())
+
+    expect(screen.queryAllByRole('button', { name: /^(Nova|Novo)/ }).length).toBeGreaterThan(0)
   })
 })
