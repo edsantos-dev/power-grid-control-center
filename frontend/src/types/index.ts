@@ -689,3 +689,19 @@ export type SnapshotMonitoramento = {
   linhas: LinhaSnapshot[]
   transformadores: TransformadorSnapshot[]
 }
+
+// Consumo de um período, em kWh; os vínculos são o retrato do medidor no momento da leitura
+export type MedicaoConsumo = {
+  id: number
+  medidorId: number
+  fonteId: number
+  origem: 'REAL' | 'SIMULADA'
+  inicioPeriodo: string
+  fimPeriodo: string
+  recebidoEm: string
+  consumoKwh: number
+  consumidorId: number | null
+  transformadorId: number | null
+  alimentadorId: number | null
+  subestacaoId: number | null
+}
