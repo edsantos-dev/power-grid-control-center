@@ -15,7 +15,6 @@ import SmartMeters from '../pages/SmartMeters'
 import Consumidores from '../pages/Consumidores'
 import Equipes from '../pages/Equipes'
 import Relatorios from '../pages/Relatorios'
-import Configuracoes from '../pages/Configuracoes'
 
 function AppRoutes() {
   return (
@@ -39,9 +38,11 @@ function AppRoutes() {
             <Route path="/consumidores" element={<Consumidores />} />
             <Route path="/equipes" element={<Equipes />} />
             <Route path="/relatorios" element={<Relatorios />} />
-            <Route path="/configuracoes" element={<Configuracoes />} />
           </Route>
         </Route>
+
+        {/* Rotas desconhecidas, como a antiga /configuracoes, voltam ao início */}
+        <Route path="*" element={<Navigate to="/dashboard" replace />} />
       </Routes>
     </BrowserRouter>
   )

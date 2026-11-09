@@ -13,7 +13,6 @@ import {
   Users,
   UsersRound,
   FileBarChart,
-  Settings,
   ChevronDown,
   ChevronRight,
 } from 'lucide-react'
@@ -57,12 +56,6 @@ const navGroups: NavGroup[] = [
       { label: 'Consumidores', path: '/consumidores', icon: Users },
       { label: 'Equipes', path: '/equipes', icon: UsersRound },
       { label: 'Relatórios', path: '/relatorios', icon: FileBarChart },
-    ],
-  },
-  {
-    label: 'Sistema',
-    items: [
-      { label: 'Configurações', path: '/configuracoes', icon: Settings },
     ],
   },
 ]

@@ -62,10 +62,20 @@ describe('US25', () => {
   it('mantem rota interna com sessao existente e exibe o perfil', async () => {
     vi.mocked(authApi.consultarUsuarioAutenticado).mockResolvedValue(usuario)
 
+    abrirEm('/subestacoes')
+
+    expect(await screen.findByText('Gerente de Operações')).toBeInTheDocument()
+    expect(window.location.pathname).toBe('/subestacoes')
+  })
+
+  it('nao oferece mais a pagina de configuracoes e volta ao dashboard', async () => {
+    vi.mocked(authApi.consultarUsuarioAutenticado).mockResolvedValue(usuario)
+
     abrirEm('/configuracoes')
 
     expect(await screen.findByText('Gerente de Operações')).toBeInTheDocument()
-    expect(window.location.pathname).toBe('/configuracoes')
+    expect(window.location.pathname).toBe('/dashboard')
+    expect(screen.queryByRole('link', { name: 'Configurações' })).not.toBeInTheDocument()
   })
 
   it('leva ao dashboard com credenciais validas', async () => {
