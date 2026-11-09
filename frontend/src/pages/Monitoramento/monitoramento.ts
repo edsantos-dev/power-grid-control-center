@@ -1,11 +1,11 @@
-import type { MedicaoLinha } from '../../types'
+import type { AmostraSnapshot, LinhaSnapshot } from '../../types'
 
 // Proposta a aprovar (US08-CA02/CA03): cadência de 30 s e atraso após 300 s,
 // o mesmo padrão da tolerância de comunicação do backend (US23)
 export const CADENCIA_MS = 30_000
 export const ATRASO_SEGUNDOS = 300
 
-type CampoNumerico = 'tensaoKv' | 'correnteA' | 'potenciaAtivaMw' | 'potenciaReativaMvar' | 'frequenciaHz' | 'fatorPotencia'
+export type CampoNumerico = 'tensaoKv' | 'correnteA' | 'potenciaAtivaMw' | 'potenciaReativaMvar' | 'frequenciaHz' | 'fatorPotencia'
 
 export type Grandeza = {
   campo: CampoNumerico
@@ -27,36 +27,37 @@ export const GRANDEZAS_LINHA: Grandeza[] = [
 // Referência didática do contrato; valores fora dela são aceitos e apenas exibidos
 export const FREQUENCIA_NOMINAL_HZ = 60
 
-export type ResultadoFatorPotencia =
-  | { tipo: 'calculado'; leitura: Leitura }
-  | { tipo: 'indefinido'; medidoEm: string; origem: MedicaoLinha['origem'] }
-
-// O fator é calculado pelo servidor com P e Q da mesma leitura; sem P ou Q não há cálculo
-export function ultimoFatorPotencia(medicoes: MedicaoLinha[]): ResultadoFatorPotencia | null {
-  const medicao = medicoes.find((m) => m.situacaoFatorPotencia !== 'DADOS_INSUFICIENTES')
-  if (!medicao) return null
-  if (medicao.situacaoFatorPotencia === 'POTENCIA_APARENTE_NULA' || medicao.fatorPotencia === null) {
-    return { tipo: 'indefinido', medidoEm: medicao.medidoEm, origem: medicao.origem }
-  }
-  return {
-    tipo: 'calculado',
-    leitura: { valor: medicao.fatorPotencia, medidoEm: medicao.medidoEm, origem: medicao.origem, subestacaoReferenciaId: medicao.subestacaoReferenciaId },
-  }
-}
-
 export type Leitura = {
   valor: number
   medidoEm: string
-  origem: MedicaoLinha['origem']
+  origem: AmostraSnapshot['origemLeitura']
   subestacaoReferenciaId: number | null
 }
 
-// As medições chegam da mais recente para a mais antiga; uma leitura parcial não apaga a grandeza
-export function ultimaLeitura(medicoes: MedicaoLinha[], campo: CampoNumerico): Leitura | null {
-  const medicao = medicoes.find((m) => m[campo] !== null)
-  return medicao
-    ? { valor: medicao[campo] as number, medidoEm: medicao.medidoEm, origem: medicao.origem, subestacaoReferenciaId: medicao.subestacaoReferenciaId }
+// Cada grandeza do snapshot traz a leitura mais recente que a contém, com instante, origem e terminal próprios
+export function leituraDaAmostra(amostra: AmostraSnapshot | null): Leitura | null {
+  return amostra
+    ? { valor: amostra.valor, medidoEm: amostra.medidoEm, origem: amostra.origemLeitura, subestacaoReferenciaId: amostra.terminalReferenciaId }
     : null
+}
+
+export type ResultadoFatorPotencia =
+  | { tipo: 'calculado'; leitura: Leitura }
+  | { tipo: 'indefinido'; medidoEm: string }
+
+// O fator é calculado pelo servidor com P e Q da mesma leitura; sem P ou Q não há cálculo
+export function fatorPotenciaDoSnapshot(linha: LinhaSnapshot): ResultadoFatorPotencia | null {
+  if (linha.situacaoFatorPotencia === 'DADOS_INSUFICIENTES') return null
+  const leitura = leituraDaAmostra(linha.fatorPotencia)
+  if (leitura) return { tipo: 'calculado', leitura }
+  // P e Q nulas: o fator é indefinido e a idade vem da leitura de potência que o originou
+  const origem = linha.potenciaAtivaMw ?? linha.potenciaReativaMvar
+  return origem ? { tipo: 'indefinido', medidoEm: origem.medidoEm } : null
+}
+
+// O gráfico abre na primeira linha com alguma leitura: ativos recém-cadastrados ou de demonstração não escondem os demais
+export function linhaComLeitura(linha: LinhaSnapshot) {
+  return GRANDEZAS_LINHA.some((g) => linha[g.campo] !== null)
 }
 
 export function estaAtrasada(medidoEm: string, agora: number) {

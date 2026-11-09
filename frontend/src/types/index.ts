@@ -644,3 +644,48 @@ export type LinhaTransmissaoRequest = {
   dataInstalacao: string
   estadoOperacional: EstadoOperacional
 }
+
+// Última leitura de cada grandeza, com instante, fonte, origem e terminal próprios
+export type AmostraSnapshot = {
+  valor: number
+  medidoEm: string
+  recebidoEm: string
+  fonteId: number
+  origemLeitura: 'REAL' | 'SIMULADA'
+  terminalReferenciaId: number | null
+}
+
+export type LinhaSnapshot = {
+  ativoId: number
+  nome: string
+  tipoAtivo: 'LINHA'
+  subestacaoOrigemId: number
+  subestacaoDestinoId: number
+  tensaoOperacao: number
+  tensaoKv: AmostraSnapshot | null
+  correnteA: AmostraSnapshot | null
+  frequenciaHz: AmostraSnapshot | null
+  potenciaAtivaMw: AmostraSnapshot | null
+  potenciaReativaMvar: AmostraSnapshot | null
+  fatorPotencia: AmostraSnapshot | null
+  situacaoFatorPotencia: SituacaoFatorPotencia
+}
+
+// Sem leitura, todas as amostras chegam nulas, nunca como zero
+export type TransformadorSnapshot = {
+  ativoId: number
+  nome: string
+  tipoAtivo: 'TRANSFORMADOR'
+  subestacaoId: number
+  tensaoOperacao: number
+  potenciaAparenteMva: AmostraSnapshot | null
+  capacidadeReferenciaMva: AmostraSnapshot | null
+  cargaPercentual: AmostraSnapshot | null
+}
+
+export type SnapshotMonitoramento = {
+  // Instante do servidor: a idade das leituras é medida contra ele
+  consultadoEm: string
+  linhas: LinhaSnapshot[]
+  transformadores: TransformadorSnapshot[]
+}
