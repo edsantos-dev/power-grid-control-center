@@ -3,7 +3,7 @@ import { CampoSelect, CampoTexto, FormularioModal } from '../../components/formu
 import { atualizarAlimentador, criarAlimentador } from '../../services/alimentadores'
 import { extrairErroApi } from '../../services/api'
 import type { Alimentador, EstadoOperacional, Subestacao } from '../../types'
-import { ESTADO_OPCOES } from '../../utils/constants'
+import { opcoesEstadoCadastro } from '../../utils/constants'
 import {
   normalizarAlimentador,
   paraRequisicao,
@@ -110,7 +110,7 @@ function AlimentadorForm({ alimentador, subestacoes, aoFechar, aoSalvar }: Props
       <CampoSelect
         id="estadoOperacional"
         label="Status"
-        opcoes={ESTADO_OPCOES}
+        opcoes={opcoesEstadoCadastro(alimentador?.estadoOperacional)}
         valor={dados.estadoOperacional}
         aoAlterar={(valor) => setDados((atuais) => ({ ...atuais, estadoOperacional: valor as EstadoOperacional }))}
         erro={erros.estadoOperacional}

@@ -3,7 +3,7 @@ import { CampoSelect, CampoTexto, FormularioModal } from '../../components/formu
 import { extrairErroApi } from '../../services/api'
 import { criarMedidor } from '../../services/medidores'
 import type { EstadoOperacional, Medidor, MedidorRequest } from '../../types'
-import { ESTADO_OPCOES } from '../../utils/constants'
+import { opcoesEstadoCadastro } from '../../utils/constants'
 import { normalizarMedidor, validarMedidor, type ErrosMedidor } from './validacao'
 
 type Props = {
@@ -52,7 +52,7 @@ function MedidorForm({ aoFechar, aoSalvar }: Props) {
       <CampoSelect
         id="estadoOperacional"
         label="Status"
-        opcoes={ESTADO_OPCOES}
+        opcoes={opcoesEstadoCadastro()}
         valor={dados.estadoOperacional}
         aoAlterar={(valor) => setDados((atuais) => ({ ...atuais, estadoOperacional: valor as EstadoOperacional }))}
         erro={erros.estadoOperacional}

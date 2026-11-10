@@ -14,7 +14,12 @@ export const ESTADO_STYLES: Record<EstadoOperacional, { dot: string; text: strin
 
 export const ESTADOS: EstadoOperacional[] = ['OPERACIONAL', 'FALHA', 'MANUTENCAO']
 
-export const ESTADO_OPCOES = ESTADOS.map((valor) => ({ valor, label: ESTADO_STYLES[valor].label }))
+// Cadastros não atribuem nem retiram FALHA: o estado nasce e termina no fluxo de falha de equipamento.
+// Um ativo já em falha mantém o estado ao editar os demais dados; os outros escolhem entre operacional e manutenção.
+export function opcoesEstadoCadastro(atual?: EstadoOperacional) {
+  const estados: EstadoOperacional[] = atual === 'FALHA' ? ['FALHA'] : ['OPERACIONAL', 'MANUTENCAO']
+  return estados.map((valor) => ({ valor, label: ESTADO_STYLES[valor].label }))
+}
 
 // Da maior para a menor, mesma ordem aplicada pelo backend
 export const CRITICIDADES: Criticidade[] = ['CRITICA', 'ALTA', 'MEDIA', 'BAIXA']
