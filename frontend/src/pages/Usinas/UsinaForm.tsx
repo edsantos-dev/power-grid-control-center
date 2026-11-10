@@ -3,7 +3,7 @@ import { CampoSelect, CampoTexto, FormularioModal } from '../../components/formu
 import { extrairErroApi } from '../../services/api'
 import { atualizarUsina, criarUsina } from '../../services/usinas'
 import type { EstadoOperacional, Subestacao, TipoGeracao, Usina } from '../../types'
-import { ESTADO_OPCOES } from '../../utils/constants'
+import { opcoesEstadoCadastro } from '../../utils/constants'
 import {
   CAMPO_OBRIGATORIO,
   normalizarDecimal,
@@ -122,7 +122,7 @@ function UsinaForm({ usina, subestacoes, aoFechar, aoSalvar }: Props) {
       <CampoSelect
         id="estadoOperacional"
         label="Status"
-        opcoes={ESTADO_OPCOES}
+        opcoes={opcoesEstadoCadastro(usina?.estadoOperacional)}
         valor={dados.estadoOperacional}
         aoAlterar={(valor) => setDados((atuais) => ({ ...atuais, estadoOperacional: valor as EstadoOperacional }))}
         erro={erros.estadoOperacional}

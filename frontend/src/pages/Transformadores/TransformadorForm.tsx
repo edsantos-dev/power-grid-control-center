@@ -3,7 +3,7 @@ import { CampoSelect, CampoTexto, FormularioModal } from '../../components/formu
 import { extrairErroApi } from '../../services/api'
 import { atualizarTransformador, criarTransformador } from '../../services/transformadores'
 import type { Alimentador, EstadoOperacional, Subestacao, Transformador } from '../../types'
-import { ESTADO_OPCOES } from '../../utils/constants'
+import { opcoesEstadoCadastro } from '../../utils/constants'
 import {
   normalizarTransformador,
   paraRequisicao,
@@ -123,7 +123,7 @@ function TransformadorForm({ transformador, alimentadores, subestacoes, aoFechar
       <CampoSelect
         id="estadoOperacional"
         label="Status"
-        opcoes={ESTADO_OPCOES}
+        opcoes={opcoesEstadoCadastro(transformador?.estadoOperacional)}
         valor={dados.estadoOperacional}
         aoAlterar={(valor) => setDados((atuais) => ({ ...atuais, estadoOperacional: valor as EstadoOperacional }))}
         erro={erros.estadoOperacional}

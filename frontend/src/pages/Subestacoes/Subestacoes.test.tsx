@@ -190,3 +190,22 @@ describe('perfil tecnico', () => {
     expect(screen.queryAllByRole('button', { name: /^(Nova|Novo)/ }).length).toBeGreaterThan(0)
   })
 })
+
+describe('estado no cadastro', () => {
+  const opcoesDeStatus = () => within(screen.getByLabelText('Status')).getAllByRole('option').map((o) => o.textContent)
+
+  it('nao oferece Falha ao cadastrar: o estado nasce no fluxo de falha de equipamento', async () => {
+    render(<Subestacoes />)
+    await abrirNovo()
+
+    expect(opcoesDeStatus()).toEqual(['Operacional', 'Manutenção'])
+  })
+
+  it('mantem Falha como unica opcao ao editar um ativo em falha', async () => {
+    vi.mocked(subestacoesApi.listarSubestacoes).mockResolvedValue([{ ...central, estadoOperacional: 'FALHA' }])
+    render(<Subestacoes />)
+    await userEvent.click(await screen.findByRole('button', { name: 'Editar Subestação Central' }))
+
+    expect(opcoesDeStatus()).toEqual(['Falha'])
+  })
+})

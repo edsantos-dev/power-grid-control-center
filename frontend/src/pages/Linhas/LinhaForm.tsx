@@ -3,7 +3,7 @@ import { CampoSelect, CampoTexto, FormularioModal } from '../../components/formu
 import { extrairErroApi } from '../../services/api'
 import { atualizarLinha, criarLinha } from '../../services/linhas'
 import type { EstadoOperacional, LinhaTransmissao, Subestacao } from '../../types'
-import { ESTADO_OPCOES } from '../../utils/constants'
+import { opcoesEstadoCadastro } from '../../utils/constants'
 import { normalizarLinha, paraRequisicao, validarLinha, type ErrosLinha, type LinhaFormValues } from './validacao'
 
 type Props = {
@@ -98,7 +98,7 @@ function LinhaForm({ linha, subestacoes, aoFechar, aoSalvar }: Props) {
       <CampoSelect
         id="estadoOperacional"
         label="Status"
-        opcoes={ESTADO_OPCOES}
+        opcoes={opcoesEstadoCadastro(linha?.estadoOperacional)}
         valor={dados.estadoOperacional}
         aoAlterar={(valor) => setDados((atuais) => ({ ...atuais, estadoOperacional: valor as EstadoOperacional }))}
         erro={erros.estadoOperacional}

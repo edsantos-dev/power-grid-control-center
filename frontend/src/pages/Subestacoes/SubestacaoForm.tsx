@@ -3,7 +3,7 @@ import { CampoSelect, CampoTexto, FormularioModal } from '../../components/formu
 import { extrairErroApi } from '../../services/api'
 import { atualizarSubestacao, criarSubestacao } from '../../services/subestacoes'
 import type { EstadoOperacional, Subestacao, SubestacaoRequest } from '../../types'
-import { ESTADO_OPCOES } from '../../utils/constants'
+import { opcoesEstadoCadastro } from '../../utils/constants'
 import { normalizarSubestacao, validarSubestacao, type ErrosSubestacao } from './validacao'
 
 type Props = {
@@ -91,7 +91,7 @@ function SubestacaoForm({ subestacao, aoFechar, aoSalvar }: Props) {
       <CampoSelect
         id="estadoOperacional"
         label="Status"
-        opcoes={ESTADO_OPCOES}
+        opcoes={opcoesEstadoCadastro(subestacao?.estadoOperacional)}
         valor={dados.estadoOperacional}
         aoAlterar={(valor) => setDados((atuais) => ({ ...atuais, estadoOperacional: valor as EstadoOperacional }))}
         erro={erros.estadoOperacional}
