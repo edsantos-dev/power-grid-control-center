@@ -125,6 +125,12 @@ O [roteiro do simulador](scripts/README.md) explica o ambiente virtual, a cópia
 
 ---
 
+## Roteiro de Testes
+
+[Guia de avaliação do MVP para a banca](docs/guia-avaliacao.md)
+
+---
+
 ## Documentação
 
 Documentação atual:
